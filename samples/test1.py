@@ -23,7 +23,7 @@ def main():
         # テキストを描画
         try:
             font = ImageFont.truetype("DejaVuSans-Bold.ttf", 24)
-        except:
+        except IOError:
             font = ImageFont.load_default()
         draw.text((10, 10), "Hello ST7789V!", font=font, fill=(255, 255, 0))
 

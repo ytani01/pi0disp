@@ -1,18 +1,11 @@
 from PIL import Image, ImageDraw
 import time
-import random
 
 from pi0disp import ST7789V
 
 def main():
     with ST7789V(speed_hz=40000000) as lcd:
         print("アニメーション開始... Ctrl+C で終了してください。")
-        try:
-            import numpy
-            print("numpyを検出しました。高速な描画が可能です。")
-        except ImportError:
-            print("警告: numpyがインストールされていません。描画が低速になります。")
-            print("`pip install numpy` でパフォーマンスが向上します。")
 
         # ボールの初期位置と速度
         ball_x, ball_y = 50, 50

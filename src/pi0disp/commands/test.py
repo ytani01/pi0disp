@@ -28,17 +28,11 @@ ST7789Vディスプレイで動作する、物理ベースのアニメーショ�
 import time
 import click
 from PIL import Image, ImageDraw, ImageFont
-
-try:
-    import numpy as np
-except ImportError:
-    print("エラー: numpy がインストールされていません。")
-    print("このスクリプトのパフォーマンスには numpy が不可欠です。")
-    print("コマンド: pip install numpy")
-    exit()
+import numpy as np
 
 from .. import ST7789V
 from ..my_logger import get_logger
+from ..utils import pil_to_rgb565_bytes, merge_bboxes
 
 log = get_logger(__name__)
 
@@ -66,29 +60,6 @@ class CONFIG:
     FPS_TEXT_COLOR = (255, 255, 255)
     FPS_UPDATE_INTERVAL = 0.2  # FPS表示の更新間隔 (秒)
     FPS_AREA_PADDING = 5      # FPS表示領域の余白
-
-# --- ヘルパー関数 ---
-def pil_to_rgb565_bytes(img):
-    """PIL.Image → RGB565のバイト列に変換 (numpyを使った高速版)"""
-    np_img = np.array(img, dtype=np.uint8)
-    r = (np_img[:, :, 0] >> 3).astype(np.uint16)
-    g = (np_img[:, :, 1] >> 2).astype(np.uint16)
-    b = (np_img[:, :, 2] >> 3).astype(np.uint16)
-    rgb565 = (r << 11) | (g << 5) | b
-    return rgb565.byteswap().tobytes()
-
-def merge_bboxes(bbox1, bbox2):
-    """2つのバウンディングボックスをマージして、両方を含む最小のボックスを返す"""
-    if not bbox1:
-        return bbox2
-    if not bbox2:
-        return bbox1
-    return (
-        min(bbox1[0], bbox2[0]),
-        min(bbox1[1], bbox2[1]),
-        max(bbox1[2], bbox2[2]),
-        max(bbox1[3], bbox2[3]),
-    )
 
 # --- 描画オブジェクトクラス ---
 class Ball:

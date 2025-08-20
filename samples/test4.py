@@ -88,8 +88,10 @@ def pil_to_rgb565_bytes(img):
 
 def merge_bboxes(bbox1, bbox2):
     """2つのバウンディングボックスをマージして、両方を含む最小のボックスを返す"""
-    if not bbox1: return bbox2
-    if not bbox2: return bbox1
+    if not bbox1:
+        return bbox2
+    if not bbox2:
+        return bbox1
     return (
         min(bbox1[0], bbox2[0]),
         min(bbox1[1], bbox2[1]),

@@ -5,11 +5,7 @@ import time
 
 import pigpio
 
-try:
-    import numpy as np
-    _NUMPY_AVAILABLE = True
-except ImportError:
-    _NUMPY_AVAILABLE = False
+import numpy as np
 
 class ST7789V:
     """
@@ -193,25 +189,12 @@ class ST7789V:
         if image.size != (self.width, self.height):
             image = image.resize((self.width, self.height))
 
-        if _NUMPY_AVAILABLE:
-            # numpy を使った高速な変換
-            np_img = np.array(image, dtype=np.uint8)
-            r = (np_img[:, :, 0] >> 3).astype(np.uint16)
-            g = (np_img[:, :, 1] >> 2).astype(np.uint16)
-            b = (np_img[:, :, 2] >> 3).astype(np.uint16)
-            rgb565 = (r << 11) | (g << 5) | b
-            self._buffer = rgb565.byteswap().tobytes()
-        else:
-            # PIL のみを使った変換 (低速)
-            pixel_data = []
-            w, h = image.size
-            for y in range(h):
-                for x in range(w):
-                    r, g, b = image.getpixel((x, y))
-                    rgb565 = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)
-                    pixel_data.append(rgb565 >> 8)
-                    pixel_data.append(rgb565 & 0xFF)
-            self._buffer = bytearray(pixel_data)
+        np_img = np.array(image, dtype=np.uint8)
+        r = (np_img[:, :, 0] >> 3).astype(np.uint16)
+        g = (np_img[:, :, 1] >> 2).astype(np.uint16)
+        b = (np_img[:, :, 2] >> 3).astype(np.uint16)
+        rgb565 = (r << 11) | (g << 5) | b
+        self._buffer = rgb565.byteswap().tobytes()
 
         self.set_window(0, 0, self.width - 1, self.height - 1)
         self.write_pixels(self._buffer)
