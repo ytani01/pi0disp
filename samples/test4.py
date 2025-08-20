@@ -26,6 +26,7 @@ ST7789Vディスプレイで動作する、物理ベースのアニメーショ�
     これにより、システムの負荷を軽減し、安定した動作を実現します。
 """
 import time
+import random
 from PIL import Image, ImageDraw, ImageFont
 
 try:
@@ -36,6 +37,7 @@ except ImportError:
     print("コマンド: pip install numpy")
     exit()
 
+import click
 from pi0disp import ST7789V
 
 # --- 設定クラス ---
@@ -53,8 +55,19 @@ class CONFIG:
     BALL_INITIAL_SPEED_Y = 200.0  # 縦方向の速度 (ピクセル/秒)
 
     # 描画設定
-    BALL_FILL_COLOR = (255, 255, 0)
+    BALL_FILL_COLOR = (255, 255, 0) # デフォルト色（使用しないが残しておく）
     BALL_OUTLINE_COLOR = (255, 255, 255)
+    BALL_ALPHA = 192 # 0-255, 0が完全透明、255が完全不透明
+    BALL_COLORS = [
+        (255, 255, 0),   # 黄色
+        (0, 255, 255),   # シアン
+        (255, 0, 255),   # マゼンタ
+        (255, 165, 0),   # オレンジ
+        (0, 255, 0),     # 緑
+        (0, 0, 255),     # 青
+        (255, 255, 255), # 白
+        (128, 0, 128),   # 紫
+    ]
     
     # FPSカウンター設定
     FPS_FONT_PATH = "Firge-Regular.ttf"
@@ -93,8 +106,8 @@ class Ball:
         self.radius = radius
         self.speed_x = float(speed_x)
         self.speed_y = float(speed_y)
-        self.fill_color = fill_color
-        self.outline_color = outline_color
+        self.fill_color = fill_color  # RGBA形式を想定
+        self.outline_color = outline_color # RGB形式を想定
         self.prev_bbox = None
 
     def update_position(self, delta_t, screen_width, screen_height):
@@ -122,7 +135,7 @@ class Ball:
             int(self.x + self.radius), int(self.y + self.radius)
         )
 
-    def draw(self, lcd, bg_img):
+    def draw(self, current_frame_buffer, bg_img_full_screen, screen_width, screen_height):
         """差分描画ロジックを実行する"""
         curr_bbox = self.get_bbox()
         
@@ -133,27 +146,21 @@ class Ball:
             # 安全マージンを追加して、輪郭線の残像を防ぐ
             update_bbox = (
                 max(0, update_bbox[0] - 1), max(0, update_bbox[1] - 1),
-                min(lcd.width, update_bbox[2] + 1), min(lcd.height, update_bbox[3] + 1),
+                min(screen_width, update_bbox[2] + 1), min(screen_height, update_bbox[3] + 1),
             )
             
-            # 描画処理
-            update_img = bg_img.crop(update_bbox)
-            draw = ImageDraw.Draw(update_img)
-            
+            # 背景をダーティ矩形領域に再描画
+            current_frame_buffer.paste(bg_img_full_screen.crop(update_bbox), update_bbox[:2])
+
             # 更新領域内の相対座標にボールを描画
-            draw_x = curr_bbox[0] - update_bbox[0]
-            draw_y = curr_bbox[1] - update_bbox[1]
-            draw.ellipse(
-                (draw_x, draw_y, draw_x + self.radius * 2, draw_y + self.radius * 2),
+            draw_obj = ImageDraw.Draw(current_frame_buffer)
+            draw_obj.ellipse(
+                (curr_bbox[0], curr_bbox[1], curr_bbox[2], curr_bbox[3]),
                 fill=self.fill_color, outline=self.outline_color
             )
-            
-            # LCDに転送
-            pixel_bytes = pil_to_rgb565_bytes(update_img)
-            lcd.set_window(update_bbox[0], update_bbox[1], update_bbox[2] - 1, update_bbox[3] - 1)
-            lcd.write_pixels(pixel_bytes)
 
         self.prev_bbox = curr_bbox
+        return update_bbox
 
 class FpsCounter:
     """FPSの計算と描画を管理するクラス"""
@@ -177,34 +184,36 @@ class FpsCounter:
 
         self.frame_count = 0
         self.last_update_time = time.time()
-        self.bg_crop = bg_img.crop(self.bbox)
+        # self.bg_crop = bg_img.crop(self.bbox) # 不要になるためコメントアウト
 
-    def update_and_draw(self, lcd):
+    def update_and_draw_on_buffer(self, draw_obj):
         """FPSを計算し、更新タイミングであれば描画する"""
         self.frame_count += 1
         current_time = time.time()
         elapsed = current_time - self.last_update_time
 
+        fps = self.frame_count / elapsed if elapsed > 0 else 0.0
+        fps_text = f"FPS: {fps:.0f}"
+            
+        # 描画処理
+        # draw_objはRGBAモードのImageDrawオブジェクトを想定
+        draw_obj.rectangle(self.bbox, fill=(0,0,0,0)) # 透明な背景でFPS領域をクリア
+        draw_obj.text((self.bbox[0] + self.draw_offset[0], self.bbox[1] + self.draw_offset[1]), fps_text, font=self.font, fill=CONFIG.FPS_TEXT_COLOR)
+            
+        # カウンタをリセット
         if elapsed >= CONFIG.FPS_UPDATE_INTERVAL:
-            fps = self.frame_count / elapsed
-            fps_text = f"FPS: {fps:.0f}"
-            
-            # 描画処理
-            text_img = self.bg_crop.copy()
-            draw = ImageDraw.Draw(text_img)
-            draw.text(self.draw_offset, fps_text, font=self.font, fill=CONFIG.FPS_TEXT_COLOR)
-            
-            pixel_bytes = pil_to_rgb565_bytes(text_img)
-            lcd.set_window(self.bbox[0], self.bbox[1], self.bbox[2] - 1, self.bbox[3] - 1)
-            lcd.write_pixels(pixel_bytes)
-            
-            # カウンタをリセット
             self.frame_count = 0
             self.last_update_time = current_time
 
 # --- メイン処理 ---
-def main():
+@click.command()
+@click.option('--num-balls', '-n', default=3, type=int, help='表示するボールの数。')
+def main(num_balls):
     """メイン関数"""
+    if num_balls <= 0:
+        print("エラー: ボールの数は1以上である必要があります。")
+        return
+
     with ST7789V(speed_hz=CONFIG.SPI_SPEED_HZ) as lcd:
         print(f"フレームレートを約{CONFIG.TARGET_FPS}FPSに制限します... Ctrl+C で終了してください。")
 
@@ -217,11 +226,21 @@ def main():
         lcd.display(bg_img)
 
         # 2. オブジェクトを初期化
-        balls = [
-            Ball(50, 50, CONFIG.BALL_RADIUS, CONFIG.BALL_INITIAL_SPEED_X, CONFIG.BALL_INITIAL_SPEED_Y, (255, 255, 0), (255, 255, 255)), # 黄色
-            Ball(100, 150, CONFIG.BALL_RADIUS * 1.2, CONFIG.BALL_INITIAL_SPEED_X * 0.8, CONFIG.BALL_INITIAL_SPEED_Y * 1.1, (0, 255, 255), (255, 255, 255)), # シアン
-            Ball(180, 80, CONFIG.BALL_RADIUS * 0.8, CONFIG.BALL_INITIAL_SPEED_X * 1.2, CONFIG.BALL_INITIAL_SPEED_Y * 0.9, (255, 0, 255), (255, 255, 255))  # マゼンタ
-        ]
+        balls = []
+        for i in range(num_balls):
+            # ボールの初期位置と速度をランダムに設定
+            x = random.randint(CONFIG.BALL_RADIUS, lcd.width - CONFIG.BALL_RADIUS - 1)
+            y = random.randint(CONFIG.BALL_RADIUS, lcd.height - CONFIG.BALL_RADIUS - 1)
+            speed_x = random.choice([-1, 1]) * (CONFIG.BALL_INITIAL_SPEED_X + random.uniform(-50, 50))
+            speed_y = random.choice([-1, 1]) * (CONFIG.BALL_INITIAL_SPEED_Y + random.uniform(-50, 50))
+            
+            # ボールの色をCONFIG.BALL_COLORSから循環して選択
+            base_color = CONFIG.BALL_COLORS[i % len(CONFIG.BALL_COLORS)]
+            fill_color = base_color + (CONFIG.BALL_ALPHA,)
+            outline_color = CONFIG.BALL_OUTLINE_COLOR
+
+            balls.append(Ball(x, y, CONFIG.BALL_RADIUS, speed_x, speed_y, fill_color, outline_color))
+
         fps_counter = FpsCounter(lcd, bg_img)
         
         # 3. メインループ
@@ -235,10 +254,33 @@ def main():
             last_frame_time = frame_start_time
 
             # --- 更新と描画 ---
+            # オフスクリーンバッファを背景で初期化
+            current_frame_buffer = bg_img.copy().convert("RGBA")
+            draw_on_buffer = ImageDraw.Draw(current_frame_buffer)
+
+            total_update_bbox = None
+
             for ball in balls:
                 ball.update_position(delta_t, lcd.width, lcd.height)
-                ball.draw(lcd, bg_img)
-            fps_counter.update_and_draw(lcd)
+                # ボールを描画し、ダーティ矩形を取得
+                ball_update_bbox = ball.draw(current_frame_buffer, bg_img, lcd.width, lcd.height)
+                total_update_bbox = merge_bboxes(total_update_bbox, ball_update_bbox)
+            
+            # FPSカウンターを描画
+            fps_counter.update_and_draw_on_buffer(draw_on_buffer)
+            total_update_bbox = merge_bboxes(total_update_bbox, fps_counter.bbox) # FPSカウンターの領域も更新対象に含める
+
+            # 結合されたダーティ矩形領域のみをLCDに転送
+            if total_update_bbox:
+                # 安全マージンを追加して、輪郭線の残像を防ぐ
+                total_update_bbox = (
+                    max(0, total_update_bbox[0] - 1), max(0, total_update_bbox[1] - 1),
+                    min(lcd.width, total_update_bbox[2] + 1), min(lcd.height, total_update_bbox[3] + 1),
+                )
+                cropped_img = current_frame_buffer.crop(total_update_bbox).convert("RGB")
+                pixel_bytes = pil_to_rgb565_bytes(cropped_img)
+                lcd.set_window(total_update_bbox[0], total_update_bbox[1], total_update_bbox[2] - 1, total_update_bbox[3] - 1)
+                lcd.write_pixels(pixel_bytes)
 
             # --- フレームレート制限 ---
             # 処理にかかった時間に応じて待機時間を計算し、CPU負荷を軽減する

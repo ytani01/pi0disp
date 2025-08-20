@@ -22,7 +22,7 @@ build-backend = "hatchling.build"
 source = "vcs"
 
 [project.scripts]
-pi0disp = "pi0disp.__main__"
+pi0disp = "pi0disp.__main__:cli"
 
 [dependency-groups]
 dev = [
