@@ -26,6 +26,7 @@ ST7789Vディスプレイで動作する、物理ベースのアニメーショ�
     これにより、システムの負荷を軽減し、安定した動作を実現します。
 """
 import time
+import click
 from PIL import Image, ImageDraw, ImageFont
 
 try:
@@ -36,7 +37,10 @@ except ImportError:
     print("コマンド: pip install numpy")
     exit()
 
-from pi0disp import ST7789V
+from .. import ST7789V
+from ..my_logger import get_logger
+
+log = get_logger(__name__)
 
 # --- 設定クラス ---
 class CONFIG:
@@ -75,8 +79,10 @@ def pil_to_rgb565_bytes(img):
 
 def merge_bboxes(bbox1, bbox2):
     """2つのバウンディングボックスをマージして、両方を含む最小のボックスを返す"""
-    if not bbox1: return bbox2
-    if not bbox2: return bbox1
+    if not bbox1:
+        return bbox2
+    if not bbox2:
+        return bbox1
     return (
         min(bbox1[0], bbox2[0]),
         min(bbox1[1], bbox2[1]),
@@ -160,9 +166,9 @@ class FpsCounter:
     def __init__(self, lcd, bg_img):
         try:
             self.font = ImageFont.truetype(CONFIG.FPS_FONT_PATH, CONFIG.FPS_FONT_SIZE)
-            print(f"'{CONFIG.FPS_FONT_PATH}' フォントを読み込みました。")
+            log.info(f"'{CONFIG.FPS_FONT_PATH}' フォントを読み込みました。")
         except IOError:
-            print(f"警告: '{CONFIG.FPS_FONT_PATH}' が見つかりません。デフォルトフォントを使用します。")
+            log.warning(f"警告: '{CONFIG.FPS_FONT_PATH}' が見つかりません。デフォルトフォントを使用します。")
             self.font = ImageFont.load_default()
 
         # 文字欠けを防ぐため、textbboxのオフセットを考慮した固定描画領域を計算
@@ -202,53 +208,61 @@ class FpsCounter:
             self.frame_count = 0
             self.last_update_time = current_time
 
-# --- メイン処理 ---
-def main():
-    """メイン関数"""
-    with ST7789V(speed_hz=CONFIG.SPI_SPEED_HZ) as lcd:
-        print(f"フレームレートを約{CONFIG.TARGET_FPS}FPSに制限します... Ctrl+C で終了してください。")
+@click.command()
+@click.option('--speed', default=CONFIG.SPI_SPEED_HZ, type=int, help='SPI speed in Hz')
+@click.option('--fps', default=CONFIG.TARGET_FPS, type=float, help='Target frames per second')
+def test(speed, fps):
+    """
+    Run the physics-based animation demo (test3).
+    """
+    CONFIG.SPI_SPEED_HZ = speed
+    CONFIG.TARGET_FPS = fps
 
-        # 1. 背景画像を一度だけ生成し、画面全体に描画
-        bg_img = Image.new("RGB", (lcd.width, lcd.height))
-        draw = ImageDraw.Draw(bg_img)
-        for y in range(lcd.height):
-            color = (y % 256, (y*2) % 256, (y*3) % 256)
-            draw.line((0, y, lcd.width, y), fill=color)
-        lcd.display(bg_img)
+    log.info(f"フレームレートを約{CONFIG.TARGET_FPS}FPSに制限します... Ctrl+C で終了してください。")
 
-        # 2. オブジェクトを初期化
-        balls = [
-            Ball(50, 50, CONFIG.BALL_RADIUS, CONFIG.BALL_INITIAL_SPEED_X, CONFIG.BALL_INITIAL_SPEED_Y, (255, 255, 0), (255, 255, 255)), # 黄色
-            Ball(100, 150, CONFIG.BALL_RADIUS * 1.2, CONFIG.BALL_INITIAL_SPEED_X * 0.8, CONFIG.BALL_INITIAL_SPEED_Y * 1.1, (0, 255, 255), (255, 255, 255)), # シアン
-            Ball(180, 80, CONFIG.BALL_RADIUS * 0.8, CONFIG.BALL_INITIAL_SPEED_X * 1.2, CONFIG.BALL_INITIAL_SPEED_Y * 0.9, (255, 0, 255), (255, 255, 255))  # マゼンタ
-        ]
-        fps_counter = FpsCounter(lcd, bg_img)
-        
-        # 3. メインループ
-        last_frame_time = time.time()
-        target_duration = 1.0 / CONFIG.TARGET_FPS
-
-        while True:
-            # --- 時間管理 ---
-            frame_start_time = time.time()
-            delta_t = frame_start_time - last_frame_time
-            last_frame_time = frame_start_time
-
-            # --- 更新と描画 ---
-            for ball in balls:
-                ball.update_position(delta_t, lcd.width, lcd.height)
-                ball.draw(lcd, bg_img)
-            fps_counter.update_and_draw(lcd)
-
-            # --- フレームレート制限 ---
-            # 処理にかかった時間に応じて待機時間を計算し、CPU負荷を軽減する
-            elapsed_time = time.time() - frame_start_time
-            sleep_duration = target_duration - elapsed_time
-            if sleep_duration > 0:
-                time.sleep(sleep_duration)
-
-if __name__ == "__main__":
     try:
-        main()
+        with ST7789V(speed_hz=CONFIG.SPI_SPEED_HZ) as lcd:
+            # 1. 背景画像を一度だけ生成し、画面全体に描画
+            bg_img = Image.new("RGB", (lcd.width, lcd.height))
+            draw = ImageDraw.Draw(bg_img)
+            for y in range(lcd.height):
+                color = (y % 256, (y*2) % 256, (y*3) % 256)
+                draw.line((0, y, lcd.width, y), fill=color)
+            lcd.display(bg_img)
+
+            # 2. オブジェクトを初期化
+            balls = [
+                Ball(50, 50, CONFIG.BALL_RADIUS, CONFIG.BALL_INITIAL_SPEED_X, CONFIG.BALL_INITIAL_SPEED_Y, (255, 255, 0), (255, 255, 255)), # 黄色
+                Ball(100, 150, CONFIG.BALL_RADIUS * 1.2, CONFIG.BALL_INITIAL_SPEED_X * 0.8, CONFIG.BALL_INITIAL_SPEED_Y * 1.1, (0, 255, 255), (255, 255, 255)), # シアン
+                Ball(180, 80, CONFIG.BALL_RADIUS * 0.8, CONFIG.BALL_INITIAL_SPEED_X * 1.2, CONFIG.BALL_INITIAL_SPEED_Y * 0.9, (255, 0, 255), (255, 255, 255))  # マゼンタ
+            ]
+            fps_counter = FpsCounter(lcd, bg_img)
+            
+            # 3. メインループ
+            last_frame_time = time.time()
+            target_duration = 1.0 / CONFIG.TARGET_FPS
+
+            while True:
+                # --- 時間管理 ---
+                frame_start_time = time.time()
+                delta_t = frame_start_time - last_frame_time
+                last_frame_time = frame_start_time
+
+                # --- 更新と描画 ---
+                for ball in balls:
+                    ball.update_position(delta_t, lcd.width, lcd.height)
+                    ball.draw(lcd, bg_img)
+                fps_counter.update_and_draw(lcd)
+
+                # --- フレームレート制限 ---
+                # 処理にかかった時間に応じて待機時間を計算し、CPU負荷を軽減する
+                elapsed_time = time.time() - frame_start_time
+                sleep_duration = target_duration - elapsed_time
+                if sleep_duration > 0:
+                    time.sleep(sleep_duration)
+
     except KeyboardInterrupt:
-        print("\n終了しました。")
+        log.info("\n終了しました。")
+    except Exception as e:
+        log.error(f"エラーが発生しました: {e}")
+        exit(1)
