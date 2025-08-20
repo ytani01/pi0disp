@@ -93,14 +93,13 @@ def merge_bboxes(bbox1, bbox2):
 # --- 描画オブジェクトクラス ---
 class Ball:
     """ボールの状態と振る舞いを管理するクラス"""
-    def __init__(self, x, y, radius, speed_x, speed_y, fill_color, outline_color):
+    def __init__(self, x, y, radius, speed_x, speed_y, fill_color):
         self.x = float(x)
         self.y = float(y)
         self.radius = radius
         self.speed_x = float(speed_x)
         self.speed_y = float(speed_y)
         self.fill_color = fill_color
-        self.outline_color = outline_color
         self.prev_bbox = None
 
     def update_position(self, delta_t, screen_width, screen_height):
@@ -151,7 +150,7 @@ class Ball:
             draw_y = curr_bbox[1] - update_bbox[1]
             draw.ellipse(
                 (draw_x, draw_y, draw_x + self.radius * 2, draw_y + self.radius * 2),
-                fill=self.fill_color, outline=self.outline_color
+                fill=self.fill_color
             )
             
             # LCDに転送
@@ -209,9 +208,11 @@ class FpsCounter:
             self.last_update_time = current_time
 
 @click.command()
-@click.option('--speed', default=CONFIG.SPI_SPEED_HZ, type=int, help='SPI speed in Hz')
-@click.option('--fps', default=CONFIG.TARGET_FPS, type=float, help='Target frames per second')
-def test(speed, fps):
+@click.option('--speed', default=CONFIG.SPI_SPEED_HZ, type=int, help='SPI speed in Hz', show_default=True)
+@click.option('--fps', default=CONFIG.TARGET_FPS, type=float, help='Target frames per second', show_default=True)
+@click.option('--num-balls', default=3, type=int, help='Number of balls to display', show_default=True)
+@click.option('--ball-speed', default=None, type=float, help='Absolute speed of balls (pixels/second). If not specified, balls will have random speeds based on internal configuration.')
+def test(speed, fps, num_balls, ball_speed):
     """
     Run the physics-based animation demo (test3).
     """
@@ -231,11 +232,24 @@ def test(speed, fps):
             lcd.display(bg_img)
 
             # 2. オブジェクトを初期化
-            balls = [
-                Ball(50, 50, CONFIG.BALL_RADIUS, CONFIG.BALL_INITIAL_SPEED_X, CONFIG.BALL_INITIAL_SPEED_Y, (255, 255, 0), (255, 255, 255)), # 黄色
-                Ball(100, 150, CONFIG.BALL_RADIUS * 1.2, CONFIG.BALL_INITIAL_SPEED_X * 0.8, CONFIG.BALL_INITIAL_SPEED_Y * 1.1, (0, 255, 255), (255, 255, 255)), # シアン
-                Ball(180, 80, CONFIG.BALL_RADIUS * 0.8, CONFIG.BALL_INITIAL_SPEED_X * 1.2, CONFIG.BALL_INITIAL_SPEED_Y * 0.9, (255, 0, 255), (255, 255, 255))  # マゼンタ
-            ]
+            balls = []
+            for i in range(num_balls):
+                x = np.random.randint(CONFIG.BALL_RADIUS, lcd.width - CONFIG.BALL_RADIUS)
+                y = np.random.randint(CONFIG.BALL_RADIUS, lcd.height - CONFIG.BALL_RADIUS)
+                
+                if ball_speed is not None:
+                    # 指定された絶対速度に基づいて速度ベクトルを生成
+                    angle = np.random.rand() * 2 * np.pi
+                    speed_x = ball_speed * np.cos(angle)
+                    speed_y = ball_speed * np.sin(angle)
+                else:
+                    # デフォルトの速度とランダムな変動を使用
+                    speed_x = CONFIG.BALL_INITIAL_SPEED_X * (1 + (np.random.rand() - 0.5) * 0.5)
+                    speed_y = CONFIG.BALL_INITIAL_SPEED_Y * (1 + (np.random.rand() - 0.5) * 0.5)
+
+                fill_color = (np.random.randint(0, 256), np.random.randint(0, 256), np.random.randint(0, 256))
+                balls.append(Ball(x, y, CONFIG.BALL_RADIUS, speed_x, speed_y, fill_color))
+
             fps_counter = FpsCounter(lcd, bg_img)
             
             # 3. メインループ
@@ -262,7 +276,8 @@ def test(speed, fps):
                     time.sleep(sleep_duration)
 
     except KeyboardInterrupt:
-        log.info("\n終了しました。")
+        log.info("\n終了しました。" )
     except Exception as e:
         log.error(f"エラーが発生しました: {e}")
         exit(1)
+

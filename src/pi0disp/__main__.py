@@ -5,7 +5,7 @@ import click
 
 from . import __version__
 from .my_logger import get_logger
-from .commands.test3 import test
+from .commands.test import test
 
 log = get_logger(__name__)
 
