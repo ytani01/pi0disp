@@ -3,6 +3,7 @@ name = "pi0disp"
 dynamic = ["version"]
 description = "Display drivers for Raspberry Pi"
 readme = "README.md"
+license = { file = "LICENSE" }
 authors = [
     { name = "Yoichi Tanibayashi", email = "yoichi@tanibayashi.jp" }
 ]
