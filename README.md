@@ -66,6 +66,8 @@ sudo systemctl start pigpiod
 
 `pi0disp`のコア機能は `ST7789V` クラスです。Pythonスクリプトから直接インポートして使用できます。
 
+以下のコード例は [`samples/basic_usage.py`](./samples/basic_usage.py) としても保存されており、実際に実行して動作を確認できます。
+
 **基本的な使用例:**
 
 ```python

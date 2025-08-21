@@ -14,7 +14,10 @@ log = get_logger(__name__)
 @click.version_option(version=__version__)
 def cli():
     """
-    ST7789V Display Driver CLI
+    A CLI tool for the ST7789V Display Driver.
+
+    Provides basic commands to test and interact with the display,
+    serving as a demonstration of the pi0disp library's capabilities.
     """
     pass
 
