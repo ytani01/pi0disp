@@ -2,6 +2,7 @@
 # (c) 2025 Yoichi Tanibayashi
 #
 """On/Off command."""
+import time
 import click
 
 from .. import ST7789V
@@ -17,6 +18,7 @@ def off():
     try:
         with ST7789V() as lcd:
             # lcd.off()
+            time.sleep(.5)
             lcd.sleep()
 
     except Exception as _e:
