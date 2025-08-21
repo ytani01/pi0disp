@@ -3,6 +3,7 @@
 #
 """
 ST7789Vディスプレイで動作する、物理ベースのアニメーションデモ。
+最適化されたドライバとユーティリティ関数を使用。
 """
 import time
 
@@ -12,7 +13,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from .. import ST7789V
 from ..my_logger import get_logger
-from ..utils import merge_bboxes, pil_to_rgb565_bytes
+from ..utils import merge_bboxes, pil_to_rgb565_bytes_region, optimize_dirty_regions, clamp_region
 
 log = get_logger(__name__)
 
@@ -68,7 +69,6 @@ class Ball:
     def draw(self, image_buffer):
         draw = ImageDraw.Draw(image_buffer)
         bbox = self.get_bbox()
-        # draw.ellipse(bbox, fill=self.fill_color, outline=CONFIG.BALL_OUTLINE_COLOR)
         draw.ellipse(bbox, fill=self.fill_color, outline=self.fill_color)
         self.prev_bbox = bbox
 
@@ -103,7 +103,7 @@ class FpsCounter:
             fps = self.frame_count / elapsed
             fps_text = f"FPS: {fps:.0f}"
 
-            # --- HUD処理: FPSレイヤーをクリアして文字を再描画 ---
+            # FPSレイヤーをクリアして文字を再描画
             fps_layer.paste((0,0,0,0), self.bbox)
             draw = ImageDraw.Draw(fps_layer)
             draw.text((self.bbox[0] + self.draw_offset[0], self.bbox[1] + self.draw_offset[1]),
@@ -125,10 +125,11 @@ def test(speed, fps, num_balls, ball_speed):
     CONFIG.SPI_SPEED_HZ = speed
     CONFIG.TARGET_FPS = fps
 
-    log.info(f"フレームレートを約{CONFIG.TARGET_FPS}FPSに制限します... Ctrl+C で終了してください。")
+    log.info(f"最適化モードでフレームレート約{CONFIG.TARGET_FPS}FPSで動作します... Ctrl+C で終了してください。")
 
     try:
         with ST7789V(speed_hz=CONFIG.SPI_SPEED_HZ) as lcd:
+            # 背景画像を生成（元のまま）
             initial_background_image = Image.new("RGB", (lcd.width, lcd.height))
             draw = ImageDraw.Draw(initial_background_image)
             for y in range(lcd.height):
@@ -137,6 +138,7 @@ def test(speed, fps, num_balls, ball_speed):
             
             lcd.display(initial_background_image)
 
+            # ボール初期化（元のまま）
             balls = []
             for _ in range(num_balls):
                 x = np.random.randint(
@@ -167,7 +169,7 @@ def test(speed, fps, num_balls, ball_speed):
                     Ball(x, y, CONFIG.BALL_RADIUS, speed_x, speed_y, fill_color)
                 )
 
-            # --- HUD処理: FPS用HUDレイヤーを作成 ---
+            # FPS用HUDレイヤー初期化
             fps_layer = Image.new("RGBA", (lcd.width, lcd.height), (0,0,0,0))
             fps_counter = FpsCounter(lcd, fps_layer)
             
@@ -179,50 +181,54 @@ def test(speed, fps, num_balls, ball_speed):
                 delta_t = frame_start_time - last_frame_time
                 last_frame_time = frame_start_time
 
+                # フレーム画像を背景で初期化
                 new_frame_image = initial_background_image.copy()
                 dirty_regions = []
 
-                # --- ボール描画 ---
+                # ボールの更新と描画
                 for ball in balls:
                     prev_bbox_before_update = ball.prev_bbox
                     ball.update_position(delta_t, lcd.width, lcd.height)
                     curr_bbox_after_update = ball.get_bbox()
 
+                    # ダーティ領域を計算
                     dirty_region = merge_bboxes(
                         prev_bbox_before_update, curr_bbox_after_update
                     )
                     if dirty_region:
-                        dirty_region = (
-                            max(0, dirty_region[0] - 1),
-                            max(0, dirty_region[1] - 1),
-                            min(lcd.width, dirty_region[2] + 1),
-                            min(lcd.height, dirty_region[3] + 1),
-                        )
+                        # 境界内にクランプして安全マージンを追加
+                        dirty_region = clamp_region((
+                            dirty_region[0] - 1,
+                            dirty_region[1] - 1,
+                            dirty_region[2] + 1,
+                            dirty_region[3] + 1,
+                        ), lcd.width, lcd.height)
                         dirty_regions.append(dirty_region)
 
                     ball.draw(new_frame_image)
 
-                # --- HUD処理: FPS更新（HUDレイヤーに描画） ---
+                # FPS更新
                 fps_dirty_bbox = fps_counter.update_and_draw(fps_layer)
                 if fps_dirty_bbox:
+                    fps_dirty_bbox = clamp_region(fps_dirty_bbox, lcd.width, lcd.height)
                     dirty_regions.append(fps_dirty_bbox)
 
-                # --- HUD処理: HUDレイヤーをフレームに合成 ---
+                # HUDレイヤーをフレームに合成
                 frame_rgba = new_frame_image.convert("RGBA")
                 frame_rgba.alpha_composite(fps_layer)
+                final_frame = frame_rgba.convert("RGB")
 
-                # --- LCDへ転送 ---
-                for dirty_bbox in dirty_regions:
-                    region_to_send = frame_rgba.crop(dirty_bbox)
-                    pixel_bytes = pil_to_rgb565_bytes(region_to_send.convert("RGB"))
-                    lcd.set_window(
-                        dirty_bbox[0],
-                        dirty_bbox[1],
-                        dirty_bbox[2] - 1,
-                        dirty_bbox[3] - 1
-                    )
-                    lcd.write_pixels(pixel_bytes)
+                # ダーティ領域を最適化（新機能）
+                if dirty_regions:
+                    optimized_regions = optimize_dirty_regions(dirty_regions, max_regions=6)
+                    
+                    # 最適化されたSPI転送で各領域を更新
+                    for region in optimized_regions:
+                        if region[2] > region[0] and region[3] > region[1]:
+                            # 新しい高速転送メソッドを使用
+                            lcd.display_region(final_frame, region[0], region[1], region[2], region[3])
 
+                # フレームレート制御
                 elapsed_time = time.time() - frame_start_time
                 sleep_duration = target_duration - elapsed_time
                 if sleep_duration > 0:
