@@ -4,6 +4,7 @@ pi0disp プロジェクト全体で利用されるユーティリティ関数群
 """
 import numpy as np
 
+
 def pil_to_rgb565_bytes(img):
     """PIL.Image → RGB565のバイト列に変換 (numpyを使った高速版)"""
     np_img = np.array(img, dtype=np.uint8)

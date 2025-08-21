@@ -1,15 +1,18 @@
-# -*- coding: utf-8 -*-
+#
+# (c) 2025 Yoichi Tanibayashi
+#
 """
 ST7789Vディスプレイで動作する、物理ベースのアニメーションデモ。
 """
 import time
+
 import click
-from PIL import Image, ImageDraw, ImageFont
 import numpy as np
+from PIL import Image, ImageDraw, ImageFont
 
 from .. import ST7789V
 from ..my_logger import get_logger
-from ..utils import pil_to_rgb565_bytes, merge_bboxes
+from ..utils import merge_bboxes, pil_to_rgb565_bytes
 
 log = get_logger(__name__)
 
@@ -135,20 +138,34 @@ def test(speed, fps, num_balls, ball_speed):
             lcd.display(initial_background_image)
 
             balls = []
-            for i in range(num_balls):
-                x = np.random.randint(CONFIG.BALL_RADIUS, lcd.width - CONFIG.BALL_RADIUS)
-                y = np.random.randint(CONFIG.BALL_RADIUS, lcd.height - CONFIG.BALL_RADIUS)
+            for _ in range(num_balls):
+                x = np.random.randint(
+                    CONFIG.BALL_RADIUS, lcd.width - CONFIG.BALL_RADIUS
+                )
+                y = np.random.randint(
+                    CONFIG.BALL_RADIUS, lcd.height - CONFIG.BALL_RADIUS
+                )
 
                 if ball_speed is not None:
                     angle = np.random.rand() * 2 * np.pi
                     speed_x = ball_speed * np.cos(angle)
                     speed_y = ball_speed * np.sin(angle)
                 else:
-                    speed_x = CONFIG.BALL_INITIAL_SPEED_X * (1 + (np.random.rand() - 0.5) * 0.5)
-                    speed_y = CONFIG.BALL_INITIAL_SPEED_Y * (1 + (np.random.rand() - 0.5) * 0.5)
+                    speed_x = CONFIG.BALL_INITIAL_SPEED_X * (
+                        1 + (np.random.rand() - 0.5) * 0.5
+                    )
+                    speed_y = CONFIG.BALL_INITIAL_SPEED_Y * (
+                        1 + (np.random.rand() - 0.5) * 0.5
+                    )
 
-                fill_color = (np.random.randint(0, 256), np.random.randint(0, 256), np.random.randint(0, 256))
-                balls.append(Ball(x, y, CONFIG.BALL_RADIUS, speed_x, speed_y, fill_color))
+                fill_color = (
+                    np.random.randint(0, 256),
+                    np.random.randint(0, 256),
+                    np.random.randint(0, 256)
+                )
+                balls.append(
+                    Ball(x, y, CONFIG.BALL_RADIUS, speed_x, speed_y, fill_color)
+                )
 
             # --- HUD処理: FPS用HUDレイヤーを作成 ---
             fps_layer = Image.new("RGBA", (lcd.width, lcd.height), (0,0,0,0))
@@ -171,11 +188,15 @@ def test(speed, fps, num_balls, ball_speed):
                     ball.update_position(delta_t, lcd.width, lcd.height)
                     curr_bbox_after_update = ball.get_bbox()
 
-                    dirty_region = merge_bboxes(prev_bbox_before_update, curr_bbox_after_update)
+                    dirty_region = merge_bboxes(
+                        prev_bbox_before_update, curr_bbox_after_update
+                    )
                     if dirty_region:
                         dirty_region = (
-                            max(0, dirty_region[0] - 1), max(0, dirty_region[1] - 1),
-                            min(lcd.width, dirty_region[2] + 1), min(lcd.height, dirty_region[3] + 1),
+                            max(0, dirty_region[0] - 1),
+                            max(0, dirty_region[1] - 1),
+                            min(lcd.width, dirty_region[2] + 1),
+                            min(lcd.height, dirty_region[3] + 1),
                         )
                         dirty_regions.append(dirty_region)
 
@@ -194,7 +215,12 @@ def test(speed, fps, num_balls, ball_speed):
                 for dirty_bbox in dirty_regions:
                     region_to_send = frame_rgba.crop(dirty_bbox)
                     pixel_bytes = pil_to_rgb565_bytes(region_to_send.convert("RGB"))
-                    lcd.set_window(dirty_bbox[0], dirty_bbox[1], dirty_bbox[2] - 1, dirty_bbox[3] - 1)
+                    lcd.set_window(
+                        dirty_bbox[0],
+                        dirty_bbox[1],
+                        dirty_bbox[2] - 1,
+                        dirty_bbox[3] - 1
+                    )
                     lcd.write_pixels(pixel_bytes)
 
                 elapsed_time = time.time() - frame_start_time

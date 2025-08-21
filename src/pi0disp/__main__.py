@@ -4,8 +4,9 @@
 import click
 
 from . import __version__
-from .my_logger import get_logger
+from .commands.off import off
 from .commands.test import test
+from .my_logger import get_logger
 
 log = get_logger(__name__)
 
@@ -18,7 +19,7 @@ def cli():
     pass
 
 cli.add_command(test)
-
+cli.add_command(off)
 
 
 if __name__ == "__main__":

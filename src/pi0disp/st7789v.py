@@ -3,13 +3,13 @@
 #
 import time
 
+import numpy as np
 import pigpio
 
-import numpy as np
 
 class ST7789V:
     """
-    ST7789Vディスプレイを制御する純粋なドライバークラス。
+    ST7789Vディスプレイを制御するドライバークラス。
 
     pigpioライブラリを使って、GPIO制御とSPI通信を高速に処理。
     パフォーマンスと堅牢性を向上させるための改善が施されている。
@@ -17,6 +17,7 @@ class ST7789V:
     # ST7789V コマンド定義
     CMD_NOP     = 0x00
     CMD_SWRESET = 0x01
+    CMD_SLPIN   = 0x10
     CMD_SLPOUT  = 0x11
     CMD_NORON   = 0x13
     CMD_INVON   = 0x21
@@ -52,7 +53,7 @@ class ST7789V:
 
         self.pi = pigpio.pi()
         if not self.pi.connected:
-            raise RuntimeError("pigpio daemonが起動していません。'sudo pigpiod'で起動してください。")
+            raise RuntimeError("pigpio daemonが起動していません。")
 
         self.rst_pin = rst_pin
         self.dc_pin = dc_pin
@@ -66,7 +67,9 @@ class ST7789V:
         # channel: CE0=0, CE1=1 を指定
         self.spi_handle = self.pi.spi_open(channel, speed_hz, 0)
         if self.spi_handle < 0:
-            raise RuntimeError(f"SPIバスのオープンに失敗しました。エラーコード: {self.spi_handle}")
+            raise RuntimeError(
+                f"SPIバスのオープンに失敗しました。エラーコード: {self.spi_handle}"
+            )
 
         self._buffer = None  # ダブルバッファリング用のバッファ
         self._init_display()
@@ -132,9 +135,15 @@ class ST7789V:
 
         # ガンマ補正
         self._write_command(self.CMD_E0)
-        self._write_data(bytes([0xD0, 0x00, 0x02, 0x07, 0x0A, 0x28, 0x32, 0x44, 0x42, 0x06, 0x0E, 0x12, 0x14, 0x17, 0x00]))
+        self._write_data(bytes([
+            0xD0, 0x00, 0x02, 0x07, 0x0A, 0x28, 0x32, 0x44,
+            0x42, 0x06, 0x0E, 0x12, 0x14, 0x17, 0x00
+        ]))
         self._write_command(self.CMD_E1)
-        self._write_data(bytes([0xD0, 0x00, 0x02, 0x07, 0x0A, 0x28, 0x31, 0x54, 0x47, 0x0E, 0x1C, 0x17, 0x1B, 0x1B, 0x00]))
+        self._write_data(bytes([
+            0xD0, 0x00, 0x02, 0x07, 0x0A, 0x28, 0x31, 0x54,
+            0x47, 0x0E, 0x1C, 0x17, 0x1B, 0x1B, 0x00
+        ]))
 
         self._write_command(self.CMD_INVON)
         self._write_command(self.CMD_DISPON)
@@ -149,16 +158,20 @@ class ST7789V:
         self._write_command(self.CMD_MADCTL)
         if rotation == 0:
             self._write_data(0x00)
-            self.width, self.height = self._native_width, self._native_height  # 240x320
+            # 240x320
+            self.width, self.height = self._native_width, self._native_height
         elif rotation == 90:
             self._write_data(0x60)
-            self.width, self.height = self._native_height, self._native_width  # 320x240
+            # 320x240
+            self.width, self.height = self._native_height, self._native_width
         elif rotation == 180:
             self._write_data(0xC0)
-            self.width, self.height = self._native_width, self._native_height  # 240x320
+            # 240x320
+            self.width, self.height = self._native_width, self._native_height
         elif rotation == 270:
             self._write_data(0xA0)
-            self.width, self.height = self._native_height, self._native_width  # 320x240
+            # 320x240
+            self.width, self.height = self._native_height, self._native_width
         else:
             raise ValueError("Rotation must be 0, 90, 180, or 270.")
         self._rotation = rotation
@@ -181,8 +194,8 @@ class ST7789V:
     def display(self, image):
         """
         PIL Imageオブジェクトを画面に表示する。
-        内部バッファに変換してから一括でSPI転送する（ダブルバッファリング）。
-        numpyが利用可能な場合は、高速な変換を行う。
+        内部バッファに変換してから一括でSPI転送する(ダブルバッファリング)。
+        numpyで高速な変換を行う。
         """
         if image.mode != "RGB":
             image = image.convert("RGB")
@@ -207,3 +220,11 @@ class ST7789V:
         finally:
             if self.pi.connected:
                 self.pi.stop()
+
+    def off(self):
+        """Off."""
+        self._write_command(ST7789V.CMD_DISPOFF)
+
+    def sleep(self):
+        """Sleep."""        
+        self._write_command(ST7789V.CMD_SLPIN)
