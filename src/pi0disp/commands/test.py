@@ -42,6 +42,7 @@ class Ball:
         self.prev_bbox = None
 
     def update_position(self, delta_t, screen_width, screen_height):
+        """時間経過に基づきボールの位置を更新し、画面境界で反射させる。"""
         self.x += self.speed_x * delta_t
         self.y += self.speed_y * delta_t
         if self.x - self.radius < 0:
@@ -62,6 +63,7 @@ class Ball:
                 int(self.x + self.radius), int(self.y + self.radius))
 
     def draw(self, image_buffer):
+        """指定されたPIL Imageバッファにボールを描画する。"""
         draw = ImageDraw.Draw(image_buffer)
         bbox = self.get_bbox()
         draw.ellipse(bbox, fill=self.fill_color, outline=self.fill_color)

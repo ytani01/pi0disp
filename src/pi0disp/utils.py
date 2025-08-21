@@ -103,6 +103,7 @@ class ImageProcessor:
         resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
         
         if fit_mode == "contain":
+            # Create a black canvas and paste the resized image in the center
             result = Image.new("RGB", (target_width, target_height), (0, 0, 0))
             paste_x = (target_width - new_width) // 2
             paste_y = (target_height - new_height) // 2

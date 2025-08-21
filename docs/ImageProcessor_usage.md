@@ -73,7 +73,8 @@ with ST7789V() as lcd:
     contained_image = processor.resize_with_aspect_ratio(
         source_image,
         lcd.width,
-        lcd.height,
+
+lcd.height,
         fit_mode="contain"
     )
     lcd.display(contained_image)
