@@ -10,9 +10,13 @@ else:
 
 from .my_logger import get_logger
 from .st7789v import ST7789V
+from .utils import ImageProcessor, get_ip_address, draw_text
 
 __all__ = [
     "__version__",
     "ST7789V",
     "get_logger",
+    "ImageProcessor",
+    "get_ip_address",
+    "draw_text",
 ]

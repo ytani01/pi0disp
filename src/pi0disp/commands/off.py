@@ -1,7 +1,7 @@
 #
 # (c) 2025 Yoichi Tanibayashi
 #
-"""On/Off command."""
+"""Display off command."""
 import time
 import click
 
@@ -13,17 +13,18 @@ log = get_logger(__name__)
 
 @click.command()
 def off():
-    log.info("%s", __name__)
-    
+    """Turns the display off by entering sleep mode."""
+    log.info("Putting display to sleep...")
+
     try:
         with ST7789V() as lcd:
-            # lcd.off()
-            time.sleep(.5)
+            # Send sleep command to the display controller
             lcd.sleep()
+            time.sleep(0.1)  # Short delay to ensure command is processed
 
-    except Exception as _e:
-        log.error("%s: %s", type(_e).__name__, _e)
+    except Exception as e:
+        log.error("%s: %s", type(e).__name__, e)
         exit(1)
 
     finally:
-        log.info("done")
+        log.info("Done.")
