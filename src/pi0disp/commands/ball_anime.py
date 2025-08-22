@@ -6,7 +6,8 @@ ST7789Vディスプレイで動作する、物理ベースのアニメーショ�
 最適化されたドライバとユーティリティ関数を使用。
 """
 import time
-from typing import List, Tuple
+import colorsys
+from typing import List
 
 import click
 import numpy as np
@@ -14,8 +15,9 @@ from PIL import Image, ImageDraw, ImageFont
 
 from ..disp.st7789v import ST7789V
 from ..utils.my_logger import get_logger
+from ..utils.performance_core import RegionOptimizer
 from ..utils.utils import (
-    merge_bboxes, optimize_dirty_regions, clamp_region, 
+    merge_bboxes, 
     get_ip_address, draw_text
 )
 
@@ -92,7 +94,7 @@ class FpsCounter:
 
 # --- ヘルパー関数 ---
 def _initialize_balls(num_balls: int, width: int, height: int, ball_speed: float) -> List[Ball]:
-    balls = []
+    balls: List[Ball] = []
     speed = ball_speed or 300.0
     max_attempts_per_ball = 100  # 1つのボールを配置するための最大試行回数
 
@@ -116,7 +118,14 @@ def _initialize_balls(num_balls: int, width: int, height: int, ball_speed: float
             # 重なっていなければ、この位置でボールを生成して次のボールへ
             if not is_overlapping:
                 angle = np.random.rand() * 2 * np.pi
-                fill_color = tuple(np.random.randint(0, 256, 3))
+                
+                # HSV色空間でランダムな色相を生成し、彩度と明度を最大に設定
+                hue = np.random.rand()
+                saturation = 1.0
+                value = 1.0
+                rgb_float = colorsys.hsv_to_rgb(hue, saturation, value)
+                fill_color = tuple(int(c * 255) for c in rgb_float)
+
                 balls.append(Ball(x, y, BALL_RADIUS, speed, angle, fill_color))
                 break
         else:
@@ -227,7 +236,7 @@ def _main_loop(lcd: ST7789V, background: Image.Image, balls: List[Ball],
                     dirty_region[2] + 2,  # x1 + padding
                     dirty_region[3] + 2   # y1 + padding
                 )
-                dirty_regions.append(clamp_region(padded_dirty_region, lcd.width, lcd.height))
+                dirty_regions.append(RegionOptimizer.clamp_region(padded_dirty_region, lcd.width, lcd.height))
             ball.draw(draw)
 
         if fps_counter.update():
@@ -262,7 +271,7 @@ def _main_loop(lcd: ST7789V, background: Image.Image, balls: List[Ball],
         final_frame = frame_rgba.convert("RGB")
 
         if dirty_regions:
-            optimized = optimize_dirty_regions(dirty_regions, max_regions=8)
+            optimized = RegionOptimizer.merge_regions(dirty_regions, max_regions=8)
             for r in optimized:
                 lcd.display_region(final_frame, *r)
 
@@ -274,17 +283,19 @@ def _main_loop(lcd: ST7789V, background: Image.Image, balls: List[Ball],
 
 # --- CLIコマンド ---
 @click.command("ball_anime")
-@click.option('--spihz', "-z", default=SPI_SPEED_HZ, type=int, help='SPI speed in Hz', show_default=True)
+@click.option('--spi-mhz', "-z", default=SPI_SPEED_HZ / 1_000_000, type=float, help='SPI speed in MHz', show_default=True)
 @click.option('--fps', "-f", default=TARGET_FPS, type=float, help='Target frames per second', show_default=True)
 @click.option('--num-balls', "-n", default=3, type=int, help='Number of balls to display', show_default=True)
 @click.option('--ball-speed', "-b", default=None, type=float, help='Absolute speed of balls (pixels/second).')
-def ball_anime(spihz: int, fps: float, num_balls: int, ball_speed: float):
+def ball_anime(spi_mhz: float, fps: float, num_balls: int, ball_speed: float):
     """物理ベースのアニメーションデモを実行する。"""
     log.info(f"最適化モードでフレームレート約{fps}FPSで動作します... Ctrl+C で終了してください。")
 
     try:
-        with ST7789V(speed_hz=spihz) as lcd:
+        with ST7789V(speed_hz=int(spi_mhz * 1_000_000)) as lcd:
             # フォントをロード
+            font_large: ImageFont.ImageFont
+            font_small: ImageFont.ImageFont
             try:
                 font_large = ImageFont.truetype(FONT_PATH, 40)
                 font_small = ImageFont.truetype(FONT_PATH, 24)

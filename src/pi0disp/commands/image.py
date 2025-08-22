@@ -3,7 +3,6 @@
 #
 """Display image command."""
 import time
-import os
 import click
 from PIL import Image
 

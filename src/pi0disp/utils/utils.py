@@ -44,8 +44,10 @@ def merge_bboxes(bbox1: Optional[Tuple[int, int, int, int]],
     """
     Merges two bounding boxes into a single bounding box that encloses both.
     """
-    if bbox1 is None: return bbox2
-    if bbox2 is None: return bbox1
+    if bbox1 is None:
+        return bbox2
+    if bbox2 is None:
+        return bbox1
     return _get_optimizers()['region_optimizer']._merge_two(bbox1, bbox2)
 
 def optimize_dirty_regions(regions: List[Tuple[int, int, int, int]], 
@@ -154,7 +156,7 @@ def get_ip_address() -> str:
         s.close()
     return ip
 
-def draw_text(draw: ImageDraw.Draw, text: str, font: ImageFont.ImageFont, 
+def draw_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont, 
               x: Union[int, str], y: Union[int, str], 
               width: int, height: int, color: Tuple[int, int, int],
               padding: int = 5) -> Tuple[int, int, int, int]:

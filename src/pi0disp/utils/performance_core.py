@@ -9,7 +9,7 @@ Each class focuses on a specific optimization technique.
 import time
 import threading
 from collections import deque
-from typing import Optional, List, Tuple, Union, Callable, Any
+from typing import List, Tuple, Callable, Any, Dict
 
 import numpy as np
 
@@ -28,7 +28,7 @@ class MemoryPool:
             max_pools (int): The maximum number of buffers to store per size.
             buffer_factory (Callable): A function to create new buffers, e.g., bytearray.
         """
-        self._pools = {}  # Pools categorized by buffer size
+        self._pools: Dict[int, deque] = {}  # Pools categorized by buffer size
         self._max_pools = max_pools
         self._buffer_factory = buffer_factory
         self._lock = threading.Lock()
@@ -89,7 +89,7 @@ class LookupTableCache:
     A singleton cache for pre-calculated lookup tables (LUTs).
     Used to accelerate expensive computations like color conversion or gamma correction.
     """
-    _instances = {}
+    _instances: Dict[str, 'LookupTableCache'] = {}
     _lock = threading.Lock()
 
     @classmethod
@@ -102,13 +102,13 @@ class LookupTableCache:
 
     def __init__(self, table_type: str):
         self.table_type = table_type
-        self._tables = {}
-        self._generators = {
+        self._tables: Dict[str, np.ndarray] = {}
+        self._generators: Dict[str, Callable[..., Dict[str, np.ndarray]]] = {
             'rgb565': self._generate_rgb565_tables,
             'gamma': self._generate_gamma_tables,
         }
 
-    def _generate_rgb565_tables(self) -> dict:
+    def _generate_rgb565_tables(self) -> Dict[str, np.ndarray]:
         """Generates LUTs for fast RGB to RGB565 conversion."""
         return {
             'r_shift': (np.arange(256, dtype=np.uint16) >> 3) << 11,
@@ -116,14 +116,14 @@ class LookupTableCache:
             'b_shift': (np.arange(256, dtype=np.uint16) >> 3),
         }
 
-    def _generate_gamma_tables(self, gamma: float = 2.2) -> dict:
+    def _generate_gamma_tables(self, gamma: float = 2.2) -> Dict[str, np.ndarray]:
         """Generates a LUT for gamma correction."""
         table = np.array([
             int(255 * ((i / 255.0) ** gamma)) for i in range(256)
         ], dtype=np.uint8)
         return {'gamma_table': table}
 
-    def get_table(self, table_name: str, **kwargs):
+    def get_table(self, table_name: str, **kwargs: Any) -> np.ndarray:
         """
         Retrieves a table, generating it if it doesn't exist in the cache.
         
@@ -176,7 +176,7 @@ class RegionOptimizer:
             return []
 
         # Start with the smallest regions to encourage merging
-        merged = []
+        merged: List[Tuple[int, int, int, int]] = []
         sorted_regions = sorted(valid_regions, key=lambda r: (r[2] - r[0]) * (r[3] - r[1]))
 
         while sorted_regions:
@@ -253,11 +253,11 @@ class PerformanceMonitor:
             window_size: The number of frames to average over for statistics.
         """
         self.window_size = window_size
-        self._frame_times = deque(maxlen=window_size)
-        self._process_times = deque(maxlen=window_size)
+        self._frame_times: deque[float] = deque(maxlen=window_size)
+        self._process_times: deque[float] = deque(maxlen=window_size)
         self._last_frame_time = time.monotonic()
 
-    def frame_start(self):
+    def frame_start(self) -> float:
         """Marks the beginning of a new frame."""
         now = time.monotonic()
         delta = now - self._last_frame_time
@@ -292,7 +292,7 @@ class AdaptiveChunking:
         self.chunk_size = initial_size
         self.min_size = min_size
         self.max_size = max_size
-        self._throughputs = deque(maxlen=20)
+        self._throughputs: deque[float] = deque(maxlen=20)
         self._last_adjustment = time.monotonic()
 
     def record_transfer(self, data_size: int, transfer_time: float):

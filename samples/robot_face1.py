@@ -272,7 +272,7 @@ class RobotFace:
         self.last_left_eye_drawn_bbox = drawn_bboxes[0] if drawn_bboxes else None
         self.last_right_eye_drawn_bbox = drawn_bboxes[1] if len(drawn_bboxes) > 1 else None
 
-        return merge_bboxes(clear_region, drawn_region) # Return the merged clear/drawn region as dirty
+        return merge_bboxes(clear_region, drawn_region) or (0, 0, 0, 0) # Return the merged clear/drawn region as dirty
 
     def draw_mouth(self, state: str = "neutral", color: Tuple[int, int, int] = (255, 255, 255)) -> Tuple[int, int, int, int]:
         log.debug(f"draw_mouth: Drawing mouth in state '{state}'")
@@ -330,7 +330,7 @@ class RobotFace:
         # Add more mouth states as needed
         self.current_mouth_state = state
         self.last_mouth_drawn_bbox = drawn_bbox
-        return merge_bboxes(clear_region, drawn_bbox) # Return the merged clear/drawn region as dirty
+        return merge_bboxes(clear_region, drawn_bbox) or (0, 0, 0, 0) # Return the merged clear/drawn region as dirty
 
     def animate_blink(self, num_blinks: int = 1, blink_duration: float = 0.1):
         log.debug(f"animate_blink: Starting {num_blinks} blinks.")
