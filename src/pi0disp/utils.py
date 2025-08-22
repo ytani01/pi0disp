@@ -63,6 +63,17 @@ def clamp_region(region: Tuple[int, int, int, int],
     """
     return _get_optimizers()['region_optimizer'].clamp_region(region, width, height)
 
+def expand_bbox(bbox: Tuple[int, int, int, int], expansion: int) -> Tuple[int, int, int, int]:
+    """
+    Expands a bounding box by a given number of pixels on all sides.
+    """
+    return (
+        bbox[0] - expansion,
+        bbox[1] - expansion,
+        bbox[2] + expansion,
+        bbox[3] + expansion
+    )
+
 # --- High-Level Image Processor ---
 
 class ImageProcessor:
@@ -167,14 +178,8 @@ def draw_text(draw: ImageDraw.Draw, text: str, font: ImageFont.ImageFont,
     Returns:
         The bounding box of the drawn text (x0, y0, x1, y1).
     """
-    # Pre-render text to a temporary image to get accurate bounding box
-    # Create a temporary image large enough to contain the text
-    temp_img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
-    temp_draw = ImageDraw.Draw(temp_img)
-    temp_draw.text((0, 0), text, font=font, fill=color)
-
-    # Get the actual bounding box of the drawn pixels
-    actual_bbox = temp_img.getbbox()
+    # Get the actual bounding box of the text using ImageDraw.textbbox
+    actual_bbox = draw.textbbox((0, 0), text, font=font)
 
     if actual_bbox is None:
         # Text is empty or completely transparent, return a zero-sized bbox
@@ -186,30 +191,30 @@ def draw_text(draw: ImageDraw.Draw, text: str, font: ImageFont.ImageFont,
     # Calculate X coordinate
     if isinstance(x, str):
         if x == 'left':
-            final_x = padding
+            final_x = padding - actual_bbox[0] # Adjust for textbbox offset
         elif x == 'center':
-            final_x = (width - text_width) // 2
+            final_x = (width - text_width) // 2 - actual_bbox[0]
         elif x == 'right':
-            final_x = width - text_width - padding
+            final_x = width - text_width - padding - actual_bbox[0]
         else:
             log.warning(f"Invalid keyword for x: '{x}'. Defaulting to 'left'.")
-            final_x = padding
+            final_x = padding - actual_bbox[0]
     else:
-        final_x = x
+        final_x = x - actual_bbox[0] # Adjust for textbbox offset
 
     # Calculate Y coordinate
     if isinstance(y, str):
         if y == 'top':
-            final_y = padding
+            final_y = padding - actual_bbox[1] # Adjust for textbbox offset
         elif y == 'center':
-            final_y = (height - text_height) // 2
+            final_y = (height - text_height) // 2 - actual_bbox[1]
         elif y == 'bottom':
-            final_y = height - text_height - padding
+            final_y = height - text_height - padding - actual_bbox[1]
         else:
             log.warning(f"Invalid keyword for y: '{y}'. Defaulting to 'top'.")
-            final_y = padding
+            final_y = padding - actual_bbox[1]
     else:
-        final_y = y
+        final_y = y - actual_bbox[1] # Adjust for textbbox offset
         
     final_pos = (final_x, final_y)
     
@@ -217,10 +222,10 @@ def draw_text(draw: ImageDraw.Draw, text: str, font: ImageFont.ImageFont,
     draw.text(final_pos, text, font=font, fill=color)
     
     # Return the bounding box of the drawn text for dirty region tracking
-    # Adjust for the actual_bbox offset if text was not drawn at (0,0) on temp_img
+    # Expand by 1 pixel on right and bottom for robustness against anti-aliasing
     return (
         final_pos[0] + actual_bbox[0],
         final_pos[1] + actual_bbox[1],
-        final_pos[0] + actual_bbox[2],
-        final_pos[1] + actual_bbox[3]
+        final_pos[0] + actual_bbox[2] + 1,
+        final_pos[1] + actual_bbox[3] + 1
     )
