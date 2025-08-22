@@ -6,7 +6,7 @@ import click
 from . import __version__
 from .commands.off import off
 from .commands.sleep import sleep
-from .commands.test import test
+from .commands.ball_anime import ball_anime
 from .commands.wake import wake
 from .commands.rgb import rgb
 from .commands.image import image
@@ -25,7 +25,7 @@ def cli():
     """
     pass
 
-cli.add_command(test)
+cli.add_command(ball_anime)
 cli.add_command(sleep)
 cli.add_command(wake)
 cli.add_command(off)
