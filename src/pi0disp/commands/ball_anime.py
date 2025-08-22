@@ -32,6 +32,8 @@ FPS_UPDATE_INTERVAL = 0.2
 # --- 描画オブジェクトクラス ---
 class Ball:
     """アニメーションするボールの状態と振る舞いを管理するクラス。"""
+    __slots__ = ('x', 'y', 'radius', 'speed_x', 'speed_y', 'fill_color', 'prev_bbox')
+
     def __init__(self, x, y, radius, speed, angle, fill_color):
         self.x = float(x)
         self.y = float(y)
@@ -62,9 +64,8 @@ class Ball:
         return (int(self.x - self.radius), int(self.y - self.radius),
                 int(self.x + self.radius), int(self.y + self.radius))
 
-    def draw(self, image_buffer):
-        """指定されたPIL Imageバッファにボールを描画する。"""
-        draw = ImageDraw.Draw(image_buffer)
+    def draw(self, draw: ImageDraw.ImageDraw):
+        """指定されたPIL ImageDrawオブジェクトにボールを描画する。"""
         bbox = self.get_bbox()
         draw.ellipse(bbox, fill=self.fill_color, outline=self.fill_color)
         self.prev_bbox = bbox
@@ -210,6 +211,7 @@ def _main_loop(lcd: ST7789V, background: Image.Image, balls: List[Ball],
         # -----------------------
 
         new_frame_image = background.copy()
+        draw = ImageDraw.Draw(new_frame_image)
         dirty_regions = []
 
         # 描画とダーティリージョンの計算
@@ -226,7 +228,7 @@ def _main_loop(lcd: ST7789V, background: Image.Image, balls: List[Ball],
                     dirty_region[3] + 2   # y1 + padding
                 )
                 dirty_regions.append(clamp_region(padded_dirty_region, lcd.width, lcd.height))
-            ball.draw(new_frame_image)
+            ball.draw(draw)
 
         if fps_counter.update():
             # Expand prev_fps_bbox before clearing
