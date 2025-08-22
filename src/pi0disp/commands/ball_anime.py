@@ -32,12 +32,12 @@ FPS_UPDATE_INTERVAL = 0.2
 # --- 描画オブジェクトクラス ---
 class Ball:
     """アニメーションするボールの状態と振る舞いを管理するクラス。"""
-    def __init__(self, x, y, radius, speed_x, speed_y, fill_color):
+    def __init__(self, x, y, radius, speed, angle, fill_color):
         self.x = float(x)
         self.y = float(y)
         self.radius = radius
-        self.speed_x = float(speed_x)
-        self.speed_y = float(speed_y)
+        self.speed_x = speed * np.cos(angle)
+        self.speed_y = speed * np.sin(angle)
         self.fill_color = fill_color
         self.prev_bbox = None
 
@@ -92,36 +92,129 @@ class FpsCounter:
 # --- ヘルパー関数 ---
 def _initialize_balls(num_balls: int, width: int, height: int, ball_speed: float) -> List[Ball]:
     balls = []
+    speed = ball_speed or 300.0
+    max_attempts_per_ball = 100  # 1つのボールを配置するための最大試行回数
+
     for _ in range(num_balls):
-        x = np.random.randint(BALL_RADIUS, width - BALL_RADIUS)
-        y = np.random.randint(BALL_RADIUS, height - BALL_RADIUS)
-        angle = np.random.rand() * 2 * np.pi
-        speed_x = (ball_speed or 300.0) * np.cos(angle)
-        speed_y = (ball_speed or 200.0) * np.sin(angle)
-        fill_color = tuple(np.random.randint(0, 256, 3))
-        balls.append(Ball(x, y, BALL_RADIUS, speed_x, speed_y, fill_color))
+        for attempt in range(max_attempts_per_ball):
+            # 新しいボールの候補を生成
+            x = np.random.randint(BALL_RADIUS, width - BALL_RADIUS)
+            y = np.random.randint(BALL_RADIUS, height - BALL_RADIUS)
+            
+            # 他のボールとの重なりをチェック
+            is_overlapping = False
+            for existing_ball in balls:
+                dist_x = x - existing_ball.x
+                dist_y = y - existing_ball.y
+                dist_sq = dist_x**2 + dist_y**2
+                # 半径の合計の2乗より小さい場合は重なっている
+                if dist_sq <= (BALL_RADIUS + existing_ball.radius)**2:
+                    is_overlapping = True
+                    break
+            
+            # 重なっていなければ、この位置でボールを生成して次のボールへ
+            if not is_overlapping:
+                angle = np.random.rand() * 2 * np.pi
+                fill_color = tuple(np.random.randint(0, 256, 3))
+                balls.append(Ball(x, y, BALL_RADIUS, speed, angle, fill_color))
+                break
+        else:
+            # forループがbreakで抜けなかった場合 (最大試行回数を超えた)
+            log.warning(f"ボール{len(balls)+1}を配置できませんでした。ボールの数を減らすか、画面を大きくしてください。")
+
     return balls
+
+def _handle_ball_collisions(balls: List[Ball]):
+    """ボール同士の衝突を検出し、物理的に正しい反射を処理する。"""
+    num_balls = len(balls)
+    # 1回のパスで衝突を解決する。
+    # 複数のボールが同時に衝突する状況を安定させるため、メインループ側で
+    # 物理更新のサブステップ(num_physics_substeps)が実行される。
+    for i in range(num_balls):
+        for j in range(i + 1, num_balls):
+            b1 = balls[i]
+            b2 = balls[j]
+
+            dist_x = b1.x - b2.x
+            dist_y = b1.y - b2.y
+            dist_sq = dist_x**2 + dist_y**2
+            
+            radii_sum = b1.radius + b2.radius
+            radii_sum_sq = radii_sum**2
+
+            # dist_sqが極端に小さい場合(ほぼ中心が同じ)は計算が不安定になるため除外
+            if dist_sq <= radii_sum_sq and dist_sq > 1e-6:
+                dist = np.sqrt(dist_sq)
+                nx = dist_x / dist
+                ny = dist_y / dist
+
+                # 衝突軸上の相対速度を計算 (v1 - v2).
+                # 法線ベクトルnはb2からb1を指す。内積が負の場合、接近している。
+                relative_velocity_x = b1.speed_x - b2.speed_x
+                relative_velocity_y = b1.speed_y - b2.speed_y
+                relative_velocity_n = relative_velocity_x * nx + relative_velocity_y * ny
+
+                # ボールが近づいている場合のみ速度を更新
+                if relative_velocity_n < 0:
+                    # 1. 衝突応答 (速度の更新)
+                    # 接線ベクトル
+                    tx = -ny
+                    ty = nx
+
+                    # 速度を n, t 成分に分解
+                    v1n = b1.speed_x * nx + b1.speed_y * ny
+                    v1t = b1.speed_x * tx + b1.speed_y * ty
+                    v2n = b2.speed_x * nx + b2.speed_y * ny
+                    v2t = b2.speed_x * tx + b2.speed_y * ty
+
+                    # n 成分の速度を交換 (質量が等しい場合)
+                    b1.speed_x = v2n * nx + v1t * tx
+                    b1.speed_y = v2n * ny + v1t * ty
+                    b2.speed_x = v1n * nx + v2t * tx
+                    b2.speed_y = v1n * ny + v2t * ty
+
+                # 2. 重なりの補正 (常に実行して、めり込みを解消)
+                # 補正を強くして、1回の処理でほぼ解消するようにする
+                correction_percent = 0.8  # 80%
+                correction_slop = 0.01 # 許容するめり込み
+                overlap = max(0, (radii_sum - dist + correction_slop))
+                
+                correction_amount = (overlap / 2) * correction_percent
+                b1.x += correction_amount * nx
+                b1.y += correction_amount * ny
+                b2.x -= correction_amount * nx
+                b2.y -= correction_amount * ny
 
 def _main_loop(lcd: ST7789V, background: Image.Image, balls: List[Ball], 
                fps_counter: FpsCounter, font: ImageFont.ImageFont, target_fps: float):
     target_duration = 1.0 / target_fps
     next_frame_time = time.time()
-    last_frame_time = next_frame_time - target_duration
+    
+    # --- 物理ステップの細分化 ---
+    num_physics_substeps = 4
+    sub_delta_t = target_duration / num_physics_substeps
+
     hud_layer = Image.new("RGBA", (lcd.width, lcd.height), (0, 0, 0, 0))
     hud_draw = ImageDraw.Draw(hud_layer)
     prev_fps_bbox = None
 
     while True:
-        frame_start_time = time.time()
-        delta_t = frame_start_time - last_frame_time
-        last_frame_time = frame_start_time
+        # --- 物理更新ループ ---
+        for _ in range(num_physics_substeps):
+            for ball in balls:
+                # 壁との衝突判定は update_position 内で行われる
+                ball.update_position(sub_delta_t, lcd.width, lcd.height)
+            
+            # ボール同士の衝突判定
+            _handle_ball_collisions(balls)
+        # -----------------------
 
         new_frame_image = background.copy()
         dirty_regions = []
 
+        # 描画とダーティリージョンの計算
         for ball in balls:
             prev_bbox = ball.prev_bbox
-            ball.update_position(delta_t, lcd.width, lcd.height)
             curr_bbox = ball.get_bbox()
             dirty_region = merge_bboxes(prev_bbox, curr_bbox)
             if dirty_region:
@@ -171,6 +264,7 @@ def _main_loop(lcd: ST7789V, background: Image.Image, balls: List[Ball],
             for r in optimized:
                 lcd.display_region(final_frame, *r)
 
+        # フレームレートを維持するためのスリープ
         next_frame_time += target_duration
         sleep_duration = next_frame_time - time.time()
         if sleep_duration > 0:
