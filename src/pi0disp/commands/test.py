@@ -104,8 +104,9 @@ def _initialize_balls(num_balls: int, width: int, height: int, ball_speed: float
 
 def _main_loop(lcd: ST7789V, background: Image.Image, balls: List[Ball], 
                fps_counter: FpsCounter, font: ImageFont.ImageFont, target_fps: float):
-    last_frame_time = time.time()
     target_duration = 1.0 / target_fps
+    next_frame_time = time.time()
+    last_frame_time = next_frame_time - target_duration
     hud_layer = Image.new("RGBA", (lcd.width, lcd.height), (0, 0, 0, 0))
     hud_draw = ImageDraw.Draw(hud_layer)
     prev_fps_bbox = None
@@ -170,9 +171,10 @@ def _main_loop(lcd: ST7789V, background: Image.Image, balls: List[Ball],
             for r in optimized:
                 lcd.display_region(final_frame, *r)
 
-        elapsed = time.time() - frame_start_time
-        if elapsed < target_duration:
-            time.sleep(target_duration - elapsed)
+        next_frame_time += target_duration
+        sleep_duration = next_frame_time - time.time()
+        if sleep_duration > 0:
+            time.sleep(sleep_duration)
 
 # --- CLIコマンド ---
 @click.command()
