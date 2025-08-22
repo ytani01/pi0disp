@@ -12,15 +12,15 @@ log = get_logger(__name__)
 
 
 @click.command()
-def off():
-    """Turns the display off."""
-    log.info("OFF...")
+def sleep():
+    """Turns the display off by entering sleep mode."""
+    log.info("Putting display to sleep...")
 
     try:
         with ST7789V() as lcd:
             time.sleep(.5)  # ensure lcd is ready
             # Send sleep command to the display controller
-            lcd.dispoff()
+            lcd.sleep()
             time.sleep(0.1)  # Short delay to ensure command is processed
 
     except Exception as e:

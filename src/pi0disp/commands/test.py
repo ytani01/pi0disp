@@ -176,16 +176,16 @@ def _main_loop(lcd: ST7789V, background: Image.Image, balls: List[Ball],
 
 # --- CLIコマンド ---
 @click.command()
-@click.option('--speed', default=SPI_SPEED_HZ, type=int, help='SPI speed in Hz', show_default=True)
-@click.option('--fps', default=TARGET_FPS, type=float, help='Target frames per second', show_default=True)
-@click.option('--num-balls', default=3, type=int, help='Number of balls to display', show_default=True)
-@click.option('--ball-speed', default=None, type=float, help='Absolute speed of balls (pixels/second).')
-def test(speed: int, fps: float, num_balls: int, ball_speed: float):
+@click.option('--spihz', "-z", default=SPI_SPEED_HZ, type=int, help='SPI speed in Hz', show_default=True)
+@click.option('--fps', "-f", default=TARGET_FPS, type=float, help='Target frames per second', show_default=True)
+@click.option('--num-balls', "-n", default=3, type=int, help='Number of balls to display', show_default=True)
+@click.option('--ball-speed', "-b", default=None, type=float, help='Absolute speed of balls (pixels/second).')
+def test(spihz: int, fps: float, num_balls: int, ball_speed: float):
     """物理ベースのアニメーションデモを実行する。"""
     log.info(f"最適化モードでフレームレート約{fps}FPSで動作します... Ctrl+C で終了してください。")
 
     try:
-        with ST7789V(speed_hz=speed) as lcd:
+        with ST7789V(speed_hz=spihz) as lcd:
             # フォントをロード
             try:
                 font_large = ImageFont.truetype(FONT_PATH, 40)

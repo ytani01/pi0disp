@@ -236,6 +236,11 @@ class ST7789V:
             if self.pi.connected:
                 self.pi.stop()
 
+    def dispoff(self):
+        """DISPOFF."""
+        self._write_command(CMD_DISPOFF)
+        self.pi.write(self.backlight_pin, 0)
+
     def sleep(self):
         """Puts the display into sleep mode."""
         self._write_command(CMD_SLPIN)
