@@ -111,9 +111,9 @@ class LookupTableCache:
     def _generate_rgb565_tables(self) -> dict:
         """Generates LUTs for fast RGB to RGB565 conversion."""
         return {
-            'r_shift': (np.arange(256, dtype=np.uint16) >> 3),
+            'r_shift': (np.arange(256, dtype=np.uint16) >> 3) << 11,
             'g_shift': (np.arange(256, dtype=np.uint16) >> 2) << 5,
-            'b_shift': (np.arange(256, dtype=np.uint16) >> 3) << 11,
+            'b_shift': (np.arange(256, dtype=np.uint16) >> 3),
         }
 
     def _generate_gamma_tables(self, gamma: float = 2.2) -> dict:

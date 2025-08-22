@@ -12,9 +12,9 @@ import click
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-from .. import ST7789V
-from ..my_logger import get_logger
-from ..utils import (
+from ..disp.st7789v import ST7789V
+from ..utils.my_logger import get_logger
+from ..utils.utils import (
     merge_bboxes, optimize_dirty_regions, clamp_region, 
     get_ip_address, draw_text
 )

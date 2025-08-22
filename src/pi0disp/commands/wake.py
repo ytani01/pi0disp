@@ -6,7 +6,7 @@ import time
 import click
 
 from .. import ST7789V
-from ..my_logger import get_logger
+from ..utils.my_logger import get_logger
 
 log = get_logger(__name__)
 

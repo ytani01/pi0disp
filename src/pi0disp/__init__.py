@@ -8,9 +8,9 @@ if __package__:
 else:
     __version__ = "_._._"
 
-from .my_logger import get_logger
-from .st7789v import ST7789V
-from .utils import ImageProcessor, get_ip_address, draw_text
+from .utils.my_logger import get_logger
+from .disp.st7789v import ST7789V
+from .utils.utils import ImageProcessor, get_ip_address, draw_text
 
 __all__ = [
     "__version__",

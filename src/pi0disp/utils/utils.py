@@ -229,3 +229,4 @@ def draw_text(draw: ImageDraw.Draw, text: str, font: ImageFont.ImageFont,
         final_pos[0] + actual_bbox[2] + 1,
         final_pos[1] + actual_bbox[3] + 1
     )
+

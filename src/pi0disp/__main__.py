@@ -8,7 +8,9 @@ from .commands.off import off
 from .commands.sleep import sleep
 from .commands.test import test
 from .commands.wake import wake
-from .my_logger import get_logger
+from .commands.rgb import rgb
+from .commands.image import image
+from .utils.my_logger import get_logger
 
 log = get_logger(__name__)
 
@@ -27,6 +29,8 @@ cli.add_command(test)
 cli.add_command(sleep)
 cli.add_command(wake)
 cli.add_command(off)
+cli.add_command(rgb)
+cli.add_command(image)
 
 
 if __name__ == "__main__":

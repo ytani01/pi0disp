@@ -15,7 +15,7 @@ import numpy as np
 import pigpio
 from PIL import Image
 
-from .performance_core import create_optimizer_pack
+from ..utils.performance_core import create_optimizer_pack
 
 # --- ST7789V Commands ---
 CMD_SWRESET = 0x01

@@ -17,8 +17,9 @@ from PIL import Image, ImageDraw, ImageFont
 # Add project root to the Python path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from pi0disp import ST7789V, get_logger
-from pi0disp.utils import draw_text, merge_bboxes, expand_bbox
+from pi0disp.disp.st7789v import ST7789V
+from pi0disp.utils.my_logger import get_logger
+from pi0disp.utils.utils import draw_text, merge_bboxes, expand_bbox
 
 log = get_logger(__name__, debug=True) # Enable debug logging
 
