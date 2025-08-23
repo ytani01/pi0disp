@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 from typing import Tuple, Optional
 
+import click
 from PIL import Image, ImageDraw, ImageFont
 
 # Add project root to the Python path
@@ -21,7 +22,7 @@ from pi0disp.disp.st7789v import ST7789V
 from pi0disp.utils.my_logger import get_logger
 from pi0disp.utils.utils import draw_text, merge_bboxes, expand_bbox
 
-log = get_logger(__name__, debug=True) # Enable debug logging
+log = get_logger(__name__, debug=False) # Initialize with debug off by default
 
 # --- Configuration ---
 SPI_SPEED_HZ = 32_000_000
@@ -370,7 +371,7 @@ class RobotFace:
             total_dirty_region = merge_bboxes(total_dirty_region, self.draw_eyes(state="question_eyes"))
             total_dirty_region = merge_bboxes(total_dirty_region, self.draw_mouth(state="question_mouth"))
             # Draw overlay text and merge its dirty region
-            total_dirty_region = merge_bboxes(total_dirty_region, self._draw_overlay_text("?", y_offset_ratio=0.1)) # Above head
+            total_dirty_region = merge_bboxes(total_dirty_region, self._draw_overlay_text("", y_offset_ratio=0.1)) # Above head
         elif expression == "sleepy":
             total_dirty_region = merge_bboxes(total_dirty_region, self.draw_eyes(state="closed"))
             total_dirty_region = merge_bboxes(total_dirty_region, self.draw_mouth(state="neutral")) # Neutral mouth for sleepy
@@ -397,9 +398,21 @@ class RobotFace:
         except Exception as e:
             log.error(f"Failed to save screenshot to {filename}: {e}")
 
-def main():
+@click.command()
+@click.option('--screenshot', is_flag=True, default=False, help='Save screenshot for each expression.')
+@click.option(
+    '--face',
+    type=click.Choice(['neutral', 'happy', 'sad', 'question', 'sleepy'], case_sensitive=False),
+    help='Display a specific face and exit.'
+)
+@click.option('--debug', is_flag=True, default=False, help='Enable debug logging.')
+def main(screenshot, face, debug):
     """Main function to run the geometric robot face animation."""
     script_dir = Path(__file__).parent
+
+    # Re-initialize the logger with the correct debug setting based on the CLI argument
+    global log # Declare global to reassign the module-level log variable
+    log = get_logger(__name__, debug=debug)
 
     log.info("Starting geometric robot face animation...")
 
@@ -430,33 +443,21 @@ def main():
             log.debug("main: Initial face displayed. Waiting 2 seconds.")
             time.sleep(2)
 
+            if face:
+                log.info(f"Displaying '{face}' expression.")
+                robot_face.animate_expression(face, duration=5.0, save_screenshot_flag=screenshot)
+                log.info("Exiting.")
+                return
+
             # Animation loop
             log.info("main: Starting animation loop. Press Ctrl+C to exit.")
+            expressions = ["neutral", "happy", "sad", "question", "sleepy"]
             while True:
-                log.info("Neutral expression")
-                robot_face.animate_expression("neutral", duration=2.0, save_screenshot_flag=True)
-                robot_face.animate_blink(num_blinks=1, blink_duration=0.1)
-                time.sleep(1.0)
-
-                log.info("Happy expression")
-                robot_face.animate_expression("happy", duration=2.0, save_screenshot_flag=True)
-                robot_face.animate_blink(num_blinks=1, blink_duration=0.1)
-                time.sleep(1.0)
-
-                log.info("Sad expression")
-                robot_face.animate_expression("sad", duration=2.0, save_screenshot_flag=True)
-                robot_face.animate_blink(num_blinks=1, blink_duration=0.1)
-                time.sleep(1.0)
-
-                log.info("Question expression")
-                robot_face.animate_expression("question", duration=2.0, save_screenshot_flag=True)
-                robot_face.animate_blink(num_blinks=1, blink_duration=0.1)
-                time.sleep(1.0)
-
-                log.info("Sleepy expression")
-                robot_face.animate_expression("sleepy", duration=2.0, save_screenshot_flag=True)
-                robot_face.animate_blink(num_blinks=1, blink_duration=0.1)
-                time.sleep(1.0)
+                for expression in expressions:
+                    log.info(f"{expression.capitalize()} expression")
+                    robot_face.animate_expression(expression, duration=2.0, save_screenshot_flag=screenshot)
+                    robot_face.animate_blink(num_blinks=1, blink_duration=0.1)
+                    time.sleep(1.0)
 
     except KeyboardInterrupt:
         log.info("\nExiting gracefully.")
