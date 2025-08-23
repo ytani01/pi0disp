@@ -39,8 +39,10 @@ def pil_to_rgb565_bytes(img: Image.Image) -> bytes:
     np_img = np.array(img, dtype=np.uint8)
     return _get_optimizers()['color_converter'].rgb_to_rgb565_bytes(np_img)
 
-def merge_bboxes(bbox1: Optional[Tuple[int, int, int, int]], 
-                bbox2: Optional[Tuple[int, int, int, int]]) -> Optional[Tuple[int, int, int, int]]:
+def merge_bboxes(
+        bbox1: Optional[Tuple[int, int, int, int]], 
+        bbox2: Optional[Tuple[int, int, int, int]]
+) -> Optional[Tuple[int, int, int, int]]:
     """
     Merges two bounding boxes into a single bounding box that encloses both.
     """
@@ -50,22 +52,32 @@ def merge_bboxes(bbox1: Optional[Tuple[int, int, int, int]],
         return bbox1
     return _get_optimizers()['region_optimizer']._merge_two(bbox1, bbox2)
 
-def optimize_dirty_regions(regions: List[Tuple[int, int, int, int]], 
-                          max_regions: int = 8) -> List[Tuple[int, int, int, int]]:
+def optimize_dirty_regions(
+        regions: List[Tuple[int, int, int, int]], 
+        max_regions: int = 8
+) -> List[Tuple[int, int, int, int]]:
     """
     Optimizes a list of "dirty" regions by merging overlapping or
     nearby regions to reduce the total number of update areas.
     """
-    return _get_optimizers()['region_optimizer'].merge_regions(regions, max_regions)
+    return _get_optimizers()['region_optimizer'].merge_regions(
+        regions, max_regions
+    )
 
-def clamp_region(region: Tuple[int, int, int, int], 
-                width: int, height: int) -> Tuple[int, int, int, int]:
+def clamp_region(
+        region: Tuple[int, int, int, int], 
+        width: int, height: int
+) -> Tuple[int, int, int, int]:
     """
     Clamps a region's coordinates to ensure it is within the screen boundaries.
     """
-    return _get_optimizers()['region_optimizer'].clamp_region(region, width, height)
+    return _get_optimizers()['region_optimizer'].clamp_region(
+        region, width, height
+    )
 
-def expand_bbox(bbox: Tuple[int, int, int, int], expansion: int) -> Tuple[int, int, int, int]:
+def expand_bbox(
+        bbox: Tuple[int, int, int, int], expansion: int
+) -> Tuple[int, int, int, int]:
     """
     Expands a bounding box by a given number of pixels on all sides.
     """
@@ -80,16 +92,19 @@ def expand_bbox(bbox: Tuple[int, int, int, int], expansion: int) -> Tuple[int, i
 
 class ImageProcessor:
     """
-    A utility class for performing common, high-level image processing tasks.
+    A utility class for performing common,
+    high-level image processing tasks.
     """
     def __init__(self):
         self.optimizers = _get_optimizers()
 
-    def resize_with_aspect_ratio(self, 
-                                img: Image.Image, 
-                                target_width: int, 
-                                target_height: int,
-                                fit_mode: str = "contain") -> Image.Image:
+    def resize_with_aspect_ratio(
+            self, 
+            img: Image.Image, 
+            target_width: int, 
+            target_height: int,
+            fit_mode: str = "contain"
+    ) -> Image.Image:
         """
         Resizes an image while maintaining its aspect ratio.
         """
@@ -113,11 +128,15 @@ class ImageProcessor:
         else:
             raise ValueError(f"Unknown fit_mode: {fit_mode}")
 
-        resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        resized = img.resize(
+            (new_width, new_height), Image.Resampling.LANCZOS
+        )
         
         if fit_mode == "contain":
             # Create a black canvas and paste the resized image in the center
-            result = Image.new("RGB", (target_width, target_height), (0, 0, 0))
+            result = Image.new(
+                "RGB", (target_width, target_height), (0, 0, 0)
+            )
             paste_x = (target_width - new_width) // 2
             paste_y = (target_height - new_height) // 2
             result.paste(resized, (paste_x, paste_y))
@@ -125,16 +144,22 @@ class ImageProcessor:
         
         crop_x = (new_width - target_width) // 2
         crop_y = (new_height - target_height) // 2
-        return resized.crop((crop_x, crop_y, crop_x + target_width, crop_y + target_height))
+        return resized.crop(
+            (crop_x, crop_y, crop_x + target_width, crop_y + target_height)
+        )
     
-    def apply_gamma(self, img: Image.Image, gamma: float = 2.2) -> Image.Image:
+    def apply_gamma(
+            self, img: Image.Image, gamma: float = 2.2
+    ) -> Image.Image:
         """
         Applies gamma correction to an image.
         """
         if img.mode != "RGB":
             img = img.convert("RGB")
         np_img = np.array(img, dtype=np.uint8)
-        corrected = self.optimizers['color_converter'].apply_gamma(np_img, gamma)
+        corrected = self.optimizers['color_converter'].apply_gamma(
+            np_img, gamma
+        )
         return Image.fromarray(corrected, "RGB")
 
 # --- General Purpose Utilities ---
@@ -156,10 +181,16 @@ def get_ip_address() -> str:
         s.close()
     return ip
 
-def draw_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont, 
-              x: Union[int, str], y: Union[int, str], 
-              width: int, height: int, color: Tuple[int, int, int],
-              padding: int = 5) -> Tuple[int, int, int, int]:
+def draw_text(
+        draw: ImageDraw.ImageDraw,
+        text: str, font: ImageFont.FreeTypeFont | ImageFont.ImageFont, 
+        x: Union[int, str],
+        y: Union[int, str], 
+        width: int,
+        height: int,
+        color: Tuple[int, int, int],
+        padding: int = 5
+) -> Tuple[int, int, int, int]:
     """
     Draws text on a PIL ImageDraw object with flexible positioning.
     It pre-renders the text to accurately determine its bounding box.
@@ -199,7 +230,9 @@ def draw_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont,
         elif x == 'right':
             final_x = width - text_width - padding - actual_bbox[0]
         else:
-            log.warning(f"Invalid keyword for x: '{x}'. Defaulting to 'left'.")
+            log.warning(
+                f"Invalid keyword for x: '{x}'. Defaulting to 'left'."
+            )
             final_x = padding - actual_bbox[0]
     else:
         final_x = x - actual_bbox[0] # Adjust for textbbox offset
@@ -213,7 +246,9 @@ def draw_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont,
         elif y == 'bottom':
             final_y = height - text_height - padding - actual_bbox[1]
         else:
-            log.warning(f"Invalid keyword for y: '{y}'. Defaulting to 'top'.")
+            log.warning(
+                f"Invalid keyword for y: '{y}'. Defaulting to 'top'."
+            )
             final_y = padding - actual_bbox[1]
     else:
         final_y = y - actual_bbox[1] # Adjust for textbbox offset
@@ -226,9 +261,9 @@ def draw_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont,
     # Return the bounding box of the drawn text for dirty region tracking
     # Expand by 1 pixel on right and bottom for robustness against anti-aliasing
     return (
-        final_pos[0] + actual_bbox[0],
-        final_pos[1] + actual_bbox[1],
-        final_pos[0] + actual_bbox[2] + 1,
-        final_pos[1] + actual_bbox[3] + 1
+        int(final_pos[0] + actual_bbox[0]),
+        int(final_pos[1] + actual_bbox[1]),
+        int(final_pos[0] + actual_bbox[2] + 1),
+        int(final_pos[1] + actual_bbox[3] + 1)
     )
 

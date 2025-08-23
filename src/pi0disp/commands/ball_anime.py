@@ -99,7 +99,7 @@ def _initialize_balls(num_balls: int, width: int, height: int, ball_speed: float
     max_attempts_per_ball = 100  # 1つのボールを配置するための最大試行回数
 
     for _ in range(num_balls):
-        for attempt in range(max_attempts_per_ball):
+        for _ in range(max_attempts_per_ball):
             # 新しいボールの候補を生成
             x = np.random.randint(BALL_RADIUS, width - BALL_RADIUS)
             y = np.random.randint(BALL_RADIUS, height - BALL_RADIUS)
@@ -196,7 +196,7 @@ def _handle_ball_collisions(balls: List[Ball]):
                 b2.y -= correction_amount * ny
 
 def _main_loop(lcd: ST7789V, background: Image.Image, balls: List[Ball], 
-               fps_counter: FpsCounter, font: ImageFont.ImageFont, target_fps: float):
+               fps_counter: FpsCounter, font: ImageFont.FreeTypeFont | ImageFont.ImageFont, target_fps: float):
     target_duration = 1.0 / target_fps
     next_frame_time = time.time()
     
@@ -294,13 +294,15 @@ def ball_anime(spi_mhz: float, fps: float, num_balls: int, ball_speed: float):
     try:
         with ST7789V(speed_hz=int(spi_mhz * 1_000_000)) as lcd:
             # フォントをロード
-            font_large: ImageFont.ImageFont
-            font_small: ImageFont.ImageFont
+            font_large: ImageFont.FreeTypeFont | ImageFont.ImageFont
+            font_small: ImageFont.FreeTypeFont | ImageFont.ImageFont
             try:
                 font_large = ImageFont.truetype(FONT_PATH, 40)
                 font_small = ImageFont.truetype(FONT_PATH, 24)
-            except IOError:
-                log.warning(f"警告: '{FONT_PATH}' が見つかりません。デフォルトフォントを使用します。")
+            except IOError as _e:
+                log.warning(
+                    "%s: %s: %s", FONT_PATH, type(_e).__name__, _e
+                )
                 font_large = ImageFont.load_default()
                 font_small = ImageFont.load_default()
 

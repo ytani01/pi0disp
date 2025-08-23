@@ -41,7 +41,7 @@ MOUTH_Y_POS_RATIO = 0.75 # Moved mouth further down
 class RobotFace:
     """Manages drawing and animating the geometric robot face."""
 
-    def __init__(self, lcd: ST7789V, font: ImageFont.ImageFont):
+    def __init__(self, lcd: ST7789V, font: ImageFont.FreeTypeFont | ImageFont.ImageFont):
         log.debug("RobotFace: Initializing...")
         self.lcd = lcd
         self.font = font

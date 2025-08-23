@@ -20,13 +20,18 @@ class MemoryPool:
     Manages pools of reusable buffers to reduce garbage collection overhead
     by recycling frequently allocated memory blocks.
     """
-    def __init__(self, max_pools: int = 8, buffer_factory: Callable[[int], Any] = bytearray):
+    def __init__(
+            self,
+            max_pools: int = 8,
+            buffer_factory: Callable[[int], Any] = bytearray
+    ):
         """
         Initializes the memory pool.
 
         Args:
             max_pools (int): The maximum number of buffers to store per size.
-            buffer_factory (Callable): A function to create new buffers, e.g., bytearray.
+            buffer_factory (Callable): A function to create new buffers,
+                                       e.g., bytearray.
         """
         self._pools: Dict[int, deque] = {}  # Pools categorized by buffer size
         self._max_pools = max_pools
@@ -87,7 +92,8 @@ class MemoryPool:
 class LookupTableCache:
     """
     A singleton cache for pre-calculated lookup tables (LUTs).
-    Used to accelerate expensive computations like color conversion or gamma correction.
+    Used to accelerate expensive computations
+    like color conversion or gamma correction.
     """
     _instances: Dict[str, 'LookupTableCache'] = {}
     _lock = threading.Lock()
@@ -116,7 +122,9 @@ class LookupTableCache:
             'b_shift': (np.arange(256, dtype=np.uint16) >> 3),
         }
 
-    def _generate_gamma_tables(self, gamma: float = 2.2) -> Dict[str, np.ndarray]:
+    def _generate_gamma_tables(
+            self, gamma: float = 2.2
+    ) -> Dict[str, np.ndarray]:
         """Generates a LUT for gamma correction."""
         table = np.array([
             int(255 * ((i / 255.0) ** gamma)) for i in range(256)
@@ -129,7 +137,8 @@ class LookupTableCache:
         
         Args:
             table_name (str): The name of the table to retrieve.
-            **kwargs: Parameters for the table generation function (e.g., gamma=2.2).
+            **kwargs: Parameters for the table generation function
+                      (e.g., gamma=2.2).
 
         Returns:
             The requested lookup table (typically a NumPy array).
@@ -141,7 +150,9 @@ class LookupTableCache:
             
             generated = self._generators[self.table_type](**kwargs)
             if table_name not in generated:
-                raise KeyError(f"Table '{table_name}' not found for type '{self.table_type}'")
+                raise KeyError(
+                    f"Table '{table_name}' not found for type '{self.table_type}'"
+                )
             
             self._tables[cache_key] = generated[table_name]
         
@@ -154,9 +165,11 @@ class RegionOptimizer:
     overlapping or nearby rectangles to reduce the number of drawing operations.
     """
     @staticmethod
-    def merge_regions(regions: List[Tuple[int, int, int, int]], 
-                     max_regions: int = 8, 
-                     merge_threshold: int = 50) -> List[Tuple[int, int, int, int]]:
+    def merge_regions(
+            regions: List[Tuple[int, int, int, int]], 
+            max_regions: int = 8, 
+            merge_threshold: int = 50
+    ) -> List[Tuple[int, int, int, int]]:
         """
         Merges a list of regions into a smaller, optimized list.
 
@@ -177,13 +190,17 @@ class RegionOptimizer:
 
         # Start with the smallest regions to encourage merging
         merged: List[Tuple[int, int, int, int]] = []
-        sorted_regions = sorted(valid_regions, key=lambda r: (r[2] - r[0]) * (r[3] - r[1]))
+        sorted_regions = sorted(
+            valid_regions, key=lambda r: (r[2] - r[0]) * (r[3] - r[1])
+        )
 
         while sorted_regions:
             current = sorted_regions.pop(0)
             was_merged = False
             for i, existing in enumerate(merged):
-                if RegionOptimizer._should_merge(current, existing, merge_threshold):
+                if RegionOptimizer._should_merge(
+                        current, existing, merge_threshold
+                ):
                     merged[i] = RegionOptimizer._merge_two(current, existing)
                     was_merged = True
                     break
@@ -215,7 +232,11 @@ class RegionOptimizer:
         return merged
 
     @staticmethod
-    def _should_merge(r1: Tuple[int, int, int, int], r2: Tuple[int, int, int, int], threshold: int) -> bool:
+    def _should_merge(
+            r1: Tuple[int, int, int, int],
+            r2: Tuple[int, int, int, int],
+            threshold: int
+    ) -> bool:
         """Determines if two regions are close enough to be merged."""
         # Check for overlap or proximity within the threshold
         x_overlap = (r1[0] <= r2[2] + threshold) and (r1[2] >= r2[0] - threshold)
@@ -223,7 +244,10 @@ class RegionOptimizer:
         return x_overlap and y_overlap
 
     @staticmethod
-    def _merge_two(r1: Tuple[int, int, int, int], r2: Tuple[int, int, int, int]) -> Tuple[int, int, int, int]:
+    def _merge_two(
+            r1: Tuple[int, int, int, int],
+            r2: Tuple[int, int, int, int]
+    ) -> Tuple[int, int, int, int]:
         """Merges two regions into their bounding box."""
         return (
             min(r1[0], r2[0]),
@@ -233,7 +257,11 @@ class RegionOptimizer:
         )
 
     @staticmethod
-    def clamp_region(region: Tuple[int, int, int, int], width: int, height: int) -> Tuple[int, int, int, int]:
+    def clamp_region(
+            region: Tuple[int, int, int, int],
+            width: int,
+            height: int
+    ) -> Tuple[int, int, int, int]:
         """Clamps a region's coordinates to be within screen boundaries."""
         return (
             max(0, region[0]),
@@ -279,7 +307,9 @@ class PerformanceMonitor:
         """Returns a dictionary of all current performance statistics."""
         return {
             'fps': self.get_fps(),
-            'avg_process_time_ms': (sum(self._process_times) / len(self._process_times) * 1000) if self._process_times else 0,
+            'avg_process_time_ms': (
+                sum(self._process_times) / len(self._process_times) * 1000
+            ) if self._process_times else 0,
         }
 
 
@@ -288,7 +318,12 @@ class AdaptiveChunking:
     Dynamically adjusts data transfer chunk sizes based on performance to
     optimize throughput.
     """
-    def __init__(self, initial_size: int = 4096, min_size: int = 1024, max_size: int = 16384):
+    def __init__(
+            self,
+            initial_size: int = 4096,
+            min_size: int = 1024,
+            max_size: int = 16384
+    ):
         self.chunk_size = initial_size
         self.min_size = min_size
         self.max_size = max_size
