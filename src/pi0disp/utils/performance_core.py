@@ -34,7 +34,7 @@ class MemoryPool:
                              最大数。例えば、サイズ100のバッファを最大8個まで
                              プールに保持します。
             buffer_factory (Callable): 新しいバッファを作成するための関数。
-                                       例: `bytearray` (バイト列を扱うためのバッファ)
+                               例: `bytearray` (バイト列を扱うためのバッファ)
         """
         self._pools: Dict[int, deque] = {}  # バッファサイズごとに分類されたプール
         self._max_pools = max_pools
@@ -120,13 +120,13 @@ class LookupTableCache:
         """
         with cls._lock:  # ロックを取得
             if table_type not in cls._instances:
-                cls._instances[table_type] = cls(table_type)  # インスタンスがなければ作成
-            return cls._instances[table_type]  # 既存または新しく作成したインスタンスを返す
+                cls._instances[table_type] = cls(table_type)
+            return cls._instances[table_type]
 
     def __init__(self, table_type: str):
         self.table_type = table_type  # テーブルのタイプ
         # （例: 'rgb565', 'gamma'）
-        self._tables: Dict[str, np.ndarray] = {}  # キャッシュされたテーブルを保持
+        self._tables: Dict[str, np.ndarray] = {} # キャッシュされたテーブルを保持
         self._generators: Dict[str, Callable[..., Dict[str, np.ndarray]]] = {
             'rgb565': self._generate_rgb565_tables,  # RGB565変換テーブルの生成関数
             'gamma': self._generate_gamma_tables,    # ガンマ補正テーブルの生成関数
@@ -166,7 +166,7 @@ class LookupTableCache:
         Args:
             table_name (str): 取得するテーブルの名前。
             **kwargs: テーブル生成関数に渡すパラメータ（例: `gamma=2.2`）。
-                      これにより、同じ種類のテーブルでも異なる設定で生成できます。
+                 これにより、同じ種類のテーブルでも異なる設定で生成できます。
 
         Returns:
             要求されたルックアップテーブル（通常はNumPy配列）。
@@ -184,5 +184,262 @@ class LookupTableCache:
             generated = self._generators[self.table_type](**kwargs)
             if table_name not in generated:
                 raise KeyError(
-                    f"タイプ '{self.table_type}' のテーブルに "
-                    f
+                    f"Table '{table_name}' not found for type '{self.table_type}'"
+                )
+            
+            self._tables[cache_key] = generated[table_name]
+        
+        return self._tables[cache_key]
+
+
+class RegionOptimizer:
+    """
+    Optimizes lists of rectangular regions ("dirty regions") by merging
+    overlapping or nearby rectangles to reduce the number of drawing operations.
+    """
+    @staticmethod
+    def merge_regions(
+            regions: List[Tuple[int, int, int, int]], 
+            max_regions: int = 8, 
+            merge_threshold: int = 50
+    ) -> List[Tuple[int, int, int, int]]:
+        """
+        Merges a list of regions into a smaller, optimized list.
+
+        Args:
+            regions: A list of tuples, where each tuple is (x0, y0, x1, y1).
+            max_regions: The maximum number of regions to return.
+            merge_threshold: The maximum distance between regions to be considered for mering.
+
+        Returns:
+            An optimized list of merged regions.
+        """
+        if len(regions) <= 1:
+            return regions
+
+        valid_regions = [r for r in regions if r and r[2] > r[0] and r[3] > r[1]]
+        if not valid_regions:
+            return []
+
+        # Start with the smallest regions to encourage merging
+        merged: List[Tuple[int, int, int, int]] = []
+        sorted_regions = sorted(
+            valid_regions, key=lambda r: (r[2] - r[0]) * (r[3] - r[1])
+        )
+
+        while sorted_regions:
+            current = sorted_regions.pop(0)
+            was_merged = False
+            for i, existing in enumerate(merged):
+                if RegionOptimizer._should_merge(
+                        current, existing, merge_threshold
+                ):
+                    merged[i] = RegionOptimizer._merge_two(current, existing)
+                    was_merged = True
+                    break
+            if not was_merged:
+                merged.append(current)
+
+        # If we still have too many regions, perform more aggressive merging
+        while len(merged) > max_regions:
+            # Find the pair of regions that results in the smallest new area when merged
+            min_area_increase = float('inf')
+            best_pair_to_merge = (0, 1)
+            for i in range(len(merged)):
+                for j in range(i + 1, len(merged)):
+                    r1, r2 = merged[i], merged[j]
+                    merged_bbox = RegionOptimizer._merge_two(r1, r2)
+                    area_increase = (
+                        (merged_bbox[2] - merged_bbox[0]) * \
+                        (merged_bbox[3] - merged_bbox[1])
+                    ) - (
+                        (r1[2] - r1[0]) * (r1[3] - r1[1])
+                    ) - (
+                        (r2[2] - r2[0]) * (r2[3] - r2[1])
+                    )
+                    if area_increase < min_area_increase:
+                        min_area_increase = area_increase
+                        best_pair_to_merge = (i, j)
+            
+            i, j = sorted(best_pair_to_merge, reverse=True)
+            merged_region = RegionOptimizer._merge_two(merged[i], merged[j])
+            merged.pop(j)
+            merged.pop(i)
+            merged.append(merged_region)
+
+        return merged
+
+    @staticmethod
+    def _should_merge(
+            r1: Tuple[int, int, int, int],
+            r2: Tuple[int, int, int, int],
+            threshold: int
+    ) -> bool:
+        """Determines if two regions are close enough to be merged."""
+        # Check for overlap or proximity within the threshold
+        x_overlap = (r1[0] <= r2[2] + threshold) and (r1[2] >= r2[0] - threshold)
+        y_overlap = (r1[1] <= r2[3] + threshold) and (r1[3] >= r2[1] - threshold)
+        return x_overlap and y_overlap
+
+    @staticmethod
+    def _merge_two(
+            r1: Tuple[int, int, int, int],
+            r2: Tuple[int, int, int, int]
+    ) -> Tuple[int, int, int, int]:
+        """Merges two regions into their bounding box."""
+        return (
+            min(r1[0], r2[0]),
+            min(r1[1], r2[1]),
+            max(r1[2], r2[2]),
+            max(r1[3], r2[3])
+        )
+
+    @staticmethod
+    def clamp_region(
+            region: Tuple[int, int, int, int],
+            width: int,
+            height: int
+    ) -> Tuple[int, int, int, int]:
+        """Clamps a region's coordinates to be within screen boundaries."""
+        return (
+            max(0, region[0]),
+            max(0, region[1]),
+            min(width, region[2]),
+            min(height, region[3])
+        )
+
+
+class PerformanceMonitor:
+    """
+    Tracks performance metrics like FPS and processing time.
+    """
+    def __init__(self, window_size: int = 60):
+        """
+        Args:
+            window_size: The number of frames to average over for statistics.
+        """
+        self.window_size = window_size
+        self._frame_times: deque[float] = deque(maxlen=window_size)
+        self._process_times: deque[float] = deque(maxlen=window_size)
+        self._last_frame_time = time.monotonic()
+
+    def frame_start(self) -> float:
+        """Marks the beginning of a new frame."""
+        now = time.monotonic()
+        delta = now - self._last_frame_time
+        self._frame_times.append(delta)
+        self._last_frame_time = now
+        return now
+
+    def frame_end(self, start_time: float):
+        """Marks the end of a frame's processing."""
+        self._process_times.append(time.monotonic() - start_time)
+
+    def get_fps(self) -> float:
+        """Calculates the current average frames per second."""
+        if not self._frame_times:
+            return 0.0
+        return 1.0 / (sum(self._frame_times) / len(self._frame_times))
+
+    def get_stats(self) -> dict:
+        """Returns a dictionary of all current performance statistics."""
+        return {
+            'fps': self.get_fps(),
+            'avg_process_time_ms': (
+                sum(self._process_times) / len(self._process_times) * 1000
+            ) if self._process_times else 0,
+        }
+
+
+class AdaptiveChunking:
+    """
+    Dynamically adjusts data transfer chunk sizes based on performance to
+    optimize throughput.
+    """
+    def __init__(
+            self,
+            initial_size: int = 4096,
+            min_size: int = 1024,
+            max_size: int = 16384
+    ):
+        self.chunk_size = initial_size
+        self.min_size = min_size
+        self.max_size = max_size
+        self._throughputs: deque[float] = deque(maxlen=20)
+        self._last_adjustment = time.monotonic()
+
+    def record_transfer(self, data_size: int, transfer_time: float):
+        """Records a data transfer to adjust future chunk sizes."""
+        if transfer_time > 0:
+            self._throughputs.append(data_size / transfer_time)
+        
+        if time.monotonic() - self._last_adjustment > 1.0 and len(self._throughputs) >= 10:
+            self._adjust_chunk_size()
+
+    def _adjust_chunk_size(self):
+        """Adjusts chunk size based on recent throughput."""
+        if len(self._throughputs) < 10:
+            return
+
+        recent_avg = sum(list(self._throughputs)[-10:]) / 10
+        older_avg = sum(list(self._throughputs)[:-10]) / 10 \
+            if len(self._throughputs) > 10 else recent_avg
+
+        if recent_avg > older_avg * 1.05:  # Throughput is improving
+            self.chunk_size = min(self.max_size, int(self.chunk_size * 1.2))
+        elif recent_avg < older_avg * 0.95:  # Throughput is degrading
+            self.chunk_size = max(self.min_size, int(self.chunk_size * 0.8))
+        
+        self._last_adjustment = time.monotonic()
+
+    def get_chunk_size(self) -> int:
+        """Returns the current optimal chunk size."""
+        return self.chunk_size
+
+
+class ColorConverter:
+    """
+    Provides fast color space conversion utilities using cached lookup tables.
+    """
+    def __init__(self):
+        self._rgb565_cache = LookupTableCache.get_instance('rgb565')
+        self._gamma_cache = LookupTableCache.get_instance('gamma')
+
+    def rgb_to_rgb565_bytes(self, rgb_array: np.ndarray) -> bytes:
+        """
+        Converts an RGB NumPy array to a big-endian RGB565 byte string.
+
+        Args:
+            rgb_array: A NumPy array with shape (height, width, 3).
+
+        Returns:
+            A byte string containing the RGB565 pixel data.
+        """
+        r = self._rgb565_cache.get_table('r_shift')[rgb_array[:, :, 0]]
+        g = self._rgb565_cache.get_table('g_shift')[rgb_array[:, :, 1]]
+        b = self._rgb565_cache.get_table('b_shift')[rgb_array[:, :, 2]]
+        
+        rgb565 = r | g | b
+        return rgb565.astype('>u2').tobytes()
+
+    def apply_gamma(self, rgb_array: np.ndarray, gamma: float = 2.2) -> np.ndarray:
+        """Applies gamma correction to an RGB NumPy array."""
+        gamma_table = self._gamma_cache.get_table('gamma_table', gamma=gamma)
+        return gamma_table[rgb_array]
+
+# --- Factory Function ---
+
+def create_optimizer_pack() -> dict:
+    """
+    Creates a standard dictionary of optimizer instances for convenience.
+
+    Returns:
+        A dictionary containing instances of the core optimization classes.
+    """
+    return {
+        'memory_pool': MemoryPool(),
+        'region_optimizer': RegionOptimizer(),
+        'performance_monitor': PerformanceMonitor(),
+        'adaptive_chunking': AdaptiveChunking(),
+        'color_converter': ColorConverter(),
+    }
