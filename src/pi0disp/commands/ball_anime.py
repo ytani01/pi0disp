@@ -98,7 +98,11 @@ def _initialize_balls(num_balls: int, width: int, height: int, ball_speed: float
     speed = ball_speed or 300.0
     max_attempts_per_ball = 100  # 1つのボールを配置するための最大試行回数
 
-    for _ in range(num_balls):
+    # 色相を均等に分散させる
+    hues = [i / num_balls for i in range(num_balls)]
+    np.random.shuffle(hues)  # 色の順序をランダムにする
+
+    for i in range(num_balls):
         for _ in range(max_attempts_per_ball):
             # 新しいボールの候補を生成
             x = np.random.randint(BALL_RADIUS, width - BALL_RADIUS)
@@ -119,8 +123,8 @@ def _initialize_balls(num_balls: int, width: int, height: int, ball_speed: float
             if not is_overlapping:
                 angle = np.random.rand() * 2 * np.pi
                 
-                # HSV色空間でランダムな色相を生成し、彩度と明度を最大に設定
-                hue = np.random.rand()
+                # HSV色空間で色相を均等に分散させ、彩度と明度を最大に設定
+                hue = hues[i]
                 saturation = 1.0
                 value = 1.0
                 rgb_float = colorsys.hsv_to_rgb(hue, saturation, value)
