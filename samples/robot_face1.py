@@ -47,7 +47,9 @@ class RobotFace:
         self.font = font
         self.width = lcd.width
         self.height = lcd.height
-        self.base_image = Image.new("RGB", (self.width, self.height), BACKGROUND_COLOR)
+        self.base_image = Image.new(
+            "RGB", (self.width, self.height), BACKGROUND_COLOR
+        )
         self.draw = ImageDraw.Draw(self.base_image)
 
         # Calculate absolute positions and sizes
@@ -64,20 +66,39 @@ class RobotFace:
         self.mouth_x = (self.width - self.mouth_width) // 2
 
         # Base bboxes (unpadded)
-        self.left_eye_base_bbox = self._get_eye_bbox(self.left_eye_center_x, self.eye_y, self.eye_radius)
-        self.right_eye_base_bbox = self._get_eye_bbox(self.right_eye_center_x, self.eye_y, self.eye_radius)
-        self.mouth_base_bbox = (self.mouth_x, self.mouth_y, self.mouth_x + self.mouth_width, self.mouth_y + self.mouth_height)
+        self.left_eye_base_bbox = self._get_eye_bbox(
+            self.left_eye_center_x, self.eye_y, self.eye_radius
+        )
+        self.right_eye_base_bbox = self._get_eye_bbox(
+            self.right_eye_center_x, self.eye_y, self.eye_radius
+        )
+        self.mouth_base_bbox = (
+            self.mouth_x,
+            self.mouth_y,
+            self.mouth_x + self.mouth_width,
+            self.mouth_y + self.mouth_height
+        )
 
         # Track last drawn regions for precise clearing
-        self.last_left_eye_drawn_bbox: Optional[Tuple[int, int, int, int]] = None
-        self.last_right_eye_drawn_bbox: Optional[Tuple[int, int, int, int]] = None
-        self.last_mouth_drawn_bbox: Optional[Tuple[int, int, int, int]] = None
-        self.last_text_drawn_bbox: Optional[Tuple[int, int, int, int]] = None
+        self.last_left_eye_drawn_bbox: Optional[
+            Tuple[int, int, int, int]
+        ] = None
+        self.last_right_eye_drawn_bbox: Optional[
+            Tuple[int, int, int, int]
+        ] = None
+        self.last_mouth_drawn_bbox: Optional[
+            Tuple[int, int, int, int]
+        ] = None
+        self.last_text_drawn_bbox: Optional[
+            Tuple[int, int, int, int]
+        ] = None
         self.last_text_content: Optional[str] = None
         self.last_text_y_offset: Optional[int] = None
         log.debug("RobotFace: Initialization complete.")
 
-    def _get_eye_bbox(self, center_x: int, center_y: int, radius: int) -> Tuple[int, int, int, int]:
+    def _get_eye_bbox(
+            self, center_x: int, center_y: int, radius: int
+    ) -> Tuple[int, int, int, int]:
         return (
             center_x - radius,
             center_y - radius,
@@ -85,8 +106,13 @@ class RobotFace:
             center_y + radius,
         )
 
-    def _draw_overlay_text(self, text: str, y_offset_ratio: float = 0.0) -> Tuple[int, int, int, int]:
-        log.debug(f"_draw_overlay_text: Drawing text '{text}' at y_offset_ratio={y_offset_ratio}")
+    def _draw_overlay_text(
+            self, text: str, y_offset_ratio: float = 0.0
+    ) -> Tuple[int, int, int, int]:
+        log.debug(
+            "_draw_overlay_text: Drawing text '%s' at y_offset_ratio=%s",
+            text, y_offset_ratio
+        )
         draw = self.draw
         
         # Use the draw_text utility function directly to draw and get its precise bbox
@@ -104,7 +130,7 @@ class RobotFace:
         
         self.last_text_drawn_bbox = current_text_bbox
         self.last_text_content = text # Store content for clearing
-        self.last_text_y_offset = int(self.height * y_offset_ratio) # Store y_offset for clearing
+        self.last_text_y_offset = int(self.height * y_offset_ratio)
         return current_text_bbox # Return the drawn region as dirty
 
     def _clear_overlay_text(self) -> Optional[Tuple[int, int, int, int]]:
@@ -114,10 +140,13 @@ class RobotFace:
 
             # First, draw a solid rectangle over the last drawn text area (expanded)
             # This is a brute-force clear to ensure no lingering pixels
-            solid_clear_bbox = expand_bbox(self.last_text_drawn_bbox, 2) # Expand by 2 pixels
+
+            # Expand by 2 pixels
+            solid_clear_bbox = expand_bbox(self.last_text_drawn_bbox, 2)
             draw.rectangle(solid_clear_bbox, fill=BACKGROUND_COLOR)
 
-            # Then, draw the text again in the background color to clear it with anti-aliasing
+            # Then, draw the text again in the background color
+            # to clear it with anti-aliasing
             cleared_bbox = draw_text(
                 draw,
                 self.last_text_content,
@@ -137,7 +166,11 @@ class RobotFace:
         log.debug("_clear_overlay_text: No text to clear.")
         return None
 
-    def draw_eyes(self, state: str = "open", color: Tuple[int, int, int] = (255, 255, 255)) -> Tuple[int, int, int, int]:
+    def draw_eyes(
+            self,
+            state: str = "open",
+            color: Tuple[int, int, int] = (255, 255, 255)
+    ) -> Tuple[int, int, int, int]:
         log.debug(f"draw_eyes: Drawing eyes in state '{state}'")
         draw = self.draw
         
@@ -158,7 +191,9 @@ class RobotFace:
         draw.ellipse(padded_right_eye_clear_ellipse_bbox, fill=BACKGROUND_COLOR)
 
         # Initialize clear_region with the merged bounding boxes of the cleared ellipses
-        clear_region = merge_bboxes(padded_left_eye_clear_ellipse_bbox, padded_right_eye_clear_ellipse_bbox)
+        clear_region = merge_bboxes(
+            padded_left_eye_clear_ellipse_bbox, padded_right_eye_clear_ellipse_bbox
+        )
 
         drawn_bboxes = []
 
@@ -171,8 +206,12 @@ class RobotFace:
 
             # Draw inner circle (black) to create a hollow effect
             inner_radius = int(self.eye_radius * 0.6)
-            left_inner_bbox = self._get_eye_bbox(self.left_eye_center_x, self.eye_y, inner_radius)
-            right_inner_bbox = self._get_eye_bbox(self.right_eye_center_x, self.eye_y, inner_radius)
+            left_inner_bbox = self._get_eye_bbox(
+                self.left_eye_center_x, self.eye_y, inner_radius
+            )
+            right_inner_bbox = self._get_eye_bbox(
+                self.right_eye_center_x, self.eye_y, inner_radius
+            )
             draw.ellipse(left_inner_bbox, fill=BACKGROUND_COLOR)
             draw.ellipse(right_inner_bbox, fill=BACKGROUND_COLOR)
             drawn_bboxes.append(left_inner_bbox)
@@ -186,14 +225,24 @@ class RobotFace:
             # Left eye line
             left_line_start_x = self.left_eye_center_x - line_width // 2
             left_line_end_x = self.left_eye_center_x + line_width // 2
-            draw.line((left_line_start_x, line_y, left_line_end_x, line_y), fill=color, width=2)
-            drawn_bboxes.append((left_line_start_x, line_y - 1, left_line_end_x, line_y + 1)) # Approximate bbox
+            draw.line(
+                (left_line_start_x, line_y, left_line_end_x, line_y),
+                fill=color, width=2
+            )
+            drawn_bboxes.append(
+                (left_line_start_x, line_y - 1, left_line_end_x, line_y + 1)
+            ) # Approximate bbox
 
             # Right eye line
             right_line_start_x = self.right_eye_center_x - line_width // 2
             right_line_end_x = self.right_eye_center_x + line_width // 2
-            draw.line((right_line_start_x, line_y, right_line_end_x, line_y), fill=color, width=2)
-            drawn_bboxes.append((right_line_start_x, line_y - 1, right_line_end_x, line_y + 1)) # Approximate bbox
+            draw.line(
+                (right_line_start_x, line_y, right_line_end_x, line_y),
+                fill=color, width=2
+            )
+            drawn_bboxes.append(
+                (right_line_start_x, line_y - 1, right_line_end_x, line_y + 1)
+            ) # Approximate bbox
 
         elif state == "happy_eyes":
             # Filled eyes for happy expression
@@ -204,8 +253,12 @@ class RobotFace:
 
             # Add small black pupils
             pupil_radius = int(self.eye_radius * 0.2) # Smaller pupil
-            left_pupil_bbox = self._get_eye_bbox(self.left_eye_center_x, self.eye_y, pupil_radius)
-            right_pupil_bbox = self._get_eye_bbox(self.right_eye_center_x, self.eye_y, pupil_radius)
+            left_pupil_bbox = self._get_eye_bbox(
+                self.left_eye_center_x, self.eye_y, pupil_radius
+            )
+            right_pupil_bbox = self._get_eye_bbox(
+                self.right_eye_center_x, self.eye_y, pupil_radius
+            )
             draw.ellipse(left_pupil_bbox, fill=BACKGROUND_COLOR)
             draw.ellipse(right_pupil_bbox, fill=BACKGROUND_COLOR)
             drawn_bboxes.append(left_pupil_bbox)
@@ -273,14 +326,22 @@ class RobotFace:
         self.last_left_eye_drawn_bbox = drawn_bboxes[0] if drawn_bboxes else None
         self.last_right_eye_drawn_bbox = drawn_bboxes[1] if len(drawn_bboxes) > 1 else None
 
-        return merge_bboxes(clear_region, drawn_region) or (0, 0, 0, 0) # Return the merged clear/drawn region as dirty
+        return merge_bboxes(
+            clear_region, drawn_region
+        ) or (0, 0, 0, 0) # Return the merged clear/drawn region as dirty
 
-    def draw_mouth(self, state: str = "neutral", color: Tuple[int, int, int] = (255, 255, 255)) -> Tuple[int, int, int, int]:
+    def draw_mouth(
+            self,
+            state: str = "neutral",
+            color: Tuple[int, int, int] = (255, 255, 255)
+    ) -> Tuple[int, int, int, int]:
         log.debug(f"draw_mouth: Drawing mouth in state '{state}'")
         draw = self.draw
         
         # Calculate clear region: previous drawn bbox + current base bbox
-        clear_region = merge_bboxes(self.last_mouth_drawn_bbox, self.mouth_base_bbox)
+        clear_region = merge_bboxes(
+            self.last_mouth_drawn_bbox, self.mouth_base_bbox
+        )
 
         if clear_region:
             log.debug(f"draw_mouth: Clearing region {clear_region}")
@@ -295,29 +356,43 @@ class RobotFace:
             line_end_x = line_start_x + line_length
             line_y = self.mouth_y + self.mouth_height // 2
             draw.line((line_start_x, line_y, line_end_x, line_y), fill=color, width=4)
-            drawn_bbox = (line_start_x, line_y - 1, line_end_x, line_y + 1) # Approximate bbox for line
+            drawn_bbox = (
+                line_start_x, line_y - 1, line_end_x, line_y + 1
+            ) # Approximate bbox for line
 
         elif state == "happy":
             # Adjust bbox for happy arc to ensure it's fully visible
-            happy_arc_bbox = (self.mouth_x, self.mouth_y - self.mouth_height // 2, 
-                              self.mouth_x + self.mouth_width, self.mouth_y + self.mouth_height)
+            happy_arc_bbox = (
+                self.mouth_x, self.mouth_y - self.mouth_height // 2, 
+                self.mouth_x + self.mouth_width, self.mouth_y + self.mouth_height
+            )
             # Draw a thick arc for a broader smile
-            draw.arc(happy_arc_bbox, start=0, end=180, fill=color, width=4) # Changed to arc, width=4
+            draw.arc(
+                happy_arc_bbox, start=0, end=180, fill=color, width=4
+            ) # Changed to arc, width=4
             drawn_bbox = happy_arc_bbox
 
         elif state == "sad":
             # Adjust bbox for sad arc to ensure it's fully visible
-            sad_arc_bbox = (self.mouth_x, self.mouth_y, 
-                            self.mouth_x + self.mouth_width, int(self.mouth_y + self.mouth_height * 1.5)) # Extend downwards
+            sad_arc_bbox = (
+                self.mouth_x,
+                self.mouth_y, 
+                self.mouth_x + self.mouth_width,
+                int(self.mouth_y + self.mouth_height * 1.5)
+            ) # Extend downwards
             draw.arc(sad_arc_bbox, start=180, end=360, fill=color, width=2)
             drawn_bbox = sad_arc_bbox
 
-        elif state == "line_mouth": # This state is now redundant with "neutral" but kept for clarity
+        elif state == "line_mouth":
+            # This state is now redundant with "neutral" but kept for clarity
             line_length = int(self.mouth_width * 0.5) 
             line_start_x = self.mouth_x + (self.mouth_width - line_length) // 2
             line_end_x = line_start_x + line_length
             line_y = self.mouth_y + self.mouth_height // 2
-            draw.line((line_start_x, line_y, line_end_x, line_y), fill=color, width=4)
+            draw.line(
+                (line_start_x, line_y, line_end_x, line_y),
+                fill=color, width=4
+            )
             drawn_bbox = (line_start_x, line_y - 1, line_end_x, line_y + 1)
 
         elif state == "question_mouth":
@@ -325,13 +400,18 @@ class RobotFace:
             dash_width = int(self.mouth_width * 0.2)
             dash_x = self.mouth_x + (self.mouth_width - dash_width) // 2
             line_y = self.mouth_y + self.mouth_height // 2
-            draw.line((dash_x, line_y, dash_x + dash_width, line_y), fill=color, width=2)
+            draw.line(
+                (dash_x, line_y, dash_x + dash_width, line_y),
+                fill=color, width=2
+            )
             drawn_bbox = (dash_x, line_y - 1, dash_x + dash_width, line_y + 1)
 
         # Add more mouth states as needed
         self.current_mouth_state = state
         self.last_mouth_drawn_bbox = drawn_bbox
-        return merge_bboxes(clear_region, drawn_bbox) or (0, 0, 0, 0) # Return the merged clear/drawn region as dirty
+        return merge_bboxes(
+            clear_region, drawn_bbox
+        ) or (0, 0, 0, 0) # Return the merged clear/drawn region as dirty
 
     def animate_blink(self, num_blinks: int = 1, blink_duration: float = 0.1):
         log.debug(f"animate_blink: Starting {num_blinks} blinks.")
@@ -347,46 +427,84 @@ class RobotFace:
             time.sleep(blink_duration)
         log.debug("animate_blink: Blinks complete.")
 
-    def animate_expression(self, expression: str, duration: float = 1.0, save_screenshot_flag: bool = False):
+    def animate_expression(
+            self,
+            expression: str,
+            duration: float = 1.0,
+            save_screenshot_flag: bool = False
+    ):
         log.info(f"animate_expression: Changing to '{expression}' expression.")
         total_dirty_region = None
 
-        # Clear any previous overlay text and merge its expanded bbox into total_dirty_region
+        # Clear any previous overlay text and merge its expanded bbox
+        # into total_dirty_region
         cleared_text_bbox = self._clear_overlay_text()
         if cleared_text_bbox:
             expanded_cleared_bbox = expand_bbox(cleared_text_bbox, 2) # Revert to 2
-            total_dirty_region = merge_bboxes(total_dirty_region, expanded_cleared_bbox)
+            total_dirty_region = merge_bboxes(
+                total_dirty_region, expanded_cleared_bbox
+            )
 
         # Draw eyes and mouth, merging their dirty regions into total_dirty_region
         if expression == "happy":
-            total_dirty_region = merge_bboxes(total_dirty_region, self.draw_eyes(state="happy_eyes"))
-            total_dirty_region = merge_bboxes(total_dirty_region, self.draw_mouth(state="happy"))
+            total_dirty_region = merge_bboxes(
+                total_dirty_region, self.draw_eyes(state="happy_eyes")
+            )
+            total_dirty_region = merge_bboxes(
+                total_dirty_region, self.draw_mouth(state="happy")
+            )
         elif expression == "sad":
-            total_dirty_region = merge_bboxes(total_dirty_region, self.draw_eyes(state="sad_eyes"))
-            total_dirty_region = merge_bboxes(total_dirty_region, self.draw_mouth(state="sad"))
+            total_dirty_region = merge_bboxes(
+                total_dirty_region, self.draw_eyes(state="sad_eyes")
+            )
+            total_dirty_region = merge_bboxes(
+                total_dirty_region, self.draw_mouth(state="sad")
+            )
         elif expression == "neutral":
-            total_dirty_region = merge_bboxes(total_dirty_region, self.draw_eyes(state="open"))
-            total_dirty_region = merge_bboxes(total_dirty_region, self.draw_mouth(state="neutral")) # Use "neutral" for line mouth
+            total_dirty_region = merge_bboxes(
+                total_dirty_region, self.draw_eyes(state="open")
+            )
+            total_dirty_region = merge_bboxes(
+                total_dirty_region, self.draw_mouth(state="neutral")
+            ) # Use "neutral" for line mouth
         elif expression == "question":
-            total_dirty_region = merge_bboxes(total_dirty_region, self.draw_eyes(state="question_eyes"))
-            total_dirty_region = merge_bboxes(total_dirty_region, self.draw_mouth(state="question_mouth"))
+            total_dirty_region = merge_bboxes(
+                total_dirty_region, self.draw_eyes(state="question_eyes")
+            )
+            total_dirty_region = merge_bboxes(
+                total_dirty_region, self.draw_mouth(state="question_mouth")
+            )
             # Draw overlay text and merge its dirty region
-            total_dirty_region = merge_bboxes(total_dirty_region, self._draw_overlay_text("", y_offset_ratio=0.1)) # Above head
+            total_dirty_region = merge_bboxes(
+                total_dirty_region,
+                self._draw_overlay_text("", y_offset_ratio=0.1)
+            ) # Above head
         elif expression == "sleepy":
-            total_dirty_region = merge_bboxes(total_dirty_region, self.draw_eyes(state="closed"))
-            total_dirty_region = merge_bboxes(total_dirty_region, self.draw_mouth(state="neutral")) # Neutral mouth for sleepy
+            total_dirty_region = merge_bboxes(
+                total_dirty_region, self.draw_eyes(state="closed")
+            )
+            total_dirty_region = merge_bboxes(
+                total_dirty_region, self.draw_mouth(state="neutral")
+            ) # Neutral mouth for sleepy
             # Draw overlay text and merge its dirty region
-            total_dirty_region = merge_bboxes(total_dirty_region, self._draw_overlay_text("zzz", y_offset_ratio=0.15)) # Above eyes
+            total_dirty_region = merge_bboxes(
+                total_dirty_region,
+                self._draw_overlay_text("zzz", y_offset_ratio=0.15)
+            ) # Above eyes
         # Add more expressions
 
         # Update the display once with the total merged dirty region
         if total_dirty_region:
-            log.debug(f"animate_expression: Displaying total dirty region {total_dirty_region}")
+            log.debug(
+                f"animate_expression: Displaying total dirty region {total_dirty_region}"
+            )
             # Expand total_dirty_region for robustness
             expanded_dirty_region = expand_bbox(total_dirty_region, 2)
             self.lcd.display_region(self.base_image, *expanded_dirty_region)
             if save_screenshot_flag:
-                self.save_screenshot(f"screenshot_{expression}.png") # Save with expression name
+                self.save_screenshot(
+                    f"screenshot_{expression}.png"
+                ) # Save with expression name
         time.sleep(duration)
         log.debug(f"animate_expression: '{expression}' expression complete.")
 
@@ -399,13 +517,20 @@ class RobotFace:
             log.error(f"Failed to save screenshot to {filename}: {e}")
 
 @click.command()
-@click.option('--screenshot', is_flag=True, default=False, help='Save screenshot for each expression.')
+@click.option(
+    '--screenshot', is_flag=True, default=False,
+    help='Save screenshot for each expression.'
+)
 @click.option(
     '--face',
-    type=click.Choice(['neutral', 'happy', 'sad', 'question', 'sleepy'], case_sensitive=False),
+    type=click.Choice(
+        ['neutral', 'happy', 'sad', 'question', 'sleepy'], case_sensitive=False
+    ),
     help='Display a specific face and exit.'
 )
-@click.option('--debug', is_flag=True, default=False, help='Enable debug logging.')
+@click.option(
+    '--debug', is_flag=True, default=False, help='Enable debug logging.'
+)
 def main(screenshot, face, debug):
     """Main function to run the geometric robot face animation."""
     script_dir = Path(__file__).parent
@@ -419,7 +544,10 @@ def main(screenshot, face, debug):
     try:
         log.debug("main: Initializing ST7789V display.")
         with ST7789V(speed_hz=SPI_SPEED_HZ) as lcd:
-            log.debug("main: ST7789V display initialized. Width: 320, Height: 240", lcd.width, lcd.height)
+            log.debug(
+                "main: ST7789V display initialized. %s x %s",
+                lcd.width, lcd.height
+            )
 
             # Load font
             font_path_abs = script_dir / FONT_PATH
@@ -428,7 +556,9 @@ def main(screenshot, face, debug):
                 font = ImageFont.truetype(str(font_path_abs), 45)
                 log.debug("main: Font loaded successfully.")
             except IOError:
-                log.warning(f"Font '{font_path_abs}' not found. Using default.")
+                log.warning(
+                    f"Font '{font_path_abs}' not found. Using default."
+                )
                 font = ImageFont.load_default()
 
             log.debug("main: Initializing RobotFace.")
@@ -445,7 +575,9 @@ def main(screenshot, face, debug):
 
             if face:
                 log.info(f"Displaying '{face}' expression.")
-                robot_face.animate_expression(face, duration=5.0, save_screenshot_flag=screenshot)
+                robot_face.animate_expression(
+                    face, duration=5.0, save_screenshot_flag=screenshot
+                )
                 log.info("Exiting.")
                 return
 
@@ -455,7 +587,11 @@ def main(screenshot, face, debug):
             while True:
                 for expression in expressions:
                     log.info(f"{expression.capitalize()} expression")
-                    robot_face.animate_expression(expression, duration=2.0, save_screenshot_flag=screenshot)
+                    robot_face.animate_expression(
+                        expression,
+                        duration=2.0,
+                        save_screenshot_flag=screenshot
+                    )
                     robot_face.animate_blink(num_blinks=1, blink_duration=0.1)
                     time.sleep(1.0)
 
