@@ -156,7 +156,7 @@ def get_ip_address() -> str:
         s.close()
     return ip
 
-def draw_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.ImageFont, 
+def draw_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont | ImageFont.ImageFont, 
               x: Union[int, str], y: Union[int, str], 
               width: int, height: int, color: Tuple[int, int, int],
               padding: int = 5) -> Tuple[int, int, int, int]:
