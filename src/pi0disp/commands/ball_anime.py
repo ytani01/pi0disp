@@ -18,7 +18,7 @@ from ..utils.my_logger import get_logger
 from ..utils.performance_core import RegionOptimizer
 from ..utils.utils import (
     merge_bboxes, 
-    get_ip_address, draw_text
+    get_ip_address, draw_text, expand_bbox
 )
 
 log = get_logger(__name__)
@@ -70,7 +70,6 @@ class Ball:
         """指定されたPIL ImageDrawオブジェクトにボールを描画する。"""
         bbox = self.get_bbox()
         draw.ellipse(bbox, fill=self.fill_color, outline=self.fill_color)
-        self.prev_bbox = bbox
 
 class FpsCounter:
     """FPSの計算と表示を管理する。"""
@@ -234,14 +233,10 @@ def _main_loop(lcd: ST7789V, background: Image.Image, balls: List[Ball],
             dirty_region = merge_bboxes(prev_bbox, curr_bbox)
             if dirty_region:
                 # Add padding to the dirty region to prevent ghosting
-                padded_dirty_region = (
-                    dirty_region[0] - 2,  # x0 - padding
-                    dirty_region[1] - 2,  # y0 - padding
-                    dirty_region[2] + 2,  # x1 + padding
-                    dirty_region[3] + 2   # y1 + padding
-                )
-                dirty_regions.append(RegionOptimizer.clamp_region(padded_dirty_region, lcd.width, lcd.height))
+                expanded_dirty_region = expand_bbox(dirty_region, 1) # 1ピクセル拡大
+                dirty_regions.append(RegionOptimizer.clamp_region(expanded_dirty_region, lcd.width, lcd.height))
             ball.draw(draw)
+            ball.prev_bbox = ball.get_bbox() # 現在のバウンディングボックスを記録
 
         if fps_counter.update():
             # Expand prev_fps_bbox before clearing
