@@ -12,8 +12,9 @@ Usage:
   log.debug("This is a debug message.")
 """
 import inspect
-from logging import (DEBUG, INFO, Formatter, Logger, StreamHandler,
-                     getLogger)
+from logging import (
+    DEBUG, INFO, Formatter, Logger, StreamHandler, getLogger
+)
 
 
 def get_logger(name: str, debug: bool = False) -> Logger:
