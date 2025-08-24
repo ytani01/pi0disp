@@ -154,12 +154,24 @@ def _handle_ball_collisions(balls: List[Ball]):
             
             radii_sum = b1.radius + b2.radius
             radii_sum_sq = radii_sum**2
+            
+            # より厳しい最小距離チェック - 半径の5%を最小距離とする
+            min_dist = radii_sum * 0.05
+            min_dist_sq = min_dist * min_dist
 
-            # dist_sqが極端に小さい場合(ほぼ中心が同じ)は計算が不安定になるため除外
-            if dist_sq <= radii_sum_sq and dist_sq > 1e-6:
+            # 衝突判定と数値不安定性の回避
+            if dist_sq <= radii_sum_sq and dist_sq > min_dist_sq:
                 dist = np.sqrt(dist_sq)
-                nx = dist_x / dist
-                ny = dist_y / dist
+                
+                # 正規化ベクトルの計算（安全性チェック付き）
+                if dist > 0.001:  # より厳しい閾値
+                    nx = dist_x / dist
+                    ny = dist_y / dist
+                else:
+                    # 距離が極小の場合、ランダムな方向に分離
+                    angle = np.random.rand() * 2 * np.pi
+                    nx = np.cos(angle)
+                    ny = np.sin(angle)
 
                 # 衝突軸上の相対速度を計算 (v1 - v2).
                 # 法線ベクトルnはb2からb1を指す。内積が負の場合、接近している。
@@ -181,10 +193,21 @@ def _handle_ball_collisions(balls: List[Ball]):
                     v2t = b2.speed_x * tx + b2.speed_y * ty
 
                     # n 成分の速度を交換 (質量が等しい場合)
-                    b1.speed_x = v2n * nx + v1t * tx
-                    b1.speed_y = v2n * ny + v1t * ty
-                    b2.speed_x = v1n * nx + v2t * tx
-                    b2.speed_y = v1n * ny + v2t * ty
+                    new_v1x = v2n * nx + v1t * tx
+                    new_v1y = v2n * ny + v1t * ty
+                    new_v2x = v1n * nx + v2t * tx
+                    new_v2y = v1n * ny + v2t * ty
+                    
+                    # 速度の上限チェック（異常値の防止）
+                    max_speed = 1000.0  # 最大速度制限
+                    speed1_sq = new_v1x**2 + new_v1y**2
+                    speed2_sq = new_v2x**2 + new_v2y**2
+                    
+                    if speed1_sq <= max_speed**2 and speed2_sq <= max_speed**2:
+                        b1.speed_x = new_v1x
+                        b1.speed_y = new_v1y
+                        b2.speed_x = new_v2x
+                        b2.speed_y = new_v2y
 
                 # 2. 重なりの補正 (常に実行して、めり込みを解消)
                 # 補正を強くして、1回の処理でほぼ解消するようにする
@@ -193,6 +216,10 @@ def _handle_ball_collisions(balls: List[Ball]):
                 overlap = max(0, (radii_sum - dist + correction_slop))
                 
                 correction_amount = (overlap / 2) * correction_percent
+                # 補正量の上限チェック（異常な位置移動を防ぐ）
+                max_correction = radii_sum * 0.5
+                correction_amount = min(correction_amount, max_correction)
+                
                 b1.x += correction_amount * nx
                 b1.y += correction_amount * ny
                 b2.x -= correction_amount * nx
@@ -201,17 +228,29 @@ def _handle_ball_collisions(balls: List[Ball]):
 def _main_loop(lcd: ST7789V, background: Image.Image, balls: List[Ball], 
                fps_counter: FpsCounter, font: ImageFont.FreeTypeFont | ImageFont.ImageFont, target_fps: float):
     target_duration = 1.0 / target_fps
-    next_frame_time = time.time()
+    last_frame_time = time.time()
     
     # --- 物理ステップの細分化 ---
     num_physics_substeps = 4
-    sub_delta_t = target_duration / num_physics_substeps
+    
+    # 異常な時間経過を制限するための設定
+    max_delta_t = target_duration * 3.0  # 最大フレーム時間を目標の3倍に制限
+    min_delta_t = target_duration * 0.1  # 最小フレーム時間も設定
 
     hud_layer = Image.new("RGBA", (lcd.width, lcd.height), (0, 0, 0, 0))
     hud_draw = ImageDraw.Draw(hud_layer)
     prev_fps_bbox = None
 
     while True:
+        current_time = time.time()
+        actual_delta_t = current_time - last_frame_time
+        
+        # 異常に大きなdelta_tや小さなdelta_tをクランプ
+        delta_t = max(min_delta_t, min(actual_delta_t, max_delta_t))
+        last_frame_time = current_time
+        
+        sub_delta_t = delta_t / num_physics_substeps
+
         # --- 物理更新ループ ---
         for _ in range(num_physics_substeps):
             for ball in balls:
@@ -274,11 +313,17 @@ def _main_loop(lcd: ST7789V, background: Image.Image, balls: List[Ball],
             for r in optimized:
                 lcd.display_region(final_frame, *r)
 
-        # フレームレートを維持するためのスリープ
-        next_frame_time += target_duration
-        sleep_duration = next_frame_time - time.time()
+        # フレームレートを維持するためのスリープ（改善版）
+        next_target_time = last_frame_time + target_duration
+        current_time = time.time()
+        sleep_duration = next_target_time - current_time
+        
         if sleep_duration > 0:
-            time.sleep(sleep_duration)
+            # 適切なスリープ時間の場合のみスリープ
+            if sleep_duration <= target_duration:
+                time.sleep(sleep_duration)
+        # sleep_durationが負の場合やtarget_durationより大きい場合は
+        # スリープせずに次のフレームに進む
 
 # --- CLIコマンド ---
 @click.command("ball_anime")
