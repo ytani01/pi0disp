@@ -7,7 +7,7 @@ ST7789Vディスプレイで動作する、物理ベースのアニメーショ�
 """
 import time
 import colorsys
-from typing import List
+from typing import List, Optional
 import math
 
 import click
@@ -83,7 +83,7 @@ class Ball:
         self.speed_sq = speed * speed  # 速度の二乗を事前計算
         
         self.fill_color = fill_color
-        self.prev_bbox = None
+        self.prev_bbox: Optional[tuple[int, int, int, int]] = None
         self._bbox_cache = None
         self._bbox_dirty = True
 
