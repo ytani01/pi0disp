@@ -552,6 +552,7 @@ def main(screenshot, face, debug):
             # Load font
             font_path_abs = script_dir / FONT_PATH
             log.debug(f"main: Loading font from {font_path_abs}")
+            font: ImageFont.FreeTypeFont | ImageFont.ImageFont
             try:
                 font = ImageFont.truetype(str(font_path_abs), 45)
                 log.debug("main: Font loaded successfully.")

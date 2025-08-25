@@ -36,6 +36,9 @@ dev = [
     "ruff>=0.12.9",
 ]
 
+[tool.mypy]
+check_untyped_defs = true
+
 [[tool.mypy.overrides]]
 module = ['pigpio']
 ignore_missing_imports = true

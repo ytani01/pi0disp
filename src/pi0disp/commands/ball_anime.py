@@ -39,8 +39,8 @@ MAX_SPEED_SQ = 1000000.0  # speed^2での比較用（1000^2）
 
 # 事前計算済み定数
 TWO_PI = 2.0 * math.pi
-SQRT_CACHE = {}  # 平方根キャッシュ
-COS_SIN_CACHE = {}  # 三角関数キャッシュ
+SQRT_CACHE: dict[float, float] = {}  # 平方根キャッシュ
+COS_SIN_CACHE: dict[float, tuple[float, float]] = {}  # 三角関数キャッシュ
 
 # --- 高速化ヘルパー関数 ---
 def fast_sqrt(value):
