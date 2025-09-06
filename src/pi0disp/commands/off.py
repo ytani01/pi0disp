@@ -5,17 +5,24 @@
 import time
 import click
 
-from ..disp.st7789v import ST7789V
-from ..utils.my_logger import get_logger
-
-log = get_logger(__name__)
+from .. import __version__, get_logger, ST7789V
 
 
-@click.command()
-def off():
+@click.command(help="off")
+@click.option("--debug", "-d", is_flag=True, default=False, help="debug flag")
+@click.version_option(
+    __version__, "--version", "-v", "-V", message="%(prog)s %(version)s"
+)
+@click.help_option("--help", "-h")
+@click.pass_context
+def off(ctx, debug) -> None:
     """Turns the display off."""
-    log.info("OFF...")
+    __log = get_logger(__name__, debug)
 
+    cmd_name = ctx.command.name
+    __log.debug("cmd_name=%s", cmd_name)
+
+    __log.info("OFF...")
     try:
         with ST7789V() as lcd:
             time.sleep(.5)  # ensure lcd is ready
@@ -24,8 +31,8 @@ def off():
             time.sleep(0.1)  # Short delay to ensure command is processed
 
     except Exception as e:
-        log.error("%s: %s", type(e).__name__, e)
+        __log.error("%s: %s", type(e).__name__, e)
         exit(1)
 
     finally:
-        log.info("Done.")
+        __log.info("Done.")

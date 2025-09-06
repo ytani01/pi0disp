@@ -21,7 +21,7 @@ Display driver CLI
 )
 @click.option("--debug", "-d", is_flag=True, help="debug flag")
 @click.version_option(
-    __version__, "--version", "-v", "-V", message='%(prog)s %(version)s'
+    __version__, "--version", "-v", "-V", message="%(prog)s %(version)s"
 )
 @click.help_option("--help", "-h")
 @click.pass_context
@@ -33,8 +33,8 @@ def cli(ctx:click.Context, debug: bool) -> None:
     """
     cmd_name = ctx.info_name
     subcmd_name = ctx.invoked_subcommand
-
     __log = get_logger(str(cmd_name), debug)
+
     __log.debug("cmd_name=%a, subcmd_name=%a", cmd_name, subcmd_name)
 
     if subcmd_name is None:

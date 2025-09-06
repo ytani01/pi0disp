@@ -7,8 +7,8 @@ import numpy as np
 from PIL import Image, ImageDraw
 import click
 
-from ..disp.st7789v import ST7789V
-from ..utils.my_logger import get_logger
+from .. import __version__, get_logger, ST7789V
+
 
 log = get_logger(__name__)
 
@@ -70,14 +70,28 @@ def generate_rgb_circles(width, height, colors_tuple):
 
     return Image.fromarray(final_image_np, "RGB")
 
-@click.command()
-@click.option('--duration', '-d', type=float, default=5.0, help='Duration to display the image in seconds.')
-def rgb(duration):
+@click.command(help="RGB Circles")
+@click.option(
+    '--duration', type=float, default=5.0,
+    help='Duration to display the image in seconds.'
+)
+@click.option("--debug", "-d", is_flag=True, default=False, help="debug flag")
+@click.version_option(
+    __version__, "--version", "-v", "-V", message="%(prog)s %(version)s"
+)
+@click.help_option("--help", "-h")
+@click.pass_context
+def rgb(ctx, duration, debug):
     """Displays RGB color circles with additive blending."""
-    log.info("Initializing ST7789V display for color circles...")
+    __log = get_logger(__name__, debug)
+    __log.debug("duration=%s", duration)
+
+    cmd_name = ctx.command.name
+    __log.debug("cmd_name=%s", cmd_name)
+
     try:
         with ST7789V() as lcd:
-            log.info(f"Display initialized: {lcd.width}x{lcd.height}")
+            __log.info(f"Display initialized: {lcd.width}x{lcd.height}")
             
             color_permutations = [
                 ((255, 0, 0), (0, 255, 0), (0, 0, 255)),  # R, G, B
@@ -85,26 +99,37 @@ def rgb(duration):
                 ((0, 0, 255), (255, 0, 0), (0, 255, 0)),  # B, R, G
             ]
 
-            log.info("Starting RGB color cycle...")
+            __log.info("Starting RGB color cycle...")
             while True:
                 for colors_tuple in color_permutations:
-                    log.info(f"Generating RGB circles image with colors: {colors_tuple}")
-                    rgb_circles_image = generate_rgb_circles(lcd.width, lcd.height, colors_tuple)
+                    __log.info(
+                        "Generating RGB circles image with colors: %s",
+                        colors_tuple
+                    )
+                    rgb_circles_image = generate_rgb_circles(
+                        lcd.width, lcd.height, colors_tuple
+                    )
                     
-                    # Save the generated image to a file (optional, for debugging/screenshot)
-                    output_filename = "rgb_circles_command.png"
+                    # Save the generated image to a file
+                    # (optional, for debugging/screenshot)
+                    output_filename = "/tmp/rgb_circles_command.png"
                     rgb_circles_image.save(output_filename)
-                    log.info(f"RGB circles image saved to {output_filename}")
-                    
-                    log.info(f"Displaying RGB circles for {duration} seconds...")
+                    __log.info(
+                        "RGB circles image saved to %s",
+                        output_filename
+                    )
+                    __log.info(
+                        "Displaying RGB circles for %s seconds...",
+                        duration
+                    )
                     lcd.display(rgb_circles_image)
                     time.sleep(duration)
 
-    except RuntimeError as e:
-        log.error(f"Error: {e}. Make sure pigpio daemon is running and SPI is enabled.")
+    except RuntimeError as _e:
+        __log.error("%s: %s", type(_e).__name__, _e)
         exit(1)
-    except Exception as e:
-        log.error(f"An unexpected error occurred: {e}")
+    except Exception as _e:
+        __log.error("%s: %s", type(_e).__name__, _e)
         exit(1)
     finally:
-        log.info("Color circles display finished.")
+        __log.info("Color circles display finished.")

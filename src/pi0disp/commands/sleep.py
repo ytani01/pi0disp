@@ -5,16 +5,24 @@
 import time
 import click
 
-from ..disp.st7789v import ST7789V
-from ..utils.my_logger import get_logger
-
-log = get_logger(__name__)
+from .. import __version__, get_logger, ST7789V
 
 
-@click.command()
-def sleep():
+@click.command(help="sleep display")
+@click.option("--debug", "-d", is_flag=True, default=False, help="debug flag")
+@click.version_option(
+    __version__, "--version", "-v", "-V", message="%(prog)s %(version)s"
+)
+@click.help_option("--help", "-h")
+@click.pass_context
+def sleep(ctx, debug):
     """Turns the display off by entering sleep mode."""
-    log.info("Putting display to sleep...")
+    __log = get_logger(__name__, debug)
+
+    cmd_name = ctx.command.name
+    __log.debug("cmd_name=%s", cmd_name)
+    
+    __log.info("Putting display to sleep...")
 
     try:
         with ST7789V() as lcd:
@@ -24,8 +32,8 @@ def sleep():
             time.sleep(0.1)  # Short delay to ensure command is processed
 
     except Exception as e:
-        log.error("%s: %s", type(e).__name__, e)
+        __log.error("%s: %s", type(e).__name__, e)
         exit(1)
 
     finally:
-        log.info("Done.")
+        __log.info("Done.")

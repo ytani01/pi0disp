@@ -6,35 +6,53 @@ import time
 import click
 from PIL import Image
 
-from ..disp.st7789v import ST7789V
+from .. import __version__, get_logger, ST7789V
 from ..utils.utils import ImageProcessor
-from ..utils.my_logger import get_logger
 
-log = get_logger(__name__)
 
 @click.command()
-@click.argument('image_path', type=click.Path(exists=True, dir_okay=False, readable=True))
-@click.option('--duration', '-d', type=float, default=3.0, help='Duration to display each image in seconds.')
-def image(image_path, duration):
+@click.argument(
+    'image_path',
+    type=click.Path(exists=True, dir_okay=False, readable=True)
+)
+@click.option(
+    "--duration", "-s", type=float,
+    default=3.0, show_default=True,
+    help='Duration to display each image in seconds.'
+)
+@click.option("--debug", "-d", is_flag=True, default=False, help="debug flag")
+@click.version_option(
+    __version__, "--version", "-v", "-V", message="%(prog)s %(version)s"
+)
+@click.help_option("--help", "-h")
+@click.pass_context
+def image(ctx, image_path, duration, debug):
     """Displays an image with optional gamma correction.
 
     IMAGE_PATH: Path to the image file to display.
     """
-    log.info(f"Attempting to display image: {image_path}")
+    __log = get_logger(__name__, debug)
+    __log.debug("image_path=%s, duration=%s", image_path, duration)
+
+    cmd_name = ctx.command.name
+    __log.debug("cmd_name=%s", cmd_name)
+
+    __log.info(f"Attempting to display image: {image_path}")
+
     try:
         source_image = Image.open(image_path)
     except FileNotFoundError:
-        log.error(f"Error: Image file '{image_path}' not found.")
+        __log.error(f"Error: Image file '{image_path}' not found.")
         exit(1)
     except Exception as e:
-        log.error(f"Error opening image '{image_path}': {e}")
+        __log.error(f"Error opening image '{image_path}': {e}")
         exit(1)
 
     processor = ImageProcessor()
 
     try:
         with ST7789V() as lcd:
-            log.info("Displaying original image resized to screen (contain mode)...")
+            __log.info("Displaying original image resized to screen (contain mode)...")
 
             # Resize while maintaining aspect ratio
             resized_image = processor.resize_with_aspect_ratio(
@@ -44,16 +62,16 @@ def image(image_path, duration):
             time.sleep(duration)
 
             for gamma in (1.0, 1.5, 1.0, 0.5, 1.0):
-                log.info(f"Applying gamma={gamma}")
+                __log.info(f"Applying gamma={gamma}")
                 corrected_image = processor.apply_gamma(resized_image, gamma=gamma)
                 lcd.display(corrected_image)
                 time.sleep(duration)
 
     except RuntimeError as e:
-        log.error(f"Error: {e}. Make sure pigpio daemon is running and SPI is enabled.")
+        __log.error(f"Error: {e}. Make sure pigpio daemon is running and SPI is enabled.")
         exit(1)
     except Exception as e:
-        log.error(f"An unexpected error occurred during display processing: {e}")
+        __log.error(f"An unexpected error occurred during display processing: {e}")
         exit(1)
     finally:
-        log.info("Image display finished.")
+        __log.info("Image display finished.")

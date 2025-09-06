@@ -161,7 +161,9 @@ class FpsCounter:
         return False
 
 # --- 計算最適化されたヘルパー関数 ---
-def _initialize_balls_optimized(num_balls: int, width: int, height: int, ball_speed: float) -> List[Ball]:
+def _initialize_balls_optimized(
+        num_balls: int, width: int, height: int, ball_speed: float
+) -> List[Ball]:
     """ボール初期化（計算最適化版）"""
     balls: List[Ball] = []
     speed = ball_speed if ball_speed is not None else 300.0
@@ -314,8 +316,10 @@ def _handle_ball_collisions_optimized(balls: List[Ball], frame_count: int):
                 ball1._bbox_dirty = True
                 ball2._bbox_dirty = True
 
-def _main_loop_optimized(lcd: ST7789V, background: Image.Image, balls: List[Ball], 
-                        fps_counter: FpsCounter, font, target_fps: float):
+def _main_loop_optimized(
+        lcd: ST7789V, background: Image.Image, balls: List[Ball], 
+        fps_counter: FpsCounter, font, target_fps: float
+):
     """メインループ（計算最適化版）"""
     target_duration = 1.0 / target_fps
     last_frame_time = time.time()
@@ -373,7 +377,11 @@ def _main_loop_optimized(lcd: ST7789V, background: Image.Image, balls: List[Ball
             
             if dirty_region:
                 expanded_dirty_region = expand_bbox(dirty_region, 1)
-                dirty_regions.append(RegionOptimizer.clamp_region(expanded_dirty_region, screen_width, screen_height))
+                dirty_regions.append(
+                    RegionOptimizer.clamp_region(
+                        expanded_dirty_region, screen_width, screen_height
+                    )
+                )
             
             ball.draw(draw)
             ball.prev_bbox = curr_bbox
@@ -433,15 +441,17 @@ def _main_loop_optimized(lcd: ST7789V, background: Image.Image, balls: List[Ball
     help='Number of balls to display',
 )
 @click.option(
-    "--ball-speed", "-b", type=float, default=None,
+    "--ball-speed", "-s", type=float, default=None,
     help='Absolute speed of balls (pixels/second).'
 )
 @click.option("--debug", "-d", is_flag=True, default=False, help="debug flag")
 @click.version_option(
-    __version__, "--version", "-v", "-V", message='%(prog)s %version)s'
+    __version__, "--version", "-v", "-V", message="%(prog)s %(version)s"
 )
+@click.help_option("--help", "-h")
+@click.pass_context
 def ball_anime(
-        spi_mhz: float, fps: float, num_balls: int, ball_speed: float, debug
+        ctx, spi_mhz: float, fps: float, num_balls: int, ball_speed: float, debug
 ) -> None:
     """物理ベースのアニメーションデモを実行する（計算最適化版）。"""
     __log = get_logger(__name__, debug)
@@ -450,10 +460,10 @@ def ball_anime(
         spi_mhz, fps, num_balls, ball_speed
     )
 
-    __log.info(
-        "計算最適化モードでフレームレート約%sFPSで動作します... Ctrl+C で終了してください。",
-        fps
-    )
+    cmd_name = ctx.command.name
+    __log.debug("cmd_name=%s", cmd_name)
+
+    __log.info("fps=%s ... Ctrl+C で終了してください。", fps)
 
     try:
         with ST7789V(speed_hz=int(spi_mhz * 1_000_000)) as lcd:
