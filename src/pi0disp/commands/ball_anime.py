@@ -14,15 +14,12 @@ import click
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-from ..disp.st7789v import ST7789V
-from ..utils.my_logger import get_logger
+from .. import __version__, draw_text, get_ip_address, get_logger, ST7789V
 from ..utils.performance_core import RegionOptimizer
-from ..utils.utils import (
-    merge_bboxes, 
-    get_ip_address, draw_text, expand_bbox
-)
+from ..utils.utils import merge_bboxes, expand_bbox
 
-log = get_logger(__name__)
+
+__log = get_logger(__name__)
 
 # --- 元の見た目設定を維持 ---
 SPI_SPEED_HZ = 16000000
@@ -187,7 +184,7 @@ def _initialize_balls_optimized(num_balls: int, width: int, height: int, ball_sp
         rgb_float = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
         fill_color = tuple(int(c * 255) for c in rgb_float)
         
-        for attempt in range(max_attempts_per_ball):
+        for _ in range(max_attempts_per_ball):
             x = np.random.randint(min_pos, max_x)
             y = np.random.randint(min_pos, max_y)
             
@@ -211,7 +208,7 @@ def _initialize_balls_optimized(num_balls: int, width: int, height: int, ball_sp
                 break
                 
         if not ball_placed:
-            log.warning(f"ボール{len(balls)+1}を配置できませんでした。")
+            __log.warning(f"ボール{len(balls)+1}を配置できませんでした。")
 
     return balls
 
@@ -421,14 +418,42 @@ def _main_loop_optimized(lcd: ST7789V, background: Image.Image, balls: List[Ball
             time.sleep(sleep_duration)
 
 # --- CLIコマンド ---
-@click.command("ball_anime")
-@click.option('--spi-mhz', "-z", default=SPI_SPEED_HZ / 1_000_000, type=float, help='SPI speed in MHz', show_default=True)
-@click.option('--fps', "-f", default=TARGET_FPS, type=float, help='Target frames per second', show_default=True)
-@click.option('--num-balls', "-n", default=3, type=int, help='Number of balls to display', show_default=True)
-@click.option('--ball-speed', "-b", default=None, type=float, help='Absolute speed of balls (pixels/second).')
-def ball_anime(spi_mhz: float, fps: float, num_balls: int, ball_speed: float):
+@click.command(help="ball_anime")
+@click.option(
+    "--spi-mhz", "-z", type=float,
+    default=SPI_SPEED_HZ / 1_000_000, show_default=True,
+    help="SPI speed in MHz"
+)
+@click.option(
+    "--fps", "-f", type=float, default=TARGET_FPS, show_default=True,
+    help='Target frames per second'
+)
+@click.option(
+    "--num-balls", "-n", type=int, default=3, show_default=True,
+    help='Number of balls to display',
+)
+@click.option(
+    "--ball-speed", "-b", type=float, default=None,
+    help='Absolute speed of balls (pixels/second).'
+)
+@click.option("--debug", "-d", is_flag=True, default=False, help="debug flag")
+@click.version_option(
+    __version__, "--version", "-v", "-V", message='%(prog)s %version)s'
+)
+def ball_anime(
+        spi_mhz: float, fps: float, num_balls: int, ball_speed: float, debug
+) -> None:
     """物理ベースのアニメーションデモを実行する（計算最適化版）。"""
-    log.info(f"計算最適化モードでフレームレート約{fps}FPSで動作します... Ctrl+C で終了してください。")
+    __log = get_logger(__name__, debug)
+    __log.debug(
+        "spi_mhz=%s, fps=%s, num_balls=%s, ball_speed=%s",
+        spi_mhz, fps, num_balls, ball_speed
+    )
+
+    __log.info(
+        "計算最適化モードでフレームレート約%sFPSで動作します... Ctrl+C で終了してください。",
+        fps
+    )
 
     try:
         with ST7789V(speed_hz=int(spi_mhz * 1_000_000)) as lcd:
@@ -439,7 +464,7 @@ def ball_anime(spi_mhz: float, fps: float, num_balls: int, ball_speed: float):
                 font_large = ImageFont.truetype(FONT_PATH, 40)
                 font_small = ImageFont.truetype(FONT_PATH, 24)
             except IOError as _e:
-                log.warning("%s: %s: %s", FONT_PATH, type(_e).__name__, _e)
+                __log.warning("%s: %s: %s", FONT_PATH, type(_e).__name__, _e)
                 font_large = ImageFont.load_default()
                 font_small = ImageFont.load_default()
 
@@ -467,7 +492,7 @@ def ball_anime(spi_mhz: float, fps: float, num_balls: int, ball_speed: float):
             _main_loop_optimized(lcd, background_image, balls, fps_counter, font_large, fps)
 
     except KeyboardInterrupt:
-        log.info("\n終了しました。\n")
+        __log.info("\n終了しました。\n")
     except Exception as e:
-        log.error(f"エラーが発生しました: {e}")
+        __log.error(f"エラーが発生しました: {e}")
         exit(1)

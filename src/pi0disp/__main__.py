@@ -12,18 +12,34 @@ from .commands.rgb import rgb
 from .commands.image import image
 from .utils.my_logger import get_logger
 
-log = get_logger(__name__)
 
-@click.group()
-@click.version_option(version=__version__)
-def cli():
-    """
-    A CLI tool for the ST7789V Display Driver.
+@click.group(
+    invoke_without_command=True,
+    help="""
+Display driver CLI
+"""
+)
+@click.option("--debug", "-d", is_flag=True, help="debug flag")
+@click.version_option(
+    __version__, "--version", "-v", "-V", message='%(prog)s %(version)s'
+)
+@click.help_option("--help", "-h")
+@click.pass_context
+def cli(ctx:click.Context, debug: bool) -> None:
+    """A CLI tool for the ST7789V Display Driver.
 
     Provides basic commands to test and interact with the display,
     serving as a demonstration of the pi0disp library's capabilities.
     """
-    pass
+    cmd_name = ctx.info_name
+    subcmd_name = ctx.invoked_subcommand
+
+    __log = get_logger(str(cmd_name), debug)
+    __log.debug("cmd_name=%a, subcmd_name=%a", cmd_name, subcmd_name)
+
+    if subcmd_name is None:
+        print(f"{ctx.get_help()}")
+
 
 cli.add_command(ball_anime)
 cli.add_command(sleep)
