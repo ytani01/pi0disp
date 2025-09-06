@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 import click
 
-from .. import __version__, get_logger, ST7789V
+from .. import __version__, click_common_opts, get_logger, ST7789V
 
 
 log = get_logger(__name__)
@@ -72,15 +72,10 @@ def generate_rgb_circles(width, height, colors_tuple):
 
 @click.command(help="RGB Circles")
 @click.option(
-    '--duration', type=float, default=5.0,
+    '--duration', '-s', type=float, default=2.0,
     help='Duration to display the image in seconds.'
 )
-@click.option("--debug", "-d", is_flag=True, default=False, help="debug flag")
-@click.version_option(
-    __version__, "--version", "-v", "-V", message="%(prog)s %(version)s"
-)
-@click.help_option("--help", "-h")
-@click.pass_context
+@click_common_opts(__annotations__)
 def rgb(ctx, duration, debug):
     """Displays RGB color circles with additive blending."""
     __log = get_logger(__name__, debug)

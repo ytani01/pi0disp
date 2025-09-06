@@ -6,7 +6,7 @@ import time
 import click
 from PIL import Image
 
-from .. import __version__, get_logger, ST7789V
+from .. import __version__, click_common_opts, get_logger, ST7789V
 from ..utils.utils import ImageProcessor
 
 
@@ -20,12 +20,7 @@ from ..utils.utils import ImageProcessor
     default=3.0, show_default=True,
     help='Duration to display each image in seconds.'
 )
-@click.option("--debug", "-d", is_flag=True, default=False, help="debug flag")
-@click.version_option(
-    __version__, "--version", "-v", "-V", message="%(prog)s %(version)s"
-)
-@click.help_option("--help", "-h")
-@click.pass_context
+@click_common_opts(__version__)
 def image(ctx, image_path, duration, debug):
     """Displays an image with optional gamma correction.
 

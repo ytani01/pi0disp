@@ -10,12 +10,14 @@ else:
 
 from .utils.my_logger import get_logger
 from .disp.st7789v import ST7789V
+from .utils.click_utils import click_common_opts
 from .utils.utils import ImageProcessor, get_ip_address, draw_text
 
 __all__ = [
     "__version__",
-    "ST7789V",
     "get_logger",
+    "click_common_opts",
+    "ST7789V",
     "ImageProcessor",
     "get_ip_address",
     "draw_text",

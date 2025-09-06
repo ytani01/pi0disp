@@ -14,7 +14,11 @@ import click
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-from .. import __version__, draw_text, get_ip_address, get_logger, ST7789V
+from .. import (
+    __version__, click_common_opts, get_logger,
+    ST7789V,
+    draw_text, get_ip_address
+)
 from ..utils.performance_core import RegionOptimizer
 from ..utils.utils import merge_bboxes, expand_bbox
 
@@ -426,7 +430,7 @@ def _main_loop_optimized(
             time.sleep(sleep_duration)
 
 # --- CLIコマンド ---
-@click.command(help="ball_anime")
+@click.command(help="Balls animation")
 @click.option(
     "--spi-mhz", "-z", type=float,
     default=SPI_SPEED_HZ / 1_000_000, show_default=True,
@@ -444,12 +448,7 @@ def _main_loop_optimized(
     "--ball-speed", "-s", type=float, default=None,
     help='Absolute speed of balls (pixels/second).'
 )
-@click.option("--debug", "-d", is_flag=True, default=False, help="debug flag")
-@click.version_option(
-    __version__, "--version", "-v", "-V", message="%(prog)s %(version)s"
-)
-@click.help_option("--help", "-h")
-@click.pass_context
+@click_common_opts(__version__)
 def ball_anime(
         ctx, spi_mhz: float, fps: float, num_balls: int, ball_speed: float, debug
 ) -> None:

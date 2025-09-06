@@ -5,16 +5,11 @@
 import time
 import click
 
-from .. import __version__, get_logger, ST7789V
+from .. import __version__, click_common_opts, get_logger, ST7789V
 
 
 @click.command(help="sleep display")
-@click.option("--debug", "-d", is_flag=True, default=False, help="debug flag")
-@click.version_option(
-    __version__, "--version", "-v", "-V", message="%(prog)s %(version)s"
-)
-@click.help_option("--help", "-h")
-@click.pass_context
+@click_common_opts(__version__)
 def sleep(ctx, debug):
     """Turns the display off by entering sleep mode."""
     __log = get_logger(__name__, debug)
