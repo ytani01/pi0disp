@@ -75,7 +75,7 @@ def generate_rgb_circles(width, height, colors_tuple):
     '--duration', '-s', type=float, default=2.0,
     help='Duration to display the image in seconds.'
 )
-@click_common_opts(__annotations__)
+@click_common_opts(__version__)
 def rgb(ctx, duration, debug):
     """Displays RGB color circles with additive blending."""
     __log = get_logger(__name__, debug)
