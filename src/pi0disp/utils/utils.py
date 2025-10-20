@@ -12,7 +12,7 @@ from typing import List, Tuple, Optional, Union
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-from .my_logger import get_logger
+from .mylogger import get_logger
 from .performance_core import create_optimizer_pack
 
 log = get_logger(__name__)

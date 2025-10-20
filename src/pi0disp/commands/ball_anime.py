@@ -5,14 +5,14 @@
 ST7789Vディスプレイで動作する、物理ベースのアニメーションデモ。
 見た目維持・計算処理最適化版。
 """
+import click
+import math
 import time
 import colorsys
-from typing import List, Optional
-import math
 
-import click
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
+from typing import List, Optional
 
 from .. import (
     __version__, click_common_opts, get_logger,
@@ -26,7 +26,7 @@ from ..utils.utils import merge_bboxes, expand_bbox
 __log = get_logger(__name__)
 
 # --- 元の見た目設定を維持 ---
-SPI_SPEED_HZ = 16000000
+SPI_SPEED_HZ = 8_000_000
 TARGET_FPS = 30.0
 BALL_RADIUS = 20
 FONT_PATH = "Firge-Regular.ttf"
@@ -321,8 +321,8 @@ def _handle_ball_collisions_optimized(balls: List[Ball], frame_count: int):
                 ball2._bbox_dirty = True
 
 def _main_loop_optimized(
-        lcd: ST7789V, background: Image.Image, balls: List[Ball], 
-        fps_counter: FpsCounter, font, target_fps: float
+    lcd: ST7789V, background: Image.Image, balls: List[Ball], 
+    fps_counter: FpsCounter, font, target_fps: float
 ):
     """メインループ（計算最適化版）"""
     target_duration = 1.0 / target_fps
@@ -450,7 +450,7 @@ def _main_loop_optimized(
 )
 @click_common_opts(__version__)
 def ball_anime(
-        ctx, spi_mhz: float, fps: float, num_balls: int, ball_speed: float, debug
+    ctx, spi_mhz: float, fps: float, num_balls: int, ball_speed: float, debug
 ) -> None:
     """物理ベースのアニメーションデモを実行する（計算最適化版）。"""
     __log = get_logger(__name__, debug)
@@ -494,11 +494,15 @@ def ball_anime(
             lcd.display(background_image)
 
             # オブジェクトを初期化
-            balls = _initialize_balls_optimized(num_balls, lcd.width, lcd.height, ball_speed)
+            balls = _initialize_balls_optimized(
+                num_balls, lcd.width, lcd.height, ball_speed
+            )
             fps_counter = FpsCounter()
             
             # メインループを開始
-            _main_loop_optimized(lcd, background_image, balls, fps_counter, font_large, fps)
+            _main_loop_optimized(
+                lcd, background_image, balls, fps_counter, font_large, fps
+            )
 
     except KeyboardInterrupt:
         __log.info("\n終了しました。\n")

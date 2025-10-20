@@ -15,21 +15,8 @@ import numpy as np
 import pigpio
 from PIL import Image
 
+from ..utils.mylogger import get_logger
 from ..utils.performance_core import create_optimizer_pack
-
-# --- ST7789V Commands ---
-CMD_SWRESET = 0x01
-CMD_SLPIN = 0x10
-CMD_SLPOUT = 0x11
-CMD_NORON = 0x13
-CMD_INVON = 0x21
-CMD_DISPOFF = 0x28
-CMD_DISPON = 0x29
-CMD_CASET = 0x2A
-CMD_RASET = 0x2B
-CMD_RAMWR = 0x2C
-CMD_MADCTL = 0x36
-CMD_COLMOD = 0x3A
 
 class ST7789V:
     """
@@ -39,15 +26,46 @@ class ST7789V:
     providing methods for initialization, configuration, and high-performance
     image rendering using techniques like partial updates and memory pooling.
     """
-    def __init__(self, 
-            channel: int = 0, 
-            rst_pin: int = 19, 
-            dc_pin: int = 18, 
-            backlight_pin: int = 20,
-            speed_hz: int = 32_000_000, 
-            width: int = 240, 
-            height: int = 320, 
-            rotation: int = 90
+    CMD = {
+        "SWRESET": 0x01,
+        "SLPIN": 0x10,
+        "SLPOUT": 0x11,
+        "NORON": 0x13,
+        "INVON": 0x21,
+        "DISPOFF": 0x28,
+        "DISPON": 0x29,
+        "CASET": 0x2A,
+        "RASET": 0x2B,
+        "RAMWR": 0x2C,
+        "MADCTL": 0x36,
+        "COLMOD": 0x3A,
+    }
+    DEF_PIN = {
+        "RST": 19,
+        "DC": 18,
+        "BL": 20,
+    }
+    SPEED_HZ = {
+        "default": 8_000_000,
+        "max": 32_000_000,
+    }
+    DEF_DISP = {
+        "width": 240,
+        "height": 320,
+        "rotation": 90,
+    }
+    
+    def __init__(
+        self, 
+        channel: int = 0, 
+        rst_pin: int = DEF_PIN["RST"], 
+        dc_pin: int = DEF_PIN["DC"], 
+        backlight_pin: int = DEF_PIN["BL"],
+        speed_hz: int = SPEED_HZ["default"], 
+        width: int = DEF_DISP["width"], 
+        height: int = DEF_DISP["height"], 
+        rotation: int = DEF_DISP["rotation"],
+        debug=False
     ):
         """
         Initializes the display driver.
@@ -62,15 +80,28 @@ class ST7789V:
             height: The native height of the display.
             rotation: Initial rotation (0, 90, 180, or 270 degrees).
         """
+        self.__debug = debug
+        self.__log = get_logger(self.__class__.__name__, self.__debug)
+        self.__log.debug(
+            "channel=%s, rst_pin=%s, dc_pin=%s, backlight_pin=%s",
+            channel, rst_pin, dc_pin, backlight_pin
+        )
+        self.__log.debug("speed_hz=%s", speed_hz)
+        self.__log.debug(
+            "width=%s, height=%s, rotation=%s",
+            width, height, rotation
+        )
+
         self._native_width = width
         self._native_height = height
         self.width = width
         self.height = height
         self._rotation = rotation
         
-        # Initialize the optimizer pack
-        self._optimizers = create_optimizer_pack()
-        
+        self.rst_pin = rst_pin
+        self.dc_pin = dc_pin
+        self.backlight_pin = backlight_pin
+
         # Initialize pigpio
         self.pi = pigpio.pi()
         if not self.pi.connected:
@@ -78,10 +109,9 @@ class ST7789V:
                 "Could not connect to pigpio daemon. Is it running?"
             )
 
-        self.rst_pin = rst_pin
-        self.dc_pin = dc_pin
-        self.backlight_pin = backlight_pin
-
+        # Initialize the optimizer pack
+        self._optimizers = create_optimizer_pack()
+        
         # Configure GPIO pins
         for pin in [self.rst_pin, self.dc_pin, self.backlight_pin]:
             self.pi.set_mode(pin, pigpio.OUTPUT)
@@ -102,6 +132,7 @@ class ST7789V:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        self.__log.debug(exc_type, exc_val, exc_tb)
         self.close()
 
     def _write_command(self, command: int):
@@ -128,15 +159,15 @@ class ST7789V:
         time.sleep(0.150)
 
         # Initialization sequence
-        self._write_command(CMD_SWRESET)
+        self._write_command(self.CMD["SWRESET"])
         time.sleep(0.150)
-        self._write_command(CMD_SLPOUT)
+        self._write_command(self.CMD["SLPOUT"])
         time.sleep(0.5)
-        self._write_command(CMD_COLMOD)
+        self._write_command(self.CMD["COLMOD"])
         self._write_data(0x55)  # 16 bits per pixel
-        self._write_command(CMD_INVON)
-        self._write_command(CMD_NORON)
-        self._write_command(CMD_DISPON)
+        self._write_command(self.CMD["INVON"])
+        self._write_command(self.CMD["NORON"])
+        self._write_command(self.CMD["DISPON"])
         time.sleep(0.1)
 
         self.pi.write(self.backlight_pin, 1)
@@ -152,7 +183,7 @@ class ST7789V:
         if rotation not in madctl_values:
             raise ValueError("Rotation must be 0, 90, 180, or 270.")
 
-        self._write_command(CMD_MADCTL)
+        self._write_command(self.CMD["MADCTL"])
         self._write_data(madctl_values[rotation])
 
         # Swap width and height for portrait/landscape modes
@@ -175,11 +206,11 @@ class ST7789V:
         if self._last_window == window:
             return
 
-        self._write_command(CMD_CASET)
+        self._write_command(self.CMD["CASET"])
         self._write_data([x0 >> 8, x0 & 0xFF, x1 >> 8, x1 & 0xFF])
-        self._write_command(CMD_RASET)
+        self._write_command(self.CMD["RASET"])
         self._write_data([y0 >> 8, y0 & 0xFF, y1 >> 8, y1 & 0xFF])
-        self._write_command(CMD_RAMWR)
+        self._write_command(self.CMD["RAMWR"])
         
         self._last_window = window
 
@@ -255,15 +286,15 @@ class ST7789V:
 
     def dispoff(self):
         """DISPOFF."""
-        self._write_command(CMD_DISPOFF)
+        self._write_command(self.CMD["DISPOFF"])
         self.pi.write(self.backlight_pin, 0)
 
     def sleep(self):
         """Puts the display into sleep mode."""
-        self._write_command(CMD_SLPIN)
+        self._write_command(self.CMD["SLPIN"])
         self.pi.write(self.backlight_pin, 0)
 
     def wake(self):
         """Wakes the display from sleep mode."""
-        self._write_command(CMD_SLPOUT)
+        self._write_command(self.CMD["SLPOUT"])
         self.pi.write(self.backlight_pin, 1)
