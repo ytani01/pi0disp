@@ -6,9 +6,12 @@ import click
 
 def click_common_opts(
     ver_str: str = "_._._",
-    use_h: bool = True, use_d: bool = True, use_v: bool = True
+    use_h: bool = True,
+    use_d: bool = True,
+    use_v: bool = True,
 ):
     """共通オプションをまとめたメタデコレータ"""
+
     def _decorator(func):
         decorators = []
 

@@ -2,15 +2,17 @@
 # (c) 2025 Yoichi Tanibayashi
 #
 """Display RGB color circles command."""
+
 import time
+
+import click
 import numpy as np
 from PIL import Image, ImageDraw
-import click
 
-from .. import __version__, click_common_opts, get_logger, ST7789V
-
+from .. import ST7789V, __version__, click_common_opts, get_logger
 
 log = get_logger(__name__)
+
 
 def generate_rgb_circles(width, height, colors_tuple):
     """Generates an image with three overlapping RGB circles using additive blending."""
@@ -29,7 +31,7 @@ def generate_rgb_circles(width, height, colors_tuple):
         radius = 1
 
     center_x = width // 2
-    
+
     # Calculate side length of equilateral triangle
     s = radius * 1.2
 
@@ -53,15 +55,27 @@ def generate_rgb_circles(width, height, colors_tuple):
     def draw_opaque_circle(color, pos, radius, img_width, img_height):
         img = Image.new("RGB", (img_width, img_height), (0, 0, 0))
         draw = ImageDraw.Draw(img)
-        draw.ellipse((pos[0] - radius, pos[1] - radius,
-                      pos[0] + radius, pos[1] + radius),
-                     fill=color)
+        draw.ellipse(
+            (
+                pos[0] - radius,
+                pos[1] - radius,
+                pos[0] + radius,
+                pos[1] + radius,
+            ),
+            fill=color,
+        )
         return np.array(img, dtype=np.uint8)
 
     # Draw each circle and add its pixel values to the final image
-    red_circle_np = draw_opaque_circle(colors_tuple[0], red_pos, radius, width, height)
-    green_circle_np = draw_opaque_circle(colors_tuple[1], green_pos, radius, width, height)
-    blue_circle_np = draw_opaque_circle(colors_tuple[2], blue_pos, radius, width, height)
+    red_circle_np = draw_opaque_circle(
+        colors_tuple[0], red_pos, radius, width, height
+    )
+    green_circle_np = draw_opaque_circle(
+        colors_tuple[1], green_pos, radius, width, height
+    )
+    blue_circle_np = draw_opaque_circle(
+        colors_tuple[2], blue_pos, radius, width, height
+    )
 
     # Add the arrays, clamping values at 255
     final_image_np = np.clip(final_image_np + red_circle_np, 0, 255)
@@ -70,10 +84,14 @@ def generate_rgb_circles(width, height, colors_tuple):
 
     return Image.fromarray(final_image_np, "RGB")
 
+
 @click.command(help="RGB Circles")
 @click.option(
-    '--duration', '-s', type=float, default=2.0,
-    help='Duration to display the image in seconds.'
+    "--duration",
+    "-s",
+    type=float,
+    default=2.0,
+    help="Duration to display the image in seconds.",
 )
 @click_common_opts(__version__)
 def rgb(ctx, duration, debug):
@@ -87,7 +105,7 @@ def rgb(ctx, duration, debug):
     try:
         with ST7789V() as lcd:
             __log.info(f"Display initialized: {lcd.width}x{lcd.height}")
-            
+
             color_permutations = [
                 ((255, 0, 0), (0, 255, 0), (0, 0, 255)),  # R, G, B
                 ((0, 255, 0), (0, 0, 255), (255, 0, 0)),  # G, B, R
@@ -99,23 +117,21 @@ def rgb(ctx, duration, debug):
                 for colors_tuple in color_permutations:
                     __log.info(
                         "Generating RGB circles image with colors: %s",
-                        colors_tuple
+                        colors_tuple,
                     )
                     rgb_circles_image = generate_rgb_circles(
                         lcd.width, lcd.height, colors_tuple
                     )
-                    
+
                     # Save the generated image to a file
                     # (optional, for debugging/screenshot)
                     output_filename = "/tmp/rgb_circles_command.png"
                     rgb_circles_image.save(output_filename)
                     __log.info(
-                        "RGB circles image saved to %s",
-                        output_filename
+                        "RGB circles image saved to %s", output_filename
                     )
                     __log.info(
-                        "Displaying RGB circles for %s seconds...",
-                        duration
+                        "Displaying RGB circles for %s seconds...", duration
                     )
                     lcd.display(rgb_circles_image)
                     time.sleep(duration)

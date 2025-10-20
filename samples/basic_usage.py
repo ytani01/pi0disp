@@ -4,9 +4,12 @@
 """
 pi0dispライブラリの基本的な使用方法を示すサンプルスクリプトです。
 """
+
 import time
-from pi0disp import ST7789V
+
 from PIL import Image, ImageDraw
+
+from pi0disp import ST7789V
 
 # --- 基本的な使用例 ---
 print("基本的な使用例: 青い円を描画します。")
@@ -21,7 +24,7 @@ with ST7789V() as lcd:
     draw.ellipse(
         (10, 10, lcd.width - 10, lcd.height - 10),
         fill="blue",
-        outline="white"
+        outline="white",
     )
 
     # ディスプレイに表示

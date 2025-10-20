@@ -8,10 +8,10 @@ if __package__:
 else:
     __version__ = "_._._"
 
-from .utils.mylogger import errmsg, get_logger
 from .disp.st7789v import ST7789V
 from .utils.click_utils import click_common_opts
-from .utils.utils import ImageProcessor, get_ip_address, draw_text
+from .utils.mylogger import errmsg, get_logger
+from .utils.utils import ImageProcessor, draw_text, get_ip_address
 
 __all__ = [
     "__version__",

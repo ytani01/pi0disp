@@ -8,6 +8,7 @@ This module provides a high-performance driver for ST7789V-based displays,
 optimized for Raspberry Pi environments. It leverages the `performance_core`
 module to achieve high frame rates with low CPU usage.
 """
+
 import time
 from typing import Optional, Tuple, Union
 
@@ -18,6 +19,7 @@ from PIL import Image
 from ..utils.mylogger import get_logger
 from ..utils.performance_core import create_optimizer_pack
 
+
 class ST7789V:
     """
     An optimized driver for ST7789V-based SPI displays.
@@ -26,6 +28,7 @@ class ST7789V:
     providing methods for initialization, configuration, and high-performance
     image rendering using techniques like partial updates and memory pooling.
     """
+
     CMD = {
         "SWRESET": 0x01,
         "SLPIN": 0x10,
@@ -54,18 +57,18 @@ class ST7789V:
         "height": 320,
         "rotation": 90,
     }
-    
+
     def __init__(
-        self, 
-        channel: int = 0, 
-        rst_pin: int = DEF_PIN["RST"], 
-        dc_pin: int = DEF_PIN["DC"], 
+        self,
+        channel: int = 0,
+        rst_pin: int = DEF_PIN["RST"],
+        dc_pin: int = DEF_PIN["DC"],
         backlight_pin: int = DEF_PIN["BL"],
-        speed_hz: int = SPEED_HZ["default"], 
-        width: int = DEF_DISP["width"], 
-        height: int = DEF_DISP["height"], 
+        speed_hz: int = SPEED_HZ["default"],
+        width: int = DEF_DISP["width"],
+        height: int = DEF_DISP["height"],
         rotation: int = DEF_DISP["rotation"],
-        debug=False
+        debug=False,
     ):
         """
         Initializes the display driver.
@@ -84,12 +87,14 @@ class ST7789V:
         self.__log = get_logger(self.__class__.__name__, self.__debug)
         self.__log.debug(
             "channel=%s, rst_pin=%s, dc_pin=%s, backlight_pin=%s",
-            channel, rst_pin, dc_pin, backlight_pin
+            channel,
+            rst_pin,
+            dc_pin,
+            backlight_pin,
         )
         self.__log.debug("speed_hz=%s", speed_hz)
         self.__log.debug(
-            "width=%s, height=%s, rotation=%s",
-            width, height, rotation
+            "width=%s, height=%s, rotation=%s", width, height, rotation
         )
 
         self._native_width = width
@@ -97,7 +102,7 @@ class ST7789V:
         self.width = width
         self.height = height
         self._rotation = rotation
-        
+
         self.rst_pin = rst_pin
         self.dc_pin = dc_pin
         self.backlight_pin = backlight_pin
@@ -111,7 +116,7 @@ class ST7789V:
 
         # Initialize the optimizer pack
         self._optimizers = create_optimizer_pack()
-        
+
         # Configure GPIO pins
         for pin in [self.rst_pin, self.dc_pin, self.backlight_pin]:
             self.pi.set_mode(pin, pigpio.OUTPUT)
@@ -124,7 +129,7 @@ class ST7789V:
             )
 
         self._last_window: Optional[Tuple[int, int, int, int]] = None
-        
+
         self._init_display()
         self.set_rotation(self._rotation)
 
@@ -191,7 +196,7 @@ class ST7789V:
             self.width, self.height = self._native_height, self._native_width
         else:
             self.width, self.height = self._native_width, self._native_height
-        
+
         self._rotation = rotation
         self._last_window = None  # Invalidate window cache
 
@@ -211,7 +216,7 @@ class ST7789V:
         self._write_command(self.CMD["RASET"])
         self._write_data([y0 >> 8, y0 & 0xFF, y1 >> 8, y1 & 0xFF])
         self._write_command(self.CMD["RAMWR"])
-        
+
         self._last_window = window
 
     def write_pixels(self, pixel_bytes: bytes):
@@ -219,17 +224,17 @@ class ST7789V:
         Writes a raw buffer of pixel data to the current window.
         Uses adaptive chunking to optimize transfer speed.
         """
-        chunk_size = self._optimizers['adaptive_chunking'].get_chunk_size()
+        chunk_size = self._optimizers["adaptive_chunking"].get_chunk_size()
         data_len = len(pixel_bytes)
-        
-        self.pi.write(self.dc_pin, 1) # Set D/C high for data
-        
+
+        self.pi.write(self.dc_pin, 1)  # Set D/C high for data
+
         if data_len <= chunk_size:
             self.pi.spi_write(self.spi_handle, pixel_bytes)
         else:
             for i in range(0, data_len, chunk_size):
                 self.pi.spi_write(
-                    self.spi_handle, pixel_bytes[i:i + chunk_size]
+                    self.spi_handle, pixel_bytes[i : i + chunk_size]
                 )
 
     def display(self, image: Image.Image):
@@ -240,33 +245,31 @@ class ST7789V:
         if image.size != (self.width, self.height):
             image = image.resize((self.width, self.height))
 
-        pixel_bytes = self._optimizers['color_converter'].rgb_to_rgb565_bytes(
+        pixel_bytes = self._optimizers["color_converter"].rgb_to_rgb565_bytes(
             np.array(image)
         )
-        
+
         self.set_window(0, 0, self.width - 1, self.height - 1)
         self.write_pixels(pixel_bytes)
 
     def display_region(
-            self, image: Image.Image, x0: int, y0: int, x1: int, y1: int
+        self, image: Image.Image, x0: int, y0: int, x1: int, y1: int
     ):
         """
         Displays a portion of a PIL image within the specified region.
         This is the core function for partial/dirty rectangle updates.
         """
         # Clamp region to be within display boundaries
-        region = self._optimizers['region_optimizer'].clamp_region(
-            (x0, y0, x1, y1),
-            self.width,
-            self.height
+        region = self._optimizers["region_optimizer"].clamp_region(
+            (x0, y0, x1, y1), self.width, self.height
         )
-        
+
         if region[2] <= region[0] or region[3] <= region[1]:
-            return # Skip zero- or negative-sized regions
+            return  # Skip zero- or negative-sized regions
 
         # Crop the image to the specified region and convert to pixel data
         region_img = image.crop(region)
-        pixel_bytes = self._optimizers['color_converter'].rgb_to_rgb565_bytes(
+        pixel_bytes = self._optimizers["color_converter"].rgb_to_rgb565_bytes(
             np.array(region_img)
         )
 
@@ -278,7 +281,7 @@ class ST7789V:
         """Cleans up resources (turns off backlight, closes SPI handle)."""
         try:
             self.pi.write(self.backlight_pin, 0)
-            if hasattr(self, 'spi_handle') and self.spi_handle >= 0:
+            if hasattr(self, "spi_handle") and self.spi_handle >= 0:
                 self.pi.spi_close(self.spi_handle)
         finally:
             if self.pi.connected:

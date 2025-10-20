@@ -2,10 +2,12 @@
 # (c) 2025 Yoichi Tanibayashi
 #
 """Display off command."""
+
 import time
+
 import click
 
-from .. import __version__, click_common_opts, get_logger, ST7789V
+from .. import ST7789V, __version__, click_common_opts, get_logger
 
 
 @click.command(help="off")
@@ -20,7 +22,7 @@ def off(ctx, debug) -> None:
     __log.info("OFF...")
     try:
         with ST7789V() as lcd:
-            time.sleep(.5)  # ensure lcd is ready
+            time.sleep(0.5)  # ensure lcd is ready
             # Send sleep command to the display controller
             lcd.dispoff()
             time.sleep(0.1)  # Short delay to ensure command is processed

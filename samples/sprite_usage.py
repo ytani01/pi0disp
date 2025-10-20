@@ -5,29 +5,29 @@
 Spriteクラスの使用方法を示すサンプルスクリプトです。
 複数のボールが画面内で跳ね返るアニメーションを表示します。
 """
-import time
-import sys
-from pathlib import Path
-import random
+
 import colorsys
+import random
+import sys
+import time
+from pathlib import Path
 from typing import List
 
 from PIL import Image, ImageDraw
 
 # Add project root to the Python path
-sys.path.append(str(
-    Path(__file__).parent.parent
-))
+sys.path.append(str(Path(__file__).parent.parent))
 
 from pi0disp.disp.st7789v import ST7789V
-from pi0disp.utils.sprite import Sprite
 from pi0disp.utils.performance_core import RegionOptimizer
+from pi0disp.utils.sprite import Sprite
 from pi0disp.utils.utils import expand_bbox
 
 # --- Configuration ---
 NUM_BALLS = 5
 BALL_RADIUS = 15
 TARGET_FPS = 30
+
 
 class Ball(Sprite):
     """
@@ -37,8 +37,18 @@ class Ball(Sprite):
     抽象メソッドである `update` と `draw` を
     実装する必要があります。
     """
-    def __init__(self, x, y, radius, speed_x,
-                 speed_y, color, screen_width, screen_height):
+
+    def __init__(
+        self,
+        x,
+        y,
+        radius,
+        speed_x,
+        speed_y,
+        color,
+        screen_width,
+        screen_height,
+    ):
         # Spriteクラスのコンストラクタを呼び出し、
         # スプライトの初期位置とサイズを設定します。
         # Spriteは矩形として扱われるため、
@@ -84,6 +94,7 @@ class Ball(Sprite):
         """
         draw.ellipse(self.bbox, fill=self.color)
 
+
 def main():
     """メイン関数"""
     with ST7789V() as lcd:
@@ -100,19 +111,21 @@ def main():
         for i in range(NUM_BALLS):
             rgb_float = colorsys.hsv_to_rgb(hues[i], 1.0, 1.0)
             color = tuple(int(c * 255) for c in rgb_float)
-            
+
             sprites.append(
                 Ball(
                     x=random.uniform(0, width - BALL_RADIUS * 2),
                     y=random.uniform(0, height - BALL_RADIUS * 2),
                     radius=BALL_RADIUS,
-                    speed_x=(random.uniform(50, 150) *
-                             random.choice([-1, 1])),
-                    speed_y=(random.uniform(50, 150) *
-                             random.choice([-1, 1])),
+                    speed_x=(
+                        random.uniform(50, 150) * random.choice([-1, 1])
+                    ),
+                    speed_y=(
+                        random.uniform(50, 150) * random.choice([-1, 1])
+                    ),
                     color=color,
                     screen_width=width,
-                    screen_height=height
+                    screen_height=height,
                 )
             )
 
@@ -142,8 +155,7 @@ def main():
             # 結合して、描画操作の数を減らすために使用されます。
             # `max_regions` は結合後の最大領域数です。
             optimized_regions = RegionOptimizer.merge_regions(
-                [r for r in dirty_regions if r],
-                max_regions=8
+                [r for r in dirty_regions if r], max_regions=8
             )
 
             # 描画処理
@@ -156,7 +168,7 @@ def main():
             for r in optimized_regions:
                 expanded_r = expand_bbox(r, 1)  # 1ピクセル拡大
                 draw.rectangle(expanded_r, fill="black")
-            
+
             # 各スプライトを現在の位置に描画し、
             # 次フレームのダーティリージョン計算のために
             # 現在のバウンディングボックスを記録します。
@@ -174,13 +186,14 @@ def main():
                 clamped_r = RegionOptimizer.clamp_region(
                     expanded_r, width, height
                 )
-                if (clamped_r[2] > clamped_r[0] and
-                        clamped_r[3] > clamped_r[1]):
+                if (
+                    clamped_r[2] > clamped_r[0]
+                    and clamped_r[3] > clamped_r[1]
+                ):
                     lcd.display_region(image, *clamped_r)
 
             # 目標フレームレートを維持するために、必要に応じてスリープします。
-            sleep_duration = target_duration - \
-                             (time.time() - current_time)
+            sleep_duration = target_duration - (time.time() - current_time)
             if sleep_duration > 0:
                 time.sleep(sleep_duration)
 

@@ -6,11 +6,13 @@ pi0disp/utils/sprite.py
 
 Provides a base class for creating animated objects (sprites).
 """
-from typing import Tuple, Optional
+
 from abc import ABC, abstractmethod
+from typing import Optional, Tuple
+
 from PIL import ImageDraw
 
-from pi0disp.utils.utils import merge_bboxes, expand_bbox
+from pi0disp.utils.utils import merge_bboxes
 
 
 class Sprite(ABC):
@@ -18,6 +20,7 @@ class Sprite(ABC):
     A base class for animated objects (sprites).
     Manages position, size, and dirty regions for efficient redrawing.
     """
+
     def __init__(self, x: float, y: float, width: int, height: int):
         self.x = x
         self.y = y
@@ -28,7 +31,12 @@ class Sprite(ABC):
     @property
     def bbox(self) -> Tuple[int, int, int, int]:
         """Returns the sprite's current bounding box as integer coordinates."""
-        return (int(self.x), int(self.y), int(self.x + self.width), int(self.y + self.height))
+        return (
+            int(self.x),
+            int(self.y),
+            int(self.x + self.width),
+            int(self.y + self.height),
+        )
 
     def get_dirty_region(self) -> Optional[Tuple[int, int, int, int]]:
         """

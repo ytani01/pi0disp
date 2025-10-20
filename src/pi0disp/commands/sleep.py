@@ -2,10 +2,12 @@
 # (c) 2025 Yoichi Tanibayashi
 #
 """Display off command."""
+
 import time
+
 import click
 
-from .. import __version__, click_common_opts, get_logger, ST7789V
+from .. import ST7789V, __version__, click_common_opts, get_logger
 
 
 @click.command(help="sleep display")
@@ -16,12 +18,12 @@ def sleep(ctx, debug):
 
     cmd_name = ctx.command.name
     __log.debug("cmd_name=%s", cmd_name)
-    
+
     __log.info("Putting display to sleep...")
 
     try:
         with ST7789V() as lcd:
-            time.sleep(.5)  # ensure lcd is ready
+            time.sleep(0.5)  # ensure lcd is ready
             # Send sleep command to the display controller
             lcd.sleep()
             time.sleep(0.1)  # Short delay to ensure command is processed

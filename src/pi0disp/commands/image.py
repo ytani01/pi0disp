@@ -2,23 +2,27 @@
 # (c) 2025 Yoichi Tanibayashi
 #
 """Display image command."""
+
 import time
+
 import click
 from PIL import Image
 
-from .. import __version__, click_common_opts, get_logger, ST7789V
+from .. import ST7789V, __version__, click_common_opts, get_logger
 from ..utils.utils import ImageProcessor
 
 
 @click.command()
 @click.argument(
-    'image_path',
-    type=click.Path(exists=True, dir_okay=False, readable=True)
+    "image_path", type=click.Path(exists=True, dir_okay=False, readable=True)
 )
 @click.option(
-    "--duration", "-s", type=float,
-    default=3.0, show_default=True,
-    help='Duration to display each image in seconds.'
+    "--duration",
+    "-s",
+    type=float,
+    default=3.0,
+    show_default=True,
+    help="Duration to display each image in seconds.",
 )
 @click_common_opts(__version__)
 def image(ctx, image_path, duration, debug):
@@ -47,7 +51,9 @@ def image(ctx, image_path, duration, debug):
 
     try:
         with ST7789V() as lcd:
-            __log.info("Displaying original image resized to screen (contain mode)...")
+            __log.info(
+                "Displaying original image resized to screen (contain mode)..."
+            )
 
             # Resize while maintaining aspect ratio
             resized_image = processor.resize_with_aspect_ratio(
@@ -58,15 +64,21 @@ def image(ctx, image_path, duration, debug):
 
             for gamma in (1.0, 1.5, 1.0, 0.5, 1.0):
                 __log.info(f"Applying gamma={gamma}")
-                corrected_image = processor.apply_gamma(resized_image, gamma=gamma)
+                corrected_image = processor.apply_gamma(
+                    resized_image, gamma=gamma
+                )
                 lcd.display(corrected_image)
                 time.sleep(duration)
 
     except RuntimeError as e:
-        __log.error(f"Error: {e}. Make sure pigpio daemon is running and SPI is enabled.")
+        __log.error(
+            f"Error: {e}. Make sure pigpio daemon is running and SPI is enabled."
+        )
         exit(1)
     except Exception as e:
-        __log.error(f"An unexpected error occurred during display processing: {e}")
+        __log.error(
+            f"An unexpected error occurred during display processing: {e}"
+        )
         exit(1)
     finally:
         __log.info("Image display finished.")
