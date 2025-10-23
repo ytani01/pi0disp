@@ -14,12 +14,8 @@ from .. import ST7789V, __version__, click_common_opts, get_logger
 @click.option(
     "--rst", type=int, default=25, show_default=True, help="RST PIN"
 )
-@click.option(
-    "--dc", type=int, default=24, show_default=True, help="DC PIN"
-)
-@click.option(
-    "--bl", type=int, default=23, show_default=True, help="BL PIN"
-)
+@click.option("--dc", type=int, default=24, show_default=True, help="DC PIN")
+@click.option("--bl", type=int, default=23, show_default=True, help="BL PIN")
 @click_common_opts(__version__)
 def sleep(ctx, rst, dc, bl, debug):
     """Turns the display off by entering sleep mode."""

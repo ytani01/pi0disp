@@ -27,12 +27,8 @@ from ..utils.utils import ImageProcessor
 @click.option(
     "--rst", type=int, default=25, show_default=True, help="RST PIN"
 )
-@click.option(
-    "--dc", type=int, default=24, show_default=True, help="DC PIN"
-)
-@click.option(
-    "--bl", type=int, default=23, show_default=True, help="BL PIN"
-)
+@click.option("--dc", type=int, default=24, show_default=True, help="DC PIN")
+@click.option("--bl", type=int, default=23, show_default=True, help="BL PIN")
 @click_common_opts(__version__)
 def image(ctx, image_path, duration, rst, dc, bl, debug):
     """Displays an image with optional gamma correction.

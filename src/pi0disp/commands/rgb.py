@@ -96,12 +96,8 @@ def generate_rgb_circles(width, height, colors_tuple):
 @click.option(
     "--rst", type=int, default=25, show_default=True, help="RST PIN"
 )
-@click.option(
-    "--dc", type=int, default=24, show_default=True, help="DC PIN"
-)
-@click.option(
-    "--bl", type=int, default=23, show_default=True, help="BL PIN"
-)
+@click.option("--dc", type=int, default=24, show_default=True, help="DC PIN")
+@click.option("--bl", type=int, default=23, show_default=True, help="BL PIN")
 @click_common_opts(__version__)
 def rgb(ctx, duration, rst, dc, bl, debug):
     """Displays RGB color circles with additive blending."""
