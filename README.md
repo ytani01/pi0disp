@@ -48,6 +48,14 @@ sudo apt install pigpio
 sudo systemctl start pigpiod
 ```
 
+
+## 配線図(例)
+
+- RST, DC, BL は、変更可
+
+![配線図](docs/wiring1.png)
+
+
 ## インストール
 
 1.  リポジトリをクローンします。
