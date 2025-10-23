@@ -44,9 +44,9 @@ class ST7789V:
         "COLMOD": 0x3A,
     }
     DEF_PIN = {
-        "RST": 19,
-        "DC": 18,
-        "BL": 20,
+        "RST": 25,
+        "DC": 24,
+        "BL": 23,
     }
     SPEED_HZ = {
         "default": 8_000_000,
