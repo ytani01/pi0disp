@@ -5,7 +5,6 @@
 ST7789Vディスプレイで動作する、物理ベースのアニメーションデモ。
 見た目維持・計算処理最適化版。
 """
-
 import colorsys
 import math
 import time
@@ -511,9 +510,19 @@ def _main_loop_optimized(
     default=None,
     help="Absolute speed of balls (pixels/second).",
 )
+@click.option(
+    "--rst", type=int, default=25, show_default=True, help="RST PIN"
+)
+@click.option(
+    "--dc", type=int, default=24, show_default=True, help="DC PIN"
+)
+@click.option(
+    "--bl", type=int, default=23, show_default=True, help="BL PIN"
+)
 @click_common_opts(__version__)
 def ball_anime(
-    ctx, spi_mhz: float, fps: float, num_balls: int, ball_speed: float, debug
+    ctx, spi_mhz: float, fps: float, num_balls: int, ball_speed: float,
+    rst, dc, bl, debug
 ) -> None:
     """物理ベースのアニメーションデモを実行する（計算最適化版）。"""
     __log = get_logger(__name__, debug)
@@ -524,6 +533,7 @@ def ball_anime(
         num_balls,
         ball_speed,
     )
+    __log.debug("rst=%s, dc=%s, bl=%s", rst, dc, bl)
 
     cmd_name = ctx.command.name
     __log.debug("cmd_name=%s", cmd_name)
@@ -531,7 +541,10 @@ def ball_anime(
     __log.info("fps=%s ... Ctrl+C で終了してください。", fps)
 
     try:
-        with ST7789V(speed_hz=int(spi_mhz * 1_000_000)) as lcd:
+        with ST7789V(
+            speed_hz=int(spi_mhz * 1_000_000),
+            rst_pin=rst, dc_pin=dc, backlight_pin=bl
+        ) as lcd:
             # フォントをロード（元の設定維持）
             font_large: ImageFont.FreeTypeFont | ImageFont.ImageFont
             font_small: ImageFont.FreeTypeFont | ImageFont.ImageFont

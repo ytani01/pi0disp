@@ -24,14 +24,24 @@ from ..utils.utils import ImageProcessor
     show_default=True,
     help="Duration to display each image in seconds.",
 )
+@click.option(
+    "--rst", type=int, default=25, show_default=True, help="RST PIN"
+)
+@click.option(
+    "--dc", type=int, default=24, show_default=True, help="DC PIN"
+)
+@click.option(
+    "--bl", type=int, default=23, show_default=True, help="BL PIN"
+)
 @click_common_opts(__version__)
-def image(ctx, image_path, duration, debug):
+def image(ctx, image_path, duration, rst, dc, bl, debug):
     """Displays an image with optional gamma correction.
 
     IMAGE_PATH: Path to the image file to display.
     """
     __log = get_logger(__name__, debug)
     __log.debug("image_path=%s, duration=%s", image_path, duration)
+    __log.debug("rst=%s, dc=%s, bl=%s", rst, dc, bl)
 
     cmd_name = ctx.command.name
     __log.debug("cmd_name=%s", cmd_name)
@@ -50,7 +60,7 @@ def image(ctx, image_path, duration, debug):
     processor = ImageProcessor()
 
     try:
-        with ST7789V() as lcd:
+        with ST7789V(rst_pin=rst, dc_pin=dc, backlight_pin=bl) as lcd:
             __log.info(
                 "Displaying original image resized to screen (contain mode)..."
             )

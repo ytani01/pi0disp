@@ -93,17 +93,27 @@ def generate_rgb_circles(width, height, colors_tuple):
     default=2.0,
     help="Duration to display the image in seconds.",
 )
+@click.option(
+    "--rst", type=int, default=25, show_default=True, help="RST PIN"
+)
+@click.option(
+    "--dc", type=int, default=24, show_default=True, help="DC PIN"
+)
+@click.option(
+    "--bl", type=int, default=23, show_default=True, help="BL PIN"
+)
 @click_common_opts(__version__)
-def rgb(ctx, duration, debug):
+def rgb(ctx, duration, rst, dc, bl, debug):
     """Displays RGB color circles with additive blending."""
     __log = get_logger(__name__, debug)
     __log.debug("duration=%s", duration)
+    __log.debug("rst=%s, dc=%s, bl=%s", rst, dc, bl)
 
     cmd_name = ctx.command.name
     __log.debug("cmd_name=%s", cmd_name)
 
     try:
-        with ST7789V() as lcd:
+        with ST7789V(rst_pin=rst, dc_pin=dc, backlight_pin=bl) as lcd:
             __log.info(f"Display initialized: {lcd.width}x{lcd.height}")
 
             color_permutations = [

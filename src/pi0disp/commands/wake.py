@@ -11,10 +11,20 @@ from .. import ST7789V, __version__, click_common_opts, get_logger
 
 
 @click.command(help="wake up display")
+@click.option(
+    "--rst", type=int, default=25, show_default=True, help="RST PIN"
+)
+@click.option(
+    "--dc", type=int, default=24, show_default=True, help="DC PIN"
+)
+@click.option(
+    "--bl", type=int, default=23, show_default=True, help="BL PIN"
+)
 @click_common_opts(__version__)
-def wake(ctx, debug) -> None:
+def wake(ctx, rst, dc, bl, debug) -> None:
     """Wake up."""
     __log = get_logger(__name__, debug)
+    __log.debug("rst=%s, dc=%s, bl=%s", rst, dc, bl)
 
     cmd_name = ctx.command.name
     __log.debug("cmd_name=%s", cmd_name)
@@ -22,7 +32,7 @@ def wake(ctx, debug) -> None:
     __log.info("Wake up...")
 
     try:
-        with ST7789V() as lcd:
+        with ST7789V(rst_pin=rst, dc_pin=dc, backlight_pin=bl) as lcd:
             time.sleep(0.5)  # ensure lcd is ready
             # Send sleep command to the display controller
             lcd.wake()
