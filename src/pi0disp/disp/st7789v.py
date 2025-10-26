@@ -55,7 +55,7 @@ class ST7789V:
     DEF_DISP = {
         "width": 240,
         "height": 320,
-        "rotation": 90,
+        "rotation": 270,
     }
 
     def __init__(
