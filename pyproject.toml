@@ -9,6 +9,7 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
+    "cairosvg>=2.8.2",
     "click>=8.2.1",
     "numpy>=2.3.2",
     "pigpio>=1.78",
@@ -40,5 +41,5 @@ dev = [
 check_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = ['pigpio', 'PIL', 'numpy']
+module = ['pigpio', 'PIL', 'numpy', 'click']
 ignore_missing_imports = true

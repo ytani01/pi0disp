@@ -3,18 +3,21 @@
 #
 """Display image command."""
 
+import sys
 import time
 
 import click
 from PIL import Image
 
-from .. import ST7789V, __version__, click_common_opts, get_logger
+from .. import ST7789V, __version__, click_common_opts
+from ..utils.mylogger import errmsg, get_logger
 from ..utils.utils import ImageProcessor
 
 
 @click.command()
 @click.argument(
-    "image_path", type=click.Path(exists=True, dir_okay=False, readable=True)
+    "image_path",
+    type=click.Path(exists=True, dir_okay=False, readable=True)
 )
 @click.option(
     "--duration",
@@ -29,29 +32,39 @@ from ..utils.utils import ImageProcessor
 )
 @click.option("--dc", type=int, default=24, show_default=True, help="DC PIN")
 @click.option("--bl", type=int, default=23, show_default=True, help="BL PIN")
+@click.option("--svg", is_flag=True, help="SVG flag")
 @click_common_opts(__version__)
-def image(ctx, image_path, duration, rst, dc, bl, debug):
+def image(ctx, image_path, duration, rst, dc, bl, svg, debug):
     """Displays an image with optional gamma correction.
 
     IMAGE_PATH: Path to the image file to display.
     """
+    import cairosvg
+    import io
+
     __log = get_logger(__name__, debug)
-    __log.debug("image_path=%s, duration=%s", image_path, duration)
+    __log.debug("image_path=%s, duration=%s, svg=%s", image_path, duration, svg)
     __log.debug("rst=%s, dc=%s, bl=%s", rst, dc, bl)
 
     cmd_name = ctx.command.name
     __log.debug("cmd_name=%s", cmd_name)
 
-    __log.info(f"Attempting to display image: {image_path}")
+    __log.info("Attempting to display image: %s", image_path)
 
     try:
-        source_image = Image.open(image_path)
+        if svg:
+            png_data = cairosvg.svg2png(url=image_path)
+            source_image = Image.open(io.BytesIO(png_data))
+        else:
+            source_image = Image.open(image_path)
     except FileNotFoundError:
-        __log.error(f"Error: Image file '{image_path}' not found.")
-        exit(1)
+        __log.error("Error: Image file %a  not found.", image_path)
+        sys.exit(1)
     except Exception as e:
-        __log.error(f"Error opening image '{image_path}': {e}")
-        exit(1)
+        __log.error(
+            "Error opening image %s: %s", image_path, errmsg(e)
+        )
+        sys.exit(1)
 
     processor = ImageProcessor()
 
@@ -77,14 +90,10 @@ def image(ctx, image_path, duration, rst, dc, bl, debug):
                 time.sleep(duration)
 
     except RuntimeError as e:
-        __log.error(
-            f"Error: {e}. Make sure pigpio daemon is running and SPI is enabled."
-        )
-        exit(1)
+        __log.error(errmsg(e))
+        sys.exit(1)
     except Exception as e:
-        __log.error(
-            f"An unexpected error occurred during display processing: {e}"
-        )
-        exit(1)
+        __log.error(errmsg(e))
+        sys.exit(1)
     finally:
         __log.info("Image display finished.")

@@ -43,8 +43,10 @@ uv sync
 echo "# pip"
 uv pip install -U --group dev -e .
 # uv pip install -U --group samples -e .
+
+uv run pi0disp -V
 '''
-alias = "upproject"
+alias = "uppj"
 # depends = ["upgradeuv"]
 
 [tasks.lint]
