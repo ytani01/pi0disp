@@ -16,8 +16,7 @@ from ..utils.utils import ImageProcessor
 
 @click.command()
 @click.argument(
-    "image_path",
-    type=click.Path(exists=True, dir_okay=False, readable=True)
+    "image_path", type=click.Path(exists=True, dir_okay=False, readable=True)
 )
 @click.option(
     "--duration",
@@ -39,11 +38,13 @@ def image(ctx, image_path, duration, rst, dc, bl, svg, debug):
 
     IMAGE_PATH: Path to the image file to display.
     """
+
     import cairosvg
-    import io
 
     __log = get_logger(__name__, debug)
-    __log.debug("image_path=%s, duration=%s, svg=%s", image_path, duration, svg)
+    __log.debug(
+        "image_path=%s, duration=%s, svg=%s", image_path, duration, svg
+    )
     __log.debug("rst=%s, dc=%s, bl=%s", rst, dc, bl)
 
     cmd_name = ctx.command.name
@@ -53,17 +54,18 @@ def image(ctx, image_path, duration, rst, dc, bl, svg, debug):
 
     try:
         if svg:
-            png_data = cairosvg.svg2png(url=image_path)
-            source_image = Image.open(io.BytesIO(png_data))
+            # png_data = cairosvg.svg2png(url=image_path)
+            # source_image = Image.open(io.BytesIO(png_data))
+            svg_file = image_path + ".svg"
+            cairosvg.svg2png(url=image_path, write_to=svg_file)
+            source_image = Image.open(svg_file)
         else:
             source_image = Image.open(image_path)
     except FileNotFoundError:
         __log.error("Error: Image file %a  not found.", image_path)
         sys.exit(1)
     except Exception as e:
-        __log.error(
-            "Error opening image %s: %s", image_path, errmsg(e)
-        )
+        __log.error("Error opening image %s: %s", image_path, errmsg(e))
         sys.exit(1)
 
     processor = ImageProcessor()

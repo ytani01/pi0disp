@@ -159,7 +159,7 @@ uv run pi0disp ball_anime
     ```
 -   SPI通信速度を40MHzに設定:
     ```sh
-    uv run pi0disp test --speed 40000000
+    uv run pi0disp ballanime --speed 40000000
     ```
 
 デモは `Ctrl+C` で終了します。

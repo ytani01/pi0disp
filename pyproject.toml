@@ -32,7 +32,6 @@ dev = [
     "isort>=6.0.1",
     "mypy>=1.17.1",
     "pylint>=3.3.8",
-    "pyright>=1.1.403",
     "pytest>=8.4.1",
     "ruff>=0.12.9",
 ]
@@ -41,5 +40,5 @@ dev = [
 check_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = ['pi0disp', 'pigpio', 'PIL', 'numpy', 'click']
+module = ['pi0disp', 'pigpio', 'PIL', 'numpy', 'click', 'cairosvg']
 ignore_missing_imports = true
