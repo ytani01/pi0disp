@@ -41,5 +41,5 @@ dev = [
 check_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = ['pigpio', 'PIL', 'numpy', 'click']
+module = ['pi0disp', 'pigpio', 'PIL', 'numpy', 'click']
 ignore_missing_imports = true
