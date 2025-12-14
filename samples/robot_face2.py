@@ -87,6 +87,7 @@ def main():
             time.sleep(DISPLAY_TIME)
 
     except KeyboardInterrupt:
+        disp.close()
         print("\n終了します。")
 
 
