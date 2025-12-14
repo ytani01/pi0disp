@@ -277,12 +277,12 @@ class ST7789V:
         self.set_window(region[0], region[1], region[2] - 1, region[3] - 1)
         self.write_pixels(pixel_bytes)
 
-    def close(self, bl: int = 0):
-        """Cleans up resources (turns off backlight, closes SPI handle)."""
+    def close(self, bl: bool = False):
+        """Cleans up resources (closes SPI handle)."""
         try:
             if hasattr(self, "spi_handle") and self.spi_handle >= 0:
                 self.pi.spi_close(self.spi_handle)
-            self.pi.write(self.backlight_pin, bl)
+            self.pi.write(self.backlight_pin, 1 if bl else 0)
         finally:
             if self.pi.connected:
                 self.pi.stop()
