@@ -24,7 +24,8 @@ class DispBase:
 
         self._native_size = size.copy()
         self.size = size.copy()
-        self.set_rotation(rotation)
+        self._rotation = rotation
+        self.set_rotation(self._rotation)  # この行を追加
 
         # Initialize pigpio
         self.pi = pigpio.pi()
