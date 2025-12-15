@@ -15,7 +15,7 @@ from pi0disp import ST7789V
 print("基本的な使用例: 青い円を描画します。")
 
 # ディスプレイを初期化
-with ST7789V() as lcd:
+with ST7789V(debug=True) as lcd:
     # PILを使って画像を作成
     image1 = Image.new("RGB", (lcd.width, lcd.height), "white")
     # image2 = image1.copy()

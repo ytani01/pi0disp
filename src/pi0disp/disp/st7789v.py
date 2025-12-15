@@ -13,14 +13,14 @@ import time
 from typing import Optional, Tuple, Union
 
 import numpy as np
-import pigpio
 from PIL import Image
 
 from ..utils.mylogger import get_logger
 from ..utils.performance_core import create_optimizer_pack
+from .disp_spi import DispSpi
 
 
-class ST7789V:
+class ST7789V(DispSpi):
     """
     An optimized driver for ST7789V-based SPI displays.
 
@@ -43,102 +43,46 @@ class ST7789V:
         "MADCTL": 0x36,
         "COLMOD": 0x3A,
     }
-    DEF_PIN = {
-        "RST": 25,
-        "DC": 24,
-        "BL": 23,
-    }
-    SPEED_HZ = {
-        "default": 8_000_000,
-        "max": 32_000_000,
-    }
-    DEF_DISP = {
-        "width": 240,
-        "height": 320,
-        "rotation": 270,
-    }
 
     def __init__(
         self,
+        bl_at_close: bool = False,
         channel: int = 0,
-        rst_pin: int = DEF_PIN["RST"],
-        dc_pin: int = DEF_PIN["DC"],
-        backlight_pin: int = DEF_PIN["BL"],
-        speed_hz: int = SPEED_HZ["default"],
-        width: int = DEF_DISP["width"],
-        height: int = DEF_DISP["height"],
-        rotation: int = DEF_DISP["rotation"],
+        rst_pin: int = DispSpi.DEF_PIN["RST"],
+        dc_pin: int = DispSpi.DEF_PIN["DC"],
+        backlight_pin: int = DispSpi.DEF_PIN["BL"],
+        speed_hz: int = DispSpi.SPEED_HZ["default"],
+        width: int = DispSpi.DEF_DISP["width"],
+        height: int = DispSpi.DEF_DISP["height"],
+        rotation: int = DispSpi.DEF_DISP["rotation"],
         debug=False,
     ):
         """
         Initializes the display driver.
-
-        Args:
-            channel: SPI channel (0 or 1).
-            rst_pin: GPIO pin for Reset.
-            dc_pin: GPIO pin for Data/Command select.
-            backlight_pin: GPIO pin for the backlight.
-            speed_hz: SPI clock speed in Hz.
-            width: The native width of the display.
-            height: The native height of the display.
-            rotation: Initial rotation (0, 90, 180, or 270 degrees).
         """
-        self.__debug = debug
-        self.__log = get_logger(self.__class__.__name__, self.__debug)
-        self.__log.debug(
-            "channel=%s, rst_pin=%s, dc_pin=%s, backlight_pin=%s",
+        super().__init__(
+            bl_at_close,
             channel,
             rst_pin,
             dc_pin,
             backlight_pin,
+            speed_hz,
+            width,
+            height,
+            rotation,
+            debug=debug,
         )
-        self.__log.debug("speed_hz=%s", speed_hz)
-        self.__log.debug(
-            "width=%s, height=%s, rotation=%s", width, height, rotation
-        )
-
-        self._native_width = width
-        self._native_height = height
-        self.width = width
-        self.height = height
-        self._rotation = rotation
-
-        self.rst_pin = rst_pin
-        self.dc_pin = dc_pin
-        self.backlight_pin = backlight_pin
-
-        # Initialize pigpio
-        self.pi = pigpio.pi()
-        if not self.pi.connected:
-            raise RuntimeError(
-                "Could not connect to pigpio daemon. Is it running?"
-            )
+        self.__debug = debug
+        self.__log = get_logger(self.__class__.__name__, self.__debug)
+        self.__log.debug("")
 
         # Initialize the optimizer pack
         self._optimizers = create_optimizer_pack()
 
-        # Configure GPIO pins
-        for pin in [self.rst_pin, self.dc_pin, self.backlight_pin]:
-            self.pi.set_mode(pin, pigpio.OUTPUT)
-
-        # Open SPI handle
-        self.spi_handle = self.pi.spi_open(channel, speed_hz, 0)
-        if self.spi_handle < 0:
-            raise RuntimeError(
-                f"Failed to open SPI bus: handle={self.spi_handle}"
-            )
-
         self._last_window: Optional[Tuple[int, int, int, int]] = None
 
-        self._init_display()
+        self.init_display()
         self.set_rotation(self._rotation)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.__log.debug(exc_type, exc_val, exc_tb)
-        self.close()
 
     def _write_command(self, command: int):
         """Sends a command byte to the display."""
@@ -153,15 +97,10 @@ class ST7789V:
         else:
             self.pi.spi_write(self.spi_handle, data)
 
-    def _init_display(self):
+    def init_display(self):
         """Performs the hardware initialization sequence for the ST7789V."""
-        # Hardware reset
-        self.pi.write(self.rst_pin, 1)
-        time.sleep(0.01)
-        self.pi.write(self.rst_pin, 0)
-        time.sleep(0.01)
-        self.pi.write(self.rst_pin, 1)
-        time.sleep(0.150)
+        super().init_display()  # hardware reset
+        self.__log.debug("")
 
         # Initialization sequence
         self._write_command(self.CMD["SWRESET"])
@@ -175,8 +114,6 @@ class ST7789V:
         self._write_command(self.CMD["DISPON"])
         time.sleep(0.1)
 
-        self.pi.write(self.backlight_pin, 1)
-
     def set_rotation(self, rotation: int):
         """
         Sets the display rotation.
@@ -184,6 +121,9 @@ class ST7789V:
         Args:
             rotation: The desired rotation in degrees (0, 90, 180, 270).
         """
+        super().set_rotation(rotation)
+        self.__log.debug("%s", self.__class__.__name__)
+
         madctl_values = {0: 0x00, 90: 0x60, 180: 0xC0, 270: 0xA0}
         if rotation not in madctl_values:
             raise ValueError("Rotation must be 0, 90, 180, or 270.")
@@ -191,13 +131,6 @@ class ST7789V:
         self._write_command(self.CMD["MADCTL"])
         self._write_data(madctl_values[rotation])
 
-        # Swap width and height for portrait/landscape modes
-        if rotation in (90, 270):
-            self.width, self.height = self._native_height, self._native_width
-        else:
-            self.width, self.height = self._native_width, self._native_height
-
-        self._rotation = rotation
         self._last_window = None  # Invalidate window cache
 
     def set_window(self, x0: int, y0: int, x1: int, y1: int):
@@ -242,8 +175,8 @@ class ST7789V:
         Displays a full PIL Image on the screen.
         The image is automatically resized to fit the display.
         """
-        if image.size != (self.width, self.height):
-            image = image.resize((self.width, self.height))
+        super().display(image)  # adjust image size
+        self.__log.debug("%s", self.__class__.__name__)
 
         pixel_bytes = self._optimizers["color_converter"].rgb_to_rgb565_bytes(
             np.array(image)
@@ -277,15 +210,18 @@ class ST7789V:
         self.set_window(region[0], region[1], region[2] - 1, region[3] - 1)
         self.write_pixels(pixel_bytes)
 
-    def close(self, bl: bool = False):
-        """Cleans up resources (closes SPI handle)."""
+    def close(self, bl: bool | None = None):
+        """Cleans up resources (closes SPI handle).
+
+        Args:
+            bl (bool | None): バックライトの状態
+                              省略すると、生成時のオプションを使う
+        """
         try:
             if hasattr(self, "spi_handle") and self.spi_handle >= 0:
                 self.pi.spi_close(self.spi_handle)
-            self.pi.write(self.backlight_pin, 1 if bl else 0)
         finally:
-            if self.pi.connected:
-                self.pi.stop()
+            super().close(bl)  # backlight
 
     def dispoff(self):
         """DISPOFF."""
