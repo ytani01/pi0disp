@@ -64,6 +64,10 @@ class ST7789V(DispSpi):
         """
         Initializes the display driver.
         """
+        self.__debug = debug
+        self.__log = get_logger(self.__class__.__name__, self.__debug)
+        self.__log.debug("")
+
         super().__init__(
             bl_at_close,
             channel,
@@ -73,11 +77,9 @@ class ST7789V(DispSpi):
             rotation,
             debug=debug,
         )
-        self.__debug = debug
-        self.__log = get_logger(self.__class__.__name__, self.__debug)
-        self.__log.debug("")
 
         # Initialize the optimizer pack
+
         self._optimizers = create_optimizer_pack()
 
         self._last_window: Optional[Tuple[int, int, int, int]] = None
@@ -116,8 +118,9 @@ class ST7789V(DispSpi):
         if rotation not in madctl_values:
             raise ValueError("Rotation must be 0, 90, 180, or 270.")
 
-        self._write_command(self.CMD["MADCTL"])
-        self._write_data(madctl_values[rotation])
+        if hasattr(self, "spi_handle"):
+            self._write_command(self.CMD["MADCTL"])
+            self._write_data(madctl_values[rotation])
 
         self._last_window = None  # Invalidate window cache
 
