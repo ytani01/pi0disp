@@ -22,8 +22,8 @@ class DispBase:
         self.__log = get_logger(self.__class__.__name__, self.__debug)
         self.__log.debug("disp_size=%s,rotation=%s", size, rotation)
 
-        self._native_size = size
-        self.size = size
+        self._native_size = size.copy()
+        self.size = size.copy()
         self._rotation = rotation
 
         # Initialize pigpio

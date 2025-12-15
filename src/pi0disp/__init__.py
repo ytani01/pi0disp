@@ -1,10 +1,13 @@
 #
 # (c) 2025 Yoichi Tanibayashi
 #
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, version
 
 if __package__:
-    __version__ = version(__package__)
+    try:
+        __version__ = version(__package__)
+    except PackageNotFoundError:
+        __version__ = "0.0.0"
 else:
     __version__ = "_._._"
 
