@@ -10,7 +10,7 @@ module to achieve high frame rates with low CPU usage.
 """
 
 import time
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 
 import numpy as np
 from PIL import Image
@@ -48,12 +48,16 @@ class ST7789V(DispSpi):
         self,
         bl_at_close: bool = False,
         channel: int = 0,
-        rst_pin: int = DispSpi.DEF_PIN["RST"],
-        dc_pin: int = DispSpi.DEF_PIN["DC"],
-        backlight_pin: int = DispSpi.DEF_PIN["BL"],
+        pin: dict = {
+            "rst": DispSpi.DEF_PIN["rst"],
+            "dc": DispSpi.DEF_PIN["dc"],
+            "bl": DispSpi.DEF_PIN["bl"],
+        },
         speed_hz: int = DispSpi.SPEED_HZ["default"],
-        width: int = DispSpi.DEF_DISP["width"],
-        height: int = DispSpi.DEF_DISP["height"],
+        size: dict = {
+            "width": DispSpi.DEF_DISP["width"],
+            "height": DispSpi.DEF_DISP["height"],
+        },
         rotation: int = DispSpi.DEF_DISP["rotation"],
         debug=False,
     ):
@@ -63,12 +67,9 @@ class ST7789V(DispSpi):
         super().__init__(
             bl_at_close,
             channel,
-            rst_pin,
-            dc_pin,
-            backlight_pin,
+            pin,
             speed_hz,
-            width,
-            height,
+            size,
             rotation,
             debug=debug,
         )
@@ -83,19 +84,6 @@ class ST7789V(DispSpi):
 
         self.init_display()
         self.set_rotation(self._rotation)
-
-    def _write_command(self, command: int):
-        """Sends a command byte to the display."""
-        self.pi.write(self.dc_pin, 0)  # D/C pin low for command
-        self.pi.spi_write(self.spi_handle, [command])
-
-    def _write_data(self, data: Union[int, bytes, list]):
-        """Sends a data byte or buffer to the display."""
-        self.pi.write(self.dc_pin, 1)  # D/C pin high for data
-        if isinstance(data, int):
-            self.pi.spi_write(self.spi_handle, [data])
-        else:
-            self.pi.spi_write(self.spi_handle, data)
 
     def init_display(self):
         """Performs the hardware initialization sequence for the ST7789V."""
@@ -160,7 +148,7 @@ class ST7789V(DispSpi):
         chunk_size = self._optimizers["adaptive_chunking"].get_chunk_size()
         data_len = len(pixel_bytes)
 
-        self.pi.write(self.dc_pin, 1)  # Set D/C high for data
+        self.pi.write(self.pin["dc"], 1)  # Set D/C high for data
 
         if data_len <= chunk_size:
             self.pi.spi_write(self.spi_handle, pixel_bytes)
@@ -182,7 +170,7 @@ class ST7789V(DispSpi):
             np.array(image)
         )
 
-        self.set_window(0, 0, self.width - 1, self.height - 1)
+        self.set_window(0, 0, self.size["width"] - 1, self.size["height"] - 1)
         self.write_pixels(pixel_bytes)
 
     def display_region(
@@ -194,7 +182,7 @@ class ST7789V(DispSpi):
         """
         # Clamp region to be within display boundaries
         region = self._optimizers["region_optimizer"].clamp_region(
-            (x0, y0, x1, y1), self.width, self.height
+            (x0, y0, x1, y1), self.size["width"], self.size["height"]
         )
 
         if region[2] <= region[0] or region[3] <= region[1]:
@@ -226,14 +214,14 @@ class ST7789V(DispSpi):
     def dispoff(self):
         """DISPOFF."""
         self._write_command(self.CMD["DISPOFF"])
-        self.pi.write(self.backlight_pin, 0)
+        self.pi.write(self.pin["bl"], 0)
 
     def sleep(self):
         """Puts the display into sleep mode."""
         self._write_command(self.CMD["SLPIN"])
-        self.pi.write(self.backlight_pin, 0)
+        self.pi.write(self.pin["bl"], 0)
 
     def wake(self):
         """Wakes the display from sleep mode."""
         self._write_command(self.CMD["SLPOUT"])
-        self.pi.write(self.backlight_pin, 1)
+        self.pi.write(self.pin["bl"], 1)

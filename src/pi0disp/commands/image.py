@@ -38,7 +38,6 @@ def image(ctx, image_path, duration, rst, dc, bl, svg, debug):
 
     IMAGE_PATH: Path to the image file to display.
     """
-
     import cairosvg
 
     __log = get_logger(__name__, debug)
@@ -71,20 +70,23 @@ def image(ctx, image_path, duration, rst, dc, bl, svg, debug):
     processor = ImageProcessor()
 
     try:
-        with ST7789V(rst_pin=rst, dc_pin=dc, backlight_pin=bl) as lcd:
+        with ST7789V(pin={"rst": rst, "dc": dc, "bl": bl}) as lcd:
             __log.info(
                 "Displaying original image resized to screen (contain mode)..."
             )
 
             # Resize while maintaining aspect ratio
             resized_image = processor.resize_with_aspect_ratio(
-                source_image, lcd.width, lcd.height, fit_mode="contain"
+                source_image,
+                lcd.size["width"],
+                lcd.size["height"],
+                fit_mode="contain",
             )
             lcd.display(resized_image)
             time.sleep(duration)
 
             for gamma in (1.0, 1.5, 1.0, 0.5, 1.0):
-                __log.info(f"Applying gamma={gamma}")
+                __log.info("Applying gamma=%s", gamma)
                 corrected_image = processor.apply_gamma(
                     resized_image, gamma=gamma
                 )

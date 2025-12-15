@@ -16,18 +16,14 @@ class DispBase:
         "rotation": 270,
     }
 
-    def __init__(self, width, height, rotation, debug=False):
+    def __init__(self, size: dict, rotation, debug=False):
         """Constractor."""
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
-        self.__log.debug(
-            "width=%s,height=%s,rotation=%s", width, height, rotation
-        )
+        self.__log.debug("disp_size=%s,rotation=%s", size, rotation)
 
-        self._native_width = width
-        self._native_height = height
-        self.width = width
-        self.height = height
+        self._native_size = size
+        self.size = size
         self._rotation = rotation
 
         # Initialize pigpio
@@ -47,17 +43,23 @@ class DispBase:
 
         # Swap width and height for portrait/landscape modes
         if rotation in (90, 270):
-            self.width, self.height = self._native_height, self._native_width
+            self.size["width"], self.size["height"] = (
+                self._native_size["height"],
+                self._native_size["width"],
+            )
         else:
-            self.width, self.height = self._native_width, self._native_height
+            self.size["width"], self.size["height"] = (
+                self._native_size["width"],
+                self._native_size["height"],
+            )
 
         self._rotation = rotation
 
     def display(self, image: Image.Image):
         """display."""
         self.__log.debug("adjust image size")
-        if image.size != (self.width, self.height):
-            image = image.resize((self.width, self.height))
+        if image.size != (self.size["width"], self.size["height"]):
+            image = image.resize((self.size["width"], self.size["height"]))
 
     def close(self):
         """Close."""

@@ -137,7 +137,7 @@ class RobotFace(Sprite):
 def main():
     """メイン関数"""
     with ST7789V() as lcd:
-        width, height = lcd.width, lcd.height
+        width, height = lcd.size["width"], lcd.size["height"]
         image = Image.new("RGB", (width, height), BACKGROUND_COLOR)
         draw = ImageDraw.Draw(image)
 

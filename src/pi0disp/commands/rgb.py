@@ -109,8 +109,12 @@ def rgb(ctx, duration, rst, dc, bl, debug):
     __log.debug("cmd_name=%s", cmd_name)
 
     try:
-        with ST7789V(rst_pin=rst, dc_pin=dc, backlight_pin=bl) as lcd:
-            __log.info(f"Display initialized: {lcd.width}x{lcd.height}")
+        with ST7789V(pin={"rst": rst, "dc": dc, "bl": bl}) as lcd:
+            __log.info(
+                "Display initialized: %sx%s",
+                lcd.size["width"],
+                lcd.size["height"],
+            )
 
             color_permutations = [
                 ((255, 0, 0), (0, 255, 0), (0, 0, 255)),  # R, G, B
@@ -126,7 +130,7 @@ def rgb(ctx, duration, rst, dc, bl, debug):
                         colors_tuple,
                     )
                     rgb_circles_image = generate_rgb_circles(
-                        lcd.width, lcd.height, colors_tuple
+                        lcd.size["width"], lcd.size["height"], colors_tuple
                     )
 
                     # Save the generated image to a file

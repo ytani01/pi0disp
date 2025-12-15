@@ -98,7 +98,7 @@ class Ball(Sprite):
 def main():
     """メイン関数"""
     with ST7789V() as lcd:
-        width, height = lcd.width, lcd.height
+        width, height = lcd.size["width"], lcd.size["height"]
 
         # ディスプレイ全体を黒で初期化します。
         # これにより、アニメーション開始時の残像を防ぎます。

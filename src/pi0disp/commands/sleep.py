@@ -28,7 +28,7 @@ def sleep(ctx, rst, dc, bl, debug):
     __log.info("Putting display to sleep...")
 
     try:
-        with ST7789V(rst_pin=rst, dc_pin=dc, backlight_pin=bl) as lcd:
+        with ST7789V(pin={"rst": rst, "dc": dc, "bl": bl}) as lcd:
             time.sleep(0.5)  # ensure lcd is ready
             # Send sleep command to the display controller
             lcd.sleep()

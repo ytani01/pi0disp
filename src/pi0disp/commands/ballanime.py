@@ -371,13 +371,15 @@ def _main_loop_optimized(
     inv_substeps = 1.0 / PHYSICS_SUBSTEPS  # 除算を事前計算
 
     # 再利用オブジェクト
-    hud_layer = Image.new("RGBA", (lcd.width, lcd.height), (0, 0, 0, 0))
+    hud_layer = Image.new(
+        "RGBA", (lcd.size["width"], lcd.size["height"]), (0, 0, 0, 0)
+    )
     hud_draw = ImageDraw.Draw(hud_layer)
     prev_fps_bbox = None
 
     # 画面サイズを事前取得
-    screen_width = lcd.width
-    screen_height = lcd.height
+    screen_width = lcd.size["width"]
+    screen_height = lcd.size["height"]
 
     while True:
         frame_count += 1
@@ -547,9 +549,7 @@ def ballanime(
     try:
         with ST7789V(
             speed_hz=int(spi_mhz * 1_000_000),
-            rst_pin=rst,
-            dc_pin=dc,
-            backlight_pin=bl,
+            pin={"rst": rst, "dc": dc, "bl": bl},
         ) as lcd:
             # フォントをロード（元の設定維持）
             font_large: ImageFont.FreeTypeFont | ImageFont.ImageFont
@@ -563,11 +563,13 @@ def ballanime(
                 font_small = ImageFont.load_default()
 
             # 背景画像を生成（元の処理維持）
-            background_image = Image.new("RGB", (lcd.width, lcd.height))
+            background_image = Image.new(
+                "RGB", (lcd.size["width"], lcd.size["height"])
+            )
             draw = ImageDraw.Draw(background_image)
-            for y in range(lcd.height):
+            for y in range(lcd.size["height"]):
                 color = (y % 256, (y * 2) % 256, (y * 3) % 256)
-                draw.line((0, y, lcd.width, y), fill=color)
+                draw.line((0, y, lcd.size["width"], y), fill=color)
 
             # 静的テキスト（IPアドレスなど）を描画
             ip_address = get_ip_address()
@@ -577,8 +579,8 @@ def ballanime(
                 font_small,
                 x="center",
                 y="bottom",
-                width=lcd.width,
-                height=lcd.height,
+                width=lcd.size["width"],
+                height=lcd.size["height"],
                 color=TEXT_COLOR,
             )
 
@@ -586,7 +588,7 @@ def ballanime(
 
             # オブジェクトを初期化
             balls = _initialize_balls_optimized(
-                num_balls, lcd.width, lcd.height, ball_speed
+                num_balls, lcd.size["width"], lcd.size["height"], ball_speed
             )
             fps_counter = FpsCounter()
 
