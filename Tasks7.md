@@ -1,0 +1,24 @@
+# Tasks 7: `tests/test_02_disp_spi.py` の改善
+
+- [x] `_create_disp_spi_instance` のミュータブルなデフォルト引数を修正する <!-- id: 0 -->
+  - [x] デフォルト値を `None` に変更する
+  - [x] メソッド内でデフォルト値を初期化する
+  - [x] 型ヒントを追加する
+- [x] `test_close` を複数のメソッドに分割する <!-- id: 1 -->
+  - [x] `test_close_with_bl_off` を作成する
+  - [x] `test_close_with_bl_on` を作成する
+  - [x] Docstring を追加する
+- [x] `test_enter_exit_context_manager` の検証を強化する <!-- id: 2 -->
+  - [x] `__enter__` の戻り値を受け取るようにする
+  - [x] `assertIsInstance` チェックを追加する
+  - [x] Docstring を追加する
+- [x] その他のテストメソッドに Docstring を追加する <!-- id: 3 -->
+  - [x] `test_init_success`
+  - [x] `test_init_spi_open_error`
+  - [x] `test_init_custom_pin`
+  - [x] `test_write_command`
+  - [x] `test_write_data_int`
+  - [x] `test_write_data_bytes_list`
+  - [x] `test_init_display`
+- [x] 変更を検証する <!-- id: 4 -->
+  - [x] `mise run test` を実行する

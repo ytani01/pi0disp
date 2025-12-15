@@ -27,36 +27,22 @@ class DispSpi(DispBase):
         self,
         bl_at_close: bool = False,
         channel: int = 0,
-        pin: dict = {
-            "rst": DEF_PIN["rst"],
-            "dc": DEF_PIN["dc"],
-            "bl": DEF_PIN["bl"],
-        },
+        pin: dict | None = None,
         # rst_pin: int = DEF_PIN["rst"],
         # dc_pin: int = DEF_PIN["dc"],
         # backlight_pin: int = DEF_PIN["bl"],
         speed_hz: int = SPEED_HZ["default"],
-        size: dict = {
-            "width": DispBase.DEF_DISP["width"],
-            "height": DispBase.DEF_DISP["height"],
-        },
+        size: dict | None = None,
         # width: int = DispBase.DEF_DISP["width"],
         # height: int = DispBase.DEF_DISP["height"],
         rotation: int = DispBase.DEF_DISP["rotation"],
         debug=False,
     ):
-        """Constractor.
+        if pin is None:
+            pin = self.DEF_PIN
+        if size is None:
+            size = DispBase.DEF_DISP
 
-        Args:
-            bl_at_close (bool): backlight switch at close
-            channel (int): SPI channel (0 or 1).
-            pin (dict): {"rst": int, "dc": int, "bl": int}
-            backlight_pin (int): GPIO pin for the backlight.
-            speed_hz (int): SPI clock speed in Hz.
-            size (dict): {"width": int, "height": int}
-            rotation (int): Initial rotation (0, 90, 180, or 270 degrees).
-            debug (bool): debug flag
-        """
         super().__init__(size, rotation, debug=debug)
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)

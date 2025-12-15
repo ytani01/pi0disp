@@ -1,0 +1,25 @@
+# Tasks 8: `tests/test_02_disp_spi.py` の Pytest スタイルへのリファクタリング
+
+- [x] `tests/test_02_disp_spi.py` をリファクタリングする <!-- id: 0 -->
+  - [x] マジックナンバーを定数化する (`TEST_CMD`, `TEST_DATA` など)
+  - [x] `pytest.fixture` を定義する
+    - [x] `mock_sleep`
+    - [x] `mock_pi_instance`
+    - [x] `mock_disp_base_init`
+    - [x] `mock_logger`
+  - [x] ヘルパー関数 `create_disp_spi_instance` を作成する（`_create_disp_spi_instance` の置き換え）
+  - [x] テストクラス `TestDispSpi` を削除し、関数ベースのテストに変更する
+    - [x] `test_init_success`
+    - [x] `test_init_spi_open_error`
+    - [x] `test_init_custom_pin`
+    - [x] `test_enter_exit_context_manager`
+    - [x] `test_write_command`
+    - [x] `test_write_data_int`
+    - [x] `test_write_data_bytes_list`
+    - [x] `test_init_display`
+    - [x] `test_close_with_bl_off`
+    - [x] `test_close_with_bl_on`
+  - [x] アサーションを `assert` 文に書き換える
+  - [x] `self.assertRaises` を `pytest.raises` に書き換える
+- [x] 変更を検証する <!-- id: 1 -->
+  - [x] `mise run test` を実行する

@@ -1,0 +1,22 @@
+# Tasks 10: `tests/test_01_disp_base.py` の Pytest スタイルへのリファクタリング
+
+- [x] `tests/test_01_disp_base.py` をリファクタリングする <!-- id: 0 -->
+  - [x] `pytest.fixture` を定義する
+    - [x] `mock_pigpio`
+    - [x] `mock_logger`
+    - [x] `mock_pi_instance`
+  - [x] ヘルパー関数 `create_disp_base_instance` を作成する（`_create_disp_base_instance` の置き換え）
+  - [x] テストクラス `TestDispBase` を削除し、関数ベースのテストに変更する
+    - [x] `test_init_success`
+    - [x] `test_init_pigpio_connection_error`
+    - [x] `test_init_display`
+    - [x] `test_set_rotation_to_90`
+    - [x] `test_set_rotation_to_0`
+    - [x] `test_display_resizes_image`
+    - [x] `test_display_with_correct_size_image`
+    - [x] `test_close_calls_pi_stop_when_connected`
+    - [x] `test_close_does_not_call_pi_stop_when_not_connected`
+  - [x] アサーションを `assert` 文に書き換える
+  - [x] `self.assertRaises` を `pytest.raises` に書き換える
+- [x] 変更を検証する <!-- id: 1 -->
+  - [x] `mise run test` を実行する
