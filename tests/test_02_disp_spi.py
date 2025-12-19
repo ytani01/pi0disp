@@ -56,6 +56,7 @@ def create_disp_spi_instance(
     channel: int = DEFAULT_CHANNEL,
     pin: SpiPins | None = None,
     speed_hz: int = DEFAULT_SPEED_HZ,
+    brightness: int = 255,
     debug: bool = False,
 ) -> DispSpi:
     """Helper to create DispSpi instance."""
@@ -71,6 +72,7 @@ def create_disp_spi_instance(
         channel=channel,
         pin=pin,
         speed_hz=speed_hz,
+        brightness=brightness,
         debug=debug,
     )
 
@@ -127,18 +129,17 @@ def test_init_custom_pin(mock_pi_instance, mock_disp_base_init):
 def test_init_no_bl_pin(mock_pi_instance, mock_disp_base_init):
     """バックライトピンなし構成のテスト."""
     no_bl_pin = SpiPins(rst=11, dc=10, bl=None)
-    disp = create_disp_spi_instance(pin=no_bl_pin)
+    create_disp_spi_instance(pin=no_bl_pin)
 
     # BLピンへのset_modeがないことを確認
     # (全ての引数を取得して期待していないピン番号が含まれていないかチェック)
     for call_args in mock_pi_instance.set_mode.call_args_list:
         assert call_args[0][0] is not None
 
-    disp.init_display()
     # BLピンへのwriteがないことを確認
-    # (初期化シーケンスでrst=1, rst=0, rst=1 のあとに bl=1 が呼ばれない)
+    # (初期化シーケンスでrst=1, rst=0, rst=1 のあとに bl=ON が呼ばれない)
     # 実際には reset_mock してから呼ぶのが綺麗だが、ここでは呼び出しを確認しないことで担保
-    for call_args in mock_pi_instance.write.call_args_list:
+    for call_args in mock_pi_instance.set_PWM_dutycycle.call_args_list:
         assert call_args[0][0] is not None
 
 
@@ -189,6 +190,32 @@ def test_write_data_bytes_list(mock_pi_instance, mock_disp_base_init):
     )
 
 
+def test_set_brightness(mock_pi_instance, mock_disp_base_init):
+    """set_brightness()のテスト."""
+    disp = create_disp_spi_instance()
+    disp.set_backlight(True)
+    mock_pi_instance.set_PWM_dutycycle.reset_mock()
+
+    disp.set_brightness(128)
+    assert disp._brightness == 128
+    mock_pi_instance.set_PWM_dutycycle.assert_called_with(disp.pin.bl, 128)
+
+
+def test_set_backlight(mock_pi_instance, mock_disp_base_init):
+    """set_backlight()のテスト."""
+    disp = create_disp_spi_instance(brightness=200)
+
+    # ON
+    disp.set_backlight(True)
+    assert disp._backlight_on is True
+    mock_pi_instance.set_PWM_dutycycle.assert_called_with(disp.pin.bl, 200)
+
+    # OFF
+    disp.set_backlight(False)
+    assert disp._backlight_on is False
+    mock_pi_instance.set_PWM_dutycycle.assert_called_with(disp.pin.bl, 0)
+
+
 def test_init_display(mock_pi_instance, mock_sleep, mock_disp_base_init):
     """init_display()のテスト."""
     disp = create_disp_spi_instance()
@@ -201,7 +228,7 @@ def test_init_display(mock_pi_instance, mock_sleep, mock_disp_base_init):
     mock_sleep.assert_has_calls([call(0.01), call(0.01), call(0.150)])
 
     # バックライトの制御
-    mock_pi_instance.write.assert_any_call(disp.pin.bl, 1)
+    mock_pi_instance.set_PWM_dutycycle.assert_any_call(disp.pin.bl, 255)
 
 
 def test_close_with_bl_off(mock_pi_instance, mock_disp_base_init):
@@ -219,7 +246,7 @@ def test_close_with_bl_off(mock_pi_instance, mock_disp_base_init):
 
         mock_pi_instance.stop.assert_called_once()
         mock_super_close.assert_called_once()
-        mock_pi_instance.write.assert_any_call(disp.pin.bl, 0)
+        mock_pi_instance.set_PWM_dutycycle.assert_any_call(disp.pin.bl, 0)
 
 
 def test_close_with_bl_on(mock_pi_instance, mock_disp_base_init):
@@ -238,4 +265,4 @@ def test_close_with_bl_on(mock_pi_instance, mock_disp_base_init):
         # ここでは呼び出し自体を確認
         mock_pi_instance.stop.assert_called_once()
         mock_super_close.assert_called_once()
-        mock_pi_instance.write.assert_any_call(disp.pin.bl, 1)
+        mock_pi_instance.set_PWM_dutycycle.assert_any_call(disp.pin.bl, 255)

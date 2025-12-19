@@ -36,6 +36,7 @@ class DispSpi(DispBase):
         speed_hz: int = SPEED_HZ["default"],
         size: DispSize | None = None,
         rotation: int = DispBase.DEF_ROTATION,
+        brightness: int = 255,
         debug=False,
     ):
         if pin is None:
@@ -51,8 +52,9 @@ class DispSpi(DispBase):
         self.__log.debug("GPIO: pin=%s", pin)
 
         self.bl_at_close = bl_at_close
-
         self.pin = pin
+        self._brightness = brightness
+        self._backlight_on = False
 
         # Configure GPIO pins
         for p_val in [self.pin.rst, self.pin.dc, self.pin.bl, self.pin.cs]:
@@ -90,6 +92,21 @@ class DispSpi(DispBase):
         else:
             self.pi.spi_write(self.spi_handle, data)
 
+    def set_brightness(self, brightness: int):
+        """Sets the backlight brightness (0-255)."""
+        self._brightness = max(0, min(255, brightness))
+        if self._backlight_on and self.pin.bl is not None:
+            self.pi.set_PWM_dutycycle(self.pin.bl, self._brightness)
+
+    def set_backlight(self, on: bool):
+        """Turns the backlight on or off."""
+        self._backlight_on = on
+        if self.pin.bl is not None:
+            if on:
+                self.pi.set_PWM_dutycycle(self.pin.bl, self._brightness)
+            else:
+                self.pi.set_PWM_dutycycle(self.pin.bl, 0)
+
     def init_display(self):
         """Initialize Display."""
         self.__log.debug("backlight ON")
@@ -102,8 +119,7 @@ class DispSpi(DispBase):
         self.pi.write(self.pin.rst, 1)
         time.sleep(0.150)
 
-        if self.pin.bl is not None:
-            self.pi.write(self.pin.bl, 1)
+        self.set_backlight(True)
 
     def close(self, bl: bool | None = None):
         """Cleans up resources.
@@ -115,8 +131,8 @@ class DispSpi(DispBase):
         if self.pi.connected and self.pin.bl is not None:
             # backlight
             bl_sw = self.bl_at_close
-            if bl:
+            if bl is not None:
                 bl_sw = bl
-            self.pi.write(self.pin.bl, 1 if bl_sw else 0)
+            self.set_backlight(bl_sw)
 
         super().close()  # pigpio

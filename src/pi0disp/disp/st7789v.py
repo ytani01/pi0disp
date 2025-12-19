@@ -48,6 +48,7 @@ class ST7789V(DispSpi):
         speed_hz: int = DispSpi.SPEED_HZ["default"],
         size: DispSize = DispBase.DEF_SIZE,
         rotation: int = DispBase.DEF_ROTATION,
+        brightness: int = 255,
         debug=False,
     ):
         """
@@ -67,6 +68,7 @@ class ST7789V(DispSpi):
             speed_hz,
             size,
             rotation,
+            brightness=brightness,
             debug=debug,
         )
 
@@ -193,17 +195,14 @@ class ST7789V(DispSpi):
     def dispoff(self):
         """DISPOFF."""
         self._write_command(self.CMD["DISPOFF"])
-        if self.pin.bl is not None:
-            self.pi.write(self.pin.bl, 0)
+        self.set_backlight(False)
 
     def sleep(self):
         """Puts the display into sleep mode."""
         self._write_command(self.CMD["SLPIN"])
-        if self.pin.bl is not None:
-            self.pi.write(self.pin.bl, 0)
+        self.set_backlight(False)
 
     def wake(self):
         """Wakes the display from sleep mode."""
         self._write_command(self.CMD["SLPOUT"])
-        if self.pin.bl is not None:
-            self.pi.write(self.pin.bl, 1)
+        self.set_backlight(True)

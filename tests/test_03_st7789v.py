@@ -245,15 +245,15 @@ def test_power_management(mock_pi_instance):
     disp.sleep()
     # SLPIN(0x10), BL=0
     # コマンド送信確認は難しいので、BL制御を確認
-    mock_pi_instance.write.assert_called_with(disp.pin.bl, 0)
+    mock_pi_instance.set_PWM_dutycycle.assert_called_with(disp.pin.bl, 0)
 
     disp.wake()
     # SLPOUT(0x11), BL=1
-    mock_pi_instance.write.assert_called_with(disp.pin.bl, 1)
+    mock_pi_instance.set_PWM_dutycycle.assert_called_with(disp.pin.bl, 255)
 
     disp.dispoff()
     # DISPOFF(0x28), BL=0
-    mock_pi_instance.write.assert_called_with(disp.pin.bl, 0)
+    mock_pi_instance.set_PWM_dutycycle.assert_called_with(disp.pin.bl, 0)
 
 
 def test_close(mock_pi_instance):
