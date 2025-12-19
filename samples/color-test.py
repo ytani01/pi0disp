@@ -7,8 +7,11 @@ color-test.py: pi0disp sample application.
 Interactively adjust RGB intensities and backlight brightness.
 """
 
+import atexit
 import math
+import os
 import re
+import readline
 import sys
 
 import numpy as np
@@ -98,6 +101,15 @@ def print_help():
 
 
 def main():
+    # Setup persistent history
+    hist_file = os.path.expanduser("~/.color-test-history")
+    try:
+        readline.read_history_file(hist_file)
+    except FileNotFoundError:
+        pass
+    readline.set_auto_history(True)
+    atexit.register(readline.write_history_file, hist_file)
+
     # Initial state
     r_val, g_val, b_val = 255, 255, 255
     bl_val = 255

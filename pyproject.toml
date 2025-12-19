@@ -7,7 +7,7 @@ license = { file = "LICENSE" }
 authors = [
     { name = "Yoichi Tanibayashi", email = "yoichi@tanibayashi.jp" }
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "cairosvg>=2.8.2",
     "click>=8.2.1",
