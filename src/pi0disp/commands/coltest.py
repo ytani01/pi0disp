@@ -173,7 +173,7 @@ class Coltest:
 @click.option("--dc", type=int, default=24, show_default=True, help="DC PIN")
 @click.option("--bl", type=int, default=23, show_default=True, help="BL PIN")
 @click_common_opts(__version__)
-def coltest(rst, dc, bl, debug):
+def coltest(ctx, rst, dc, bl, debug):
     """Interactively adjust RGB intensities and backlight brightness."""
     __log = get_logger(__name__, debug)
     __log.debug("rst=%s, dc=%s, bl=%s", rst, dc, bl)
