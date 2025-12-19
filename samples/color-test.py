@@ -117,9 +117,9 @@ def main():
 
             while True:
                 try:
-                    line = sys.stdin.readline()
+                    line = input("cmd> ")
                     if not line:
-                        break
+                        continue
 
                     line = line.strip().lower()
                     if not line:
