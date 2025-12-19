@@ -5,6 +5,7 @@ import click
 
 from . import __version__, click_common_opts, get_logger
 from .commands.ballanime import ballanime
+from .commands.bl import bl_cmd as bl
 from .commands.coltest import coltest
 from .commands.image import image
 from .commands.off import off
@@ -38,6 +39,7 @@ cli.add_command(off)
 cli.add_command(rgb)
 cli.add_command(image)
 cli.add_command(coltest)
+cli.add_command(bl)
 
 
 if __name__ == "__main__":
