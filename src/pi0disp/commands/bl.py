@@ -29,7 +29,9 @@ def bl_cmd(ctx, val, rst, dc, bl, debug):
         # Use with statement to ensure proper initialization and cleanup.
         # Note: ST7789V will initialize at full brightness, then we set it.
         # If we wanted to avoid the flash, we'd need to modify the constructor.
-        with ST7789V(pin=SpiPins(rst=rst, dc=dc, bl=bl)) as lcd:
+        with ST7789V(
+            bl_at_close=True, pin=SpiPins(rst=rst, dc=dc, bl=bl)
+        ) as lcd:
             lcd.set_brightness(val)
             __log.info("Backlight brightness set to %d", val)
 
