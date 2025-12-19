@@ -16,13 +16,14 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from .. import (
-    ST7789V,
     __version__,
     click_common_opts,
     draw_text,
     get_ip_address,
     get_logger,
 )
+from ..disp.disp_spi import SpiPins
+from ..disp.st7789v import ST7789V
 from ..utils.performance_core import RegionOptimizer
 from ..utils.utils import expand_bbox, merge_bboxes
 
@@ -549,7 +550,7 @@ def ballanime(
     try:
         with ST7789V(
             speed_hz=int(spi_mhz * 1_000_000),
-            pin={"rst": rst, "dc": dc, "bl": bl},
+            pin=SpiPins(rst=rst, dc=dc, bl=bl),
         ) as lcd:
             # フォントをロード（元の設定維持）
             font_large: ImageFont.FreeTypeFont | ImageFont.ImageFont

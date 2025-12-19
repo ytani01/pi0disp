@@ -16,8 +16,8 @@ from PIL import Image
 
 from ..utils.mylogger import get_logger
 from ..utils.performance_core import create_optimizer_pack
-from .disp_base import DispBase, Size
-from .disp_spi import DispSpi
+from .disp_base import DispBase, DispSize
+from .disp_spi import DispSpi, SpiPins
 
 
 class ST7789V(DispSpi):
@@ -44,9 +44,9 @@ class ST7789V(DispSpi):
         self,
         bl_at_close: bool = False,
         channel: int = 0,
-        pin: dict | None = None,
+        pin: SpiPins | None = None,
         speed_hz: int = DispSpi.SPEED_HZ["default"],
-        size: Size = DispBase.DEF_SIZE,
+        size: DispSize = DispBase.DEF_SIZE,
         rotation: int = DispBase.DEF_ROTATION,
         debug=False,
     ):
@@ -54,11 +54,7 @@ class ST7789V(DispSpi):
         Initializes the display driver.
         """
         if pin is None:
-            pin = {
-                "rst": DispSpi.DEF_PIN["rst"],
-                "dc": DispSpi.DEF_PIN["dc"],
-                "bl": DispSpi.DEF_PIN["bl"],
-            }
+            pin = DispSpi.DEF_PIN
 
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
@@ -83,20 +79,20 @@ class ST7789V(DispSpi):
 
     def init_display(self):
         """Performs the hardware initialization sequence for the ST7789V."""
-        super().init_display()  # hardware reset
+        super().init_display()
         self.__log.debug("")
 
         # Initialization sequence
         self._write_command(self.CMD["SWRESET"])
-        self.pi.wait_for_edge(0, pigpio.RISING_EDGE, 0.150)  # Wait
+        self.pi.wait_for_edge(0, pigpio.RISING_EDGE, 0.150)
         self._write_command(self.CMD["SLPOUT"])
-        self.pi.wait_for_edge(0, pigpio.RISING_EDGE, 0.5)  # Wait
+        self.pi.wait_for_edge(0, pigpio.RISING_EDGE, 0.5)
         self._write_command(self.CMD["COLMOD"])
         self._write_data(0x55)  # 16 bits per pixel
         self._write_command(self.CMD["INVON"])
         self._write_command(self.CMD["NORON"])
         self._write_command(self.CMD["DISPON"])
-        self.pi.wait_for_edge(0, pigpio.RISING_EDGE, 0.1)  # Wait
+        self.pi.wait_for_edge(0, pigpio.RISING_EDGE, 0.1)
 
     def set_rotation(self, rotation: int):
         """
@@ -138,7 +134,7 @@ class ST7789V(DispSpi):
         chunk_size = self._optimizers["adaptive_chunking"].get_chunk_size()
         data_len = len(pixel_bytes)
 
-        self.pi.write(self.pin["dc"], 1)  # Set D/C high for data
+        self.pi.write(self.pin.dc, 1)  # Set D/C high for data
 
         if data_len <= chunk_size:
             self.pi.spi_write(self.spi_handle, pixel_bytes)
@@ -152,7 +148,7 @@ class ST7789V(DispSpi):
         """
         Displays a full PIL Image on the screen.
         """
-        super().display(image)  # adjust image size
+        super().display(image)
         self.__log.debug("%s", self.__class__.__name__)
 
         pixel_bytes = self._optimizers["color_converter"].rgb_to_rgb565_bytes(
@@ -192,19 +188,22 @@ class ST7789V(DispSpi):
             if hasattr(self, "spi_handle") and self.spi_handle >= 0:
                 self.pi.spi_close(self.spi_handle)
         finally:
-            super().close(bl)  # backlight
+            super().close(bl)
 
     def dispoff(self):
         """DISPOFF."""
         self._write_command(self.CMD["DISPOFF"])
-        self.pi.write(self.pin["bl"], 0)
+        if self.pin.bl is not None:
+            self.pi.write(self.pin.bl, 0)
 
     def sleep(self):
         """Puts the display into sleep mode."""
         self._write_command(self.CMD["SLPIN"])
-        self.pi.write(self.pin["bl"], 0)
+        if self.pin.bl is not None:
+            self.pi.write(self.pin.bl, 0)
 
     def wake(self):
         """Wakes the display from sleep mode."""
         self._write_command(self.CMD["SLPOUT"])
-        self.pi.write(self.pin["bl"], 1)
+        if self.pin.bl is not None:
+            self.pi.write(self.pin.bl, 1)

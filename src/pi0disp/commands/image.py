@@ -10,6 +10,7 @@ import click
 from PIL import Image
 
 from .. import ST7789V, __version__, click_common_opts
+from ..disp.disp_spi import SpiPins
 from ..utils.mylogger import errmsg, get_logger
 from ..utils.utils import ImageProcessor
 
@@ -70,7 +71,7 @@ def image(ctx, image_path, duration, rst, dc, bl, svg, debug):
     processor = ImageProcessor()
 
     try:
-        with ST7789V(pin={"rst": rst, "dc": dc, "bl": bl}) as lcd:
+        with ST7789V(pin=SpiPins(rst=rst, dc=dc, bl=bl)) as lcd:
             __log.info(
                 "Displaying original image resized to screen (contain mode)..."
             )
@@ -78,8 +79,8 @@ def image(ctx, image_path, duration, rst, dc, bl, svg, debug):
             # Resize while maintaining aspect ratio
             resized_image = processor.resize_with_aspect_ratio(
                 source_image,
-                lcd.size["width"],
-                lcd.size["height"],
+                lcd.size.width,
+                lcd.size.height,
                 fit_mode="contain",
             )
             lcd.display(resized_image)

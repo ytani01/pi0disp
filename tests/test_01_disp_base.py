@@ -5,14 +5,17 @@ from unittest.mock import MagicMock
 import pytest
 from PIL import Image
 
-from pi0disp.disp.disp_base import DispBase, Size
+from pi0disp.disp.disp_base import DispBase, DispSize
 
-DEFAULT_SIZE = Size(240, 320)
+# Constants
+DEFAULT_SIZE = DispSize(240, 320)
 DEFAULT_ROTATION = DispBase.DEF_ROTATION
 
 
 def create_disp_base_instance(
-    size: Size | None = None, rotation: int | None = None, debug: bool = False
+    size: DispSize | None = None,
+    rotation: int | None = None,
+    debug: bool = False,
 ) -> DispBase:
     """Helper to create DispBase instance."""
     if size is None:

@@ -5,15 +5,15 @@ from unittest.mock import ANY, call, patch
 import pigpio
 import pytest
 
-from pi0disp.disp.disp_base import DispBase, Size
-from pi0disp.disp.disp_spi import DispSpi
+from pi0disp.disp.disp_base import DispBase, DispSize
+from pi0disp.disp.disp_spi import DispSpi, SpiPins
 
 # Constants
 CMD_TEST = 0x10
 DATA_TEST_INT = 0x20
 DATA_TEST_BYTES = [0x01, 0x02, 0x03]
-DEFAULT_SIZE = Size(240, 320)
-DEFAULT_PIN = {"dc": 24, "rst": 25, "bl": 23}
+DEFAULT_SIZE = DispSize(240, 320)
+DEFAULT_PIN = SpiPins(rst=25, dc=24, bl=23)
 DEFAULT_CHANNEL = 0
 DEFAULT_SPEED_HZ = 60_000_000
 DEFAULT_ROTATION = DispBase.DEF_ROTATION
@@ -50,11 +50,11 @@ def mock_disp_base_init(mock_pi_instance, mock_logger):
 
 
 def create_disp_spi_instance(
-    size: Size | None = None,
+    size: DispSize | None = None,
     rotation: int = DEFAULT_ROTATION,
     bl_at_close: bool = False,
     channel: int = DEFAULT_CHANNEL,
-    pin: dict | None = None,
+    pin: SpiPins | None = None,
     speed_hz: int = DEFAULT_SPEED_HZ,
     debug: bool = False,
 ) -> DispSpi:
@@ -62,7 +62,7 @@ def create_disp_spi_instance(
     if size is None:
         size = DEFAULT_SIZE
     if pin is None:
-        pin = DEFAULT_PIN.copy()
+        pin = DEFAULT_PIN
 
     return DispSpi(
         size=size,
@@ -79,21 +79,15 @@ def test_init_success(
     mock_disp_base_init, mock_pi_instance, mock_sleep, mock_logger
 ):
     """初期化成功時のテスト."""
-    size = Size(240, 240)
+    size = DispSize(240, 240)
     disp = create_disp_spi_instance(size=size)
 
     mock_disp_base_init.assert_called_once_with(
         disp, size, DEFAULT_ROTATION, debug=False
     )
-    mock_pi_instance.set_mode.assert_any_call(
-        DEFAULT_PIN["dc"], pigpio.OUTPUT
-    )
-    mock_pi_instance.set_mode.assert_any_call(
-        DEFAULT_PIN["rst"], pigpio.OUTPUT
-    )
-    mock_pi_instance.set_mode.assert_any_call(
-        DEFAULT_PIN["bl"], pigpio.OUTPUT
-    )
+    mock_pi_instance.set_mode.assert_any_call(DEFAULT_PIN.dc, pigpio.OUTPUT)
+    mock_pi_instance.set_mode.assert_any_call(DEFAULT_PIN.rst, pigpio.OUTPUT)
+    mock_pi_instance.set_mode.assert_any_call(DEFAULT_PIN.bl, pigpio.OUTPUT)
     mock_pi_instance.spi_open.assert_called_once_with(
         DEFAULT_CHANNEL, DEFAULT_SPEED_HZ, 0
     )
@@ -105,7 +99,7 @@ def test_init_success(
 def test_init_spi_open_error(mock_pi_instance, mock_disp_base_init):
     """spi_open()失敗時のテスト."""
     mock_pi_instance.spi_open.return_value = -1
-    size = Size(240, 320)
+    size = DispSize(240, 320)
 
     with pytest.raises(RuntimeError):
         create_disp_spi_instance(size=size)
@@ -117,19 +111,35 @@ def test_init_spi_open_error(mock_pi_instance, mock_disp_base_init):
 
 def test_init_custom_pin(mock_pi_instance, mock_disp_base_init):
     """ピン配置指定時のテスト."""
-    custom_pin = {"dc": 10, "rst": 11, "bl": 12}
-    size = Size(240, 320)
+    custom_pin = SpiPins(rst=11, dc=10, bl=12)
+    size = DispSize(240, 320)
     disp = create_disp_spi_instance(pin=custom_pin, size=size)
 
     mock_disp_base_init.assert_called_once_with(
         disp, size, DEFAULT_ROTATION, debug=False
     )
-    mock_pi_instance.set_mode.assert_any_call(custom_pin["dc"], pigpio.OUTPUT)
-    mock_pi_instance.set_mode.assert_any_call(
-        custom_pin["rst"], pigpio.OUTPUT
-    )
-    mock_pi_instance.set_mode.assert_any_call(custom_pin["bl"], pigpio.OUTPUT)
+    mock_pi_instance.set_mode.assert_any_call(custom_pin.dc, pigpio.OUTPUT)
+    mock_pi_instance.set_mode.assert_any_call(custom_pin.rst, pigpio.OUTPUT)
+    mock_pi_instance.set_mode.assert_any_call(custom_pin.bl, pigpio.OUTPUT)
     assert disp.pin == custom_pin
+
+
+def test_init_no_bl_pin(mock_pi_instance, mock_disp_base_init):
+    """バックライトピンなし構成のテスト."""
+    no_bl_pin = SpiPins(rst=11, dc=10, bl=None)
+    disp = create_disp_spi_instance(pin=no_bl_pin)
+
+    # BLピンへのset_modeがないことを確認
+    # (全ての引数を取得して期待していないピン番号が含まれていないかチェック)
+    for call_args in mock_pi_instance.set_mode.call_args_list:
+        assert call_args[0][0] is not None
+
+    disp.init_display()
+    # BLピンへのwriteがないことを確認
+    # (初期化シーケンスでrst=1, rst=0, rst=1 のあとに bl=1 が呼ばれない)
+    # 実際には reset_mock してから呼ぶのが綺麗だが、ここでは呼び出しを確認しないことで担保
+    for call_args in mock_pi_instance.write.call_args_list:
+        assert call_args[0][0] is not None
 
 
 def test_enter_exit_context_manager(mock_pi_instance, mock_disp_base_init):
@@ -151,7 +161,7 @@ def test_write_command(mock_pi_instance, mock_disp_base_init):
     disp = create_disp_spi_instance()
     disp._write_command(CMD_TEST)
 
-    mock_pi_instance.write.assert_any_call(disp.pin["dc"], 0)
+    mock_pi_instance.write.assert_any_call(disp.pin.dc, 0)
     mock_pi_instance.spi_write.assert_called_once_with(
         disp.spi_handle, [CMD_TEST]
     )
@@ -162,7 +172,7 @@ def test_write_data_int(mock_pi_instance, mock_disp_base_init):
     disp = create_disp_spi_instance()
     disp._write_data(DATA_TEST_INT)
 
-    mock_pi_instance.write.assert_any_call(disp.pin["dc"], 1)
+    mock_pi_instance.write.assert_any_call(disp.pin.dc, 1)
     mock_pi_instance.spi_write.assert_called_once_with(
         disp.spi_handle, [DATA_TEST_INT]
     )
@@ -173,7 +183,7 @@ def test_write_data_bytes_list(mock_pi_instance, mock_disp_base_init):
     disp = create_disp_spi_instance()
     disp._write_data(DATA_TEST_BYTES)
 
-    mock_pi_instance.write.assert_any_call(disp.pin["dc"], 1)
+    mock_pi_instance.write.assert_any_call(disp.pin.dc, 1)
     mock_pi_instance.spi_write.assert_called_once_with(
         disp.spi_handle, DATA_TEST_BYTES
     )
@@ -185,13 +195,13 @@ def test_init_display(mock_pi_instance, mock_sleep, mock_disp_base_init):
     disp.init_display()
 
     # RSTピンの制御
-    mock_pi_instance.write.assert_any_call(disp.pin["rst"], 1)
-    mock_pi_instance.write.assert_any_call(disp.pin["rst"], 0)
-    mock_pi_instance.write.assert_any_call(disp.pin["rst"], 1)
+    mock_pi_instance.write.assert_any_call(disp.pin.rst, 1)
+    mock_pi_instance.write.assert_any_call(disp.pin.rst, 0)
+    mock_pi_instance.write.assert_any_call(disp.pin.rst, 1)
     mock_sleep.assert_has_calls([call(0.01), call(0.01), call(0.150)])
 
     # バックライトの制御
-    mock_pi_instance.write.assert_any_call(disp.pin["bl"], 1)
+    mock_pi_instance.write.assert_any_call(disp.pin.bl, 1)
 
 
 def test_close_with_bl_off(mock_pi_instance, mock_disp_base_init):
@@ -209,7 +219,7 @@ def test_close_with_bl_off(mock_pi_instance, mock_disp_base_init):
 
         mock_pi_instance.stop.assert_called_once()
         mock_super_close.assert_called_once()
-        mock_pi_instance.write.assert_any_call(disp.pin["bl"], 0)
+        mock_pi_instance.write.assert_any_call(disp.pin.bl, 0)
 
 
 def test_close_with_bl_on(mock_pi_instance, mock_disp_base_init):
@@ -228,4 +238,4 @@ def test_close_with_bl_on(mock_pi_instance, mock_disp_base_init):
         # ここでは呼び出し自体を確認
         mock_pi_instance.stop.assert_called_once()
         mock_super_close.assert_called_once()
-        mock_pi_instance.write.assert_any_call(disp.pin["bl"], 1)
+        mock_pi_instance.write.assert_any_call(disp.pin.bl, 1)

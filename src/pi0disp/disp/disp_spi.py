@@ -2,22 +2,27 @@
 # (c) 2025 Yoichi Tanibayashi
 #
 import time
-from typing import Union
+from typing import NamedTuple, Optional, Union
 
 import pigpio
 
 from ..utils.mylogger import get_logger
-from .disp_base import DispBase, Size
+from .disp_base import DispBase, DispSize
+
+
+class SpiPins(NamedTuple):
+    """SPI Pins class."""
+
+    rst: int
+    dc: int
+    bl: Optional[int] = None
+    cs: Optional[int] = None
 
 
 class DispSpi(DispBase):
     """SPI Display."""
 
-    DEF_PIN = {
-        "rst": 25,
-        "dc": 24,
-        "bl": 23,
-    }
+    DEF_PIN = SpiPins(rst=25, dc=24, bl=23)
     SPEED_HZ = {
         "default": 8_000_000,
         "max": 32_000_000,
@@ -27,9 +32,9 @@ class DispSpi(DispBase):
         self,
         bl_at_close: bool = False,
         channel: int = 0,
-        pin: dict | None = None,
+        pin: SpiPins | None = None,
         speed_hz: int = SPEED_HZ["default"],
-        size: Size | None = None,
+        size: DispSize | None = None,
         rotation: int = DispBase.DEF_ROTATION,
         debug=False,
     ):
@@ -50,10 +55,12 @@ class DispSpi(DispBase):
         self.pin = pin
 
         # Configure GPIO pins
-        for p_val in self.pin.values():
-            self.pi.set_mode(p_val, pigpio.OUTPUT)
+        for p_val in [self.pin.rst, self.pin.dc, self.pin.bl, self.pin.cs]:
+            if p_val is not None:
+                self.pi.set_mode(p_val, pigpio.OUTPUT)
 
         # Open SPI handle
+        # SPI handle options: if CS is controlled by pigpio, channel is usually used.
         self.spi_handle = self.pi.spi_open(channel, speed_hz, 0)
         if self.spi_handle < 0:
             raise RuntimeError(
@@ -72,12 +79,12 @@ class DispSpi(DispBase):
 
     def _write_command(self, command: int):
         """Sends a command byte to the display."""
-        self.pi.write(self.pin["dc"], 0)  # D/C pin low for command
+        self.pi.write(self.pin.dc, 0)  # D/C pin low for command
         self.pi.spi_write(self.spi_handle, [command])
 
     def _write_data(self, data: Union[int, bytes, list]):
         """Sends a data byte or buffer to the display."""
-        self.pi.write(self.pin["dc"], 1)  # D/C pin high for data
+        self.pi.write(self.pin.dc, 1)  # D/C pin high for data
         if isinstance(data, int):
             self.pi.spi_write(self.spi_handle, [data])
         else:
@@ -88,14 +95,15 @@ class DispSpi(DispBase):
         self.__log.debug("backlight ON")
 
         # Hardware reset
-        self.pi.write(self.pin["rst"], 1)
+        self.pi.write(self.pin.rst, 1)
         time.sleep(0.01)
-        self.pi.write(self.pin["rst"], 0)
+        self.pi.write(self.pin.rst, 0)
         time.sleep(0.01)
-        self.pi.write(self.pin["rst"], 1)
+        self.pi.write(self.pin.rst, 1)
         time.sleep(0.150)
 
-        self.pi.write(self.pin["bl"], 1)
+        if self.pin.bl is not None:
+            self.pi.write(self.pin.bl, 1)
 
     def close(self, bl: bool | None = None):
         """Cleans up resources.
@@ -104,11 +112,11 @@ class DispSpi(DispBase):
             bl (bool | None): バックライトの状態
                               省略すると、生成時のオプションを使う
         """
-        if self.pi.connected:
+        if self.pi.connected and self.pin.bl is not None:
             # backlight
             bl_sw = self.bl_at_close
             if bl:
                 bl_sw = bl
-            self.pi.write(self.pin["bl"], 1 if bl_sw else 0)
+            self.pi.write(self.pin.bl, 1 if bl_sw else 0)
 
         super().close()  # pigpio

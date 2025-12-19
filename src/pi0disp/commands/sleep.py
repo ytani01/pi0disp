@@ -8,6 +8,7 @@ import time
 import click
 
 from .. import ST7789V, __version__, click_common_opts, get_logger
+from ..disp.disp_spi import SpiPins
 
 
 @click.command(help="sleep display")
@@ -28,7 +29,7 @@ def sleep(ctx, rst, dc, bl, debug):
     __log.info("Putting display to sleep...")
 
     try:
-        with ST7789V(pin={"rst": rst, "dc": dc, "bl": bl}) as lcd:
+        with ST7789V(pin=SpiPins(rst=rst, dc=dc, bl=bl)) as lcd:
             time.sleep(0.5)  # ensure lcd is ready
             # Send sleep command to the display controller
             lcd.sleep()

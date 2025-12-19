@@ -1,6 +1,7 @@
 #
 # (c) 2025 Yoichi Tanibayashi
 #
+from abc import ABCMeta
 from typing import NamedTuple
 
 import pigpio
@@ -9,24 +10,24 @@ from PIL import Image
 from ..utils.mylogger import get_logger
 
 
-class Size(NamedTuple):
-    """Size class."""
+class DispSize(NamedTuple):
+    """Display size class."""
 
     width: int
     height: int
 
 
-class DispBase:
-    """Base class of display."""
+class DispBase(metaclass=ABCMeta):
+    """Display Base."""
 
-    DEF_SIZE = Size(240, 320)
+    DEF_SIZE = DispSize(240, 320)
     DEF_ROTATION = 270
 
-    def __init__(self, size: Size, rotation: int, debug=False):
+    def __init__(self, size: DispSize, rotation: int, debug=False):
         """Constractor."""
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
-        self.__log.debug("size=%s,rotation=%s", size, rotation)
+        self.__log.debug("disp_size=%s,rotation=%s", size, rotation)
 
         self._native_size = size
         self.size = size
@@ -49,7 +50,7 @@ class DispBase:
 
         # Swap width and height for portrait/landscape modes
         if rotation in (90, 270):
-            self.size = Size(
+            self.size = DispSize(
                 self._native_size.height, self._native_size.width
             )
         else:

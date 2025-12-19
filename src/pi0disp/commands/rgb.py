@@ -10,6 +10,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 from .. import ST7789V, __version__, click_common_opts, get_logger
+from ..disp.disp_spi import SpiPins
 
 log = get_logger(__name__)
 
@@ -109,11 +110,11 @@ def rgb(ctx, duration, rst, dc, bl, debug):
     __log.debug("cmd_name=%s", cmd_name)
 
     try:
-        with ST7789V(pin={"rst": rst, "dc": dc, "bl": bl}) as lcd:
+        with ST7789V(pin=SpiPins(rst=rst, dc=dc, bl=bl)) as lcd:
             __log.info(
                 "Display initialized: %sx%s",
-                lcd.size["width"],
-                lcd.size["height"],
+                lcd.size.width,
+                lcd.size.height,
             )
 
             color_permutations = [
@@ -130,7 +131,7 @@ def rgb(ctx, duration, rst, dc, bl, debug):
                         colors_tuple,
                     )
                     rgb_circles_image = generate_rgb_circles(
-                        lcd.size["width"], lcd.size["height"], colors_tuple
+                        lcd.size.width, lcd.size.height, colors_tuple
                     )
 
                     # Save the generated image to a file

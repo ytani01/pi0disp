@@ -5,12 +5,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 from PIL import Image
 
-from pi0disp.disp.disp_base import DispBase, Size
+from pi0disp.disp.disp_base import DispBase, DispSize
+from pi0disp.disp.disp_spi import SpiPins
 from pi0disp.disp.st7789v import ST7789V
 
 # Constants
-DEFAULT_SIZE = Size(240, 320)
-DEFAULT_PIN = {"dc": 24, "rst": 25, "bl": 23}
+DEFAULT_SIZE = DispSize(240, 320)
+DEFAULT_PIN = SpiPins(rst=25, dc=24, bl=23)
 DEFAULT_CHANNEL = 0
 DEFAULT_SPEED_HZ = 40_000_000
 DEFAULT_ROTATION = DispBase.DEF_ROTATION
@@ -64,11 +65,11 @@ def mock_optimizer_pack():
 
 
 def create_st7789v_instance(
-    size: Size | None = None,
+    size: DispSize | None = None,
     rotation: int = DEFAULT_ROTATION,
     bl_at_close: bool = False,
     channel: int = DEFAULT_CHANNEL,
-    pin: dict | None = None,
+    pin: SpiPins | None = None,
     speed_hz: int = DEFAULT_SPEED_HZ,
     debug: bool = False,
 ) -> ST7789V:
@@ -76,7 +77,7 @@ def create_st7789v_instance(
     if size is None:
         size = DEFAULT_SIZE
     if pin is None:
-        pin = DEFAULT_PIN.copy()
+        pin = DEFAULT_PIN
 
     return ST7789V(
         bl_at_close=bl_at_close,
@@ -176,7 +177,7 @@ def test_write_pixels(mock_pi_instance, mock_optimizer_pack):
     small_data = b"\xff" * 100
     disp.write_pixels(small_data)
 
-    mock_pi_instance.write.assert_called_with(disp.pin["dc"], 1)  # Data Mode
+    mock_pi_instance.write.assert_called_with(disp.pin.dc, 1)  # Data Mode
     mock_pi_instance.spi_write.assert_called_once_with(
         disp.spi_handle, small_data
     )
@@ -244,15 +245,15 @@ def test_power_management(mock_pi_instance):
     disp.sleep()
     # SLPIN(0x10), BL=0
     # コマンド送信確認は難しいので、BL制御を確認
-    mock_pi_instance.write.assert_called_with(disp.pin["bl"], 0)
+    mock_pi_instance.write.assert_called_with(disp.pin.bl, 0)
 
     disp.wake()
     # SLPOUT(0x11), BL=1
-    mock_pi_instance.write.assert_called_with(disp.pin["bl"], 1)
+    mock_pi_instance.write.assert_called_with(disp.pin.bl, 1)
 
     disp.dispoff()
     # DISPOFF(0x28), BL=0
-    mock_pi_instance.write.assert_called_with(disp.pin["bl"], 0)
+    mock_pi_instance.write.assert_called_with(disp.pin.bl, 0)
 
 
 def test_close(mock_pi_instance):
