@@ -5,18 +5,18 @@ from unittest.mock import ANY, call, patch
 import pigpio
 import pytest
 
-from pi0disp.disp.disp_base import DispBase
+from pi0disp.disp.disp_base import DispBase, Size
 from pi0disp.disp.disp_spi import DispSpi
 
 # Constants
 CMD_TEST = 0x10
 DATA_TEST_INT = 0x20
 DATA_TEST_BYTES = [0x01, 0x02, 0x03]
-DEFAULT_SIZE = {"width": 240, "height": 320}
+DEFAULT_SIZE = Size(240, 320)
 DEFAULT_PIN = {"dc": 24, "rst": 25, "bl": 23}
 DEFAULT_CHANNEL = 0
 DEFAULT_SPEED_HZ = 60_000_000
-DEFAULT_ROTATION = 0
+DEFAULT_ROTATION = DispBase.DEF_ROTATION
 
 
 @pytest.fixture
@@ -35,8 +35,8 @@ def mock_disp_base_init(mock_pi_instance, mock_logger):
     ):
         obj_self.pi = mock_pi_instance
         obj_self.pi.connected = True
-        obj_self._native_size = size.copy()
-        obj_self.size = size.copy()
+        obj_self._native_size = size
+        obj_self.size = size
         obj_self._rotation = rotation
         obj_self.debug = debug
         obj_self.__log = mock_logger
@@ -50,7 +50,7 @@ def mock_disp_base_init(mock_pi_instance, mock_logger):
 
 
 def create_disp_spi_instance(
-    size: dict | None = None,
+    size: Size | None = None,
     rotation: int = DEFAULT_ROTATION,
     bl_at_close: bool = False,
     channel: int = DEFAULT_CHANNEL,
@@ -60,7 +60,7 @@ def create_disp_spi_instance(
 ) -> DispSpi:
     """Helper to create DispSpi instance."""
     if size is None:
-        size = DEFAULT_SIZE.copy()
+        size = DEFAULT_SIZE
     if pin is None:
         pin = DEFAULT_PIN.copy()
 
@@ -79,7 +79,7 @@ def test_init_success(
     mock_disp_base_init, mock_pi_instance, mock_sleep, mock_logger
 ):
     """初期化成功時のテスト."""
-    size = {"width": 240, "height": 240}
+    size = Size(240, 240)
     disp = create_disp_spi_instance(size=size)
 
     mock_disp_base_init.assert_called_once_with(
@@ -105,7 +105,7 @@ def test_init_success(
 def test_init_spi_open_error(mock_pi_instance, mock_disp_base_init):
     """spi_open()失敗時のテスト."""
     mock_pi_instance.spi_open.return_value = -1
-    size = {"width": 240, "height": 320}
+    size = Size(240, 320)
 
     with pytest.raises(RuntimeError):
         create_disp_spi_instance(size=size)
@@ -118,7 +118,7 @@ def test_init_spi_open_error(mock_pi_instance, mock_disp_base_init):
 def test_init_custom_pin(mock_pi_instance, mock_disp_base_init):
     """ピン配置指定時のテスト."""
     custom_pin = {"dc": 10, "rst": 11, "bl": 12}
-    size = {"width": 240, "height": 320}
+    size = Size(240, 320)
     disp = create_disp_spi_instance(pin=custom_pin, size=size)
 
     mock_disp_base_init.assert_called_once_with(

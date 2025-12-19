@@ -1,4 +1,3 @@
-#
 # (c) 2025 Yoichi Tanibayashi
 #
 """
@@ -9,24 +8,21 @@ optimized for Raspberry Pi environments. It leverages the `performance_core`
 module to achieve high frame rates with low CPU usage.
 """
 
-import time
 from typing import Optional, Tuple
 
 import numpy as np
+import pigpio
 from PIL import Image
 
 from ..utils.mylogger import get_logger
 from ..utils.performance_core import create_optimizer_pack
+from .disp_base import DispBase, Size
 from .disp_spi import DispSpi
 
 
 class ST7789V(DispSpi):
     """
     An optimized driver for ST7789V-based SPI displays.
-
-    This class manages low-level communication with the display controller,
-    providing methods for initialization, configuration, and high-performance
-    image rendering using techniques like partial updates and memory pooling.
     """
 
     CMD = {
@@ -48,22 +44,22 @@ class ST7789V(DispSpi):
         self,
         bl_at_close: bool = False,
         channel: int = 0,
-        pin: dict = {
-            "rst": DispSpi.DEF_PIN["rst"],
-            "dc": DispSpi.DEF_PIN["dc"],
-            "bl": DispSpi.DEF_PIN["bl"],
-        },
+        pin: dict | None = None,
         speed_hz: int = DispSpi.SPEED_HZ["default"],
-        size: dict = {
-            "width": DispSpi.DEF_DISP["width"],
-            "height": DispSpi.DEF_DISP["height"],
-        },
-        rotation: int = DispSpi.DEF_DISP["rotation"],
+        size: Size = DispBase.DEF_SIZE,
+        rotation: int = DispBase.DEF_ROTATION,
         debug=False,
     ):
         """
         Initializes the display driver.
         """
+        if pin is None:
+            pin = {
+                "rst": DispSpi.DEF_PIN["rst"],
+                "dc": DispSpi.DEF_PIN["dc"],
+                "bl": DispSpi.DEF_PIN["bl"],
+            }
+
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
         self.__log.debug("")
@@ -79,9 +75,7 @@ class ST7789V(DispSpi):
         )
 
         # Initialize the optimizer pack
-
         self._optimizers = create_optimizer_pack()
-
         self._last_window: Optional[Tuple[int, int, int, int]] = None
 
         self.init_display()
@@ -94,22 +88,19 @@ class ST7789V(DispSpi):
 
         # Initialization sequence
         self._write_command(self.CMD["SWRESET"])
-        time.sleep(0.150)
+        self.pi.wait_for_edge(0, pigpio.RISING_EDGE, 0.150)  # Wait
         self._write_command(self.CMD["SLPOUT"])
-        time.sleep(0.5)
+        self.pi.wait_for_edge(0, pigpio.RISING_EDGE, 0.5)  # Wait
         self._write_command(self.CMD["COLMOD"])
         self._write_data(0x55)  # 16 bits per pixel
         self._write_command(self.CMD["INVON"])
         self._write_command(self.CMD["NORON"])
         self._write_command(self.CMD["DISPON"])
-        time.sleep(0.1)
+        self.pi.wait_for_edge(0, pigpio.RISING_EDGE, 0.1)  # Wait
 
     def set_rotation(self, rotation: int):
         """
         Sets the display rotation.
-
-        Args:
-            rotation: The desired rotation in degrees (0, 90, 180, 270).
         """
         super().set_rotation(rotation)
         self.__log.debug("%s", self.__class__.__name__)
@@ -127,9 +118,6 @@ class ST7789V(DispSpi):
     def set_window(self, x0: int, y0: int, x1: int, y1: int):
         """
         Sets the active drawing window on the display.
-
-        This is a low-level function; prefer `display` or `display_region`.
-        Caches the window dimensions to avoid redundant SPI commands.
         """
         window = (x0, y0, x1, y1)
         if self._last_window == window:
@@ -146,7 +134,6 @@ class ST7789V(DispSpi):
     def write_pixels(self, pixel_bytes: bytes):
         """
         Writes a raw buffer of pixel data to the current window.
-        Uses adaptive chunking to optimize transfer speed.
         """
         chunk_size = self._optimizers["adaptive_chunking"].get_chunk_size()
         data_len = len(pixel_bytes)
@@ -164,7 +151,6 @@ class ST7789V(DispSpi):
     def display(self, image: Image.Image):
         """
         Displays a full PIL Image on the screen.
-        The image is automatically resized to fit the display.
         """
         super().display(image)  # adjust image size
         self.__log.debug("%s", self.__class__.__name__)
@@ -173,7 +159,7 @@ class ST7789V(DispSpi):
             np.array(image)
         )
 
-        self.set_window(0, 0, self.size["width"] - 1, self.size["height"] - 1)
+        self.set_window(0, 0, self.size.width - 1, self.size.height - 1)
         self.write_pixels(pixel_bytes)
 
     def display_region(
@@ -181,11 +167,10 @@ class ST7789V(DispSpi):
     ):
         """
         Displays a portion of a PIL image within the specified region.
-        This is the core function for partial/dirty rectangle updates.
         """
         # Clamp region to be within display boundaries
         region = self._optimizers["region_optimizer"].clamp_region(
-            (x0, y0, x1, y1), self.size["width"], self.size["height"]
+            (x0, y0, x1, y1), self.size.width, self.size.height
         )
 
         if region[2] <= region[0] or region[3] <= region[1]:
@@ -202,12 +187,7 @@ class ST7789V(DispSpi):
         self.write_pixels(pixel_bytes)
 
     def close(self, bl: bool | None = None):
-        """Cleans up resources (closes SPI handle).
-
-        Args:
-            bl (bool | None): バックライトの状態
-                              省略すると、生成時のオプションを使う
-        """
+        """Cleans up resources."""
         try:
             if hasattr(self, "spi_handle") and self.spi_handle >= 0:
                 self.pi.spi_close(self.spi_handle)

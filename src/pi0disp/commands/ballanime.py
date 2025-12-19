@@ -372,14 +372,14 @@ def _main_loop_optimized(
 
     # 再利用オブジェクト
     hud_layer = Image.new(
-        "RGBA", (lcd.size["width"], lcd.size["height"]), (0, 0, 0, 0)
+        "RGBA", (lcd.size.width, lcd.size.height), (0, 0, 0, 0)
     )
     hud_draw = ImageDraw.Draw(hud_layer)
     prev_fps_bbox = None
 
     # 画面サイズを事前取得
-    screen_width = lcd.size["width"]
-    screen_height = lcd.size["height"]
+    screen_width = lcd.size.width
+    screen_height = lcd.size.height
 
     while True:
         frame_count += 1
@@ -564,12 +564,12 @@ def ballanime(
 
             # 背景画像を生成（元の処理維持）
             background_image = Image.new(
-                "RGB", (lcd.size["width"], lcd.size["height"])
+                "RGB", (lcd.size.width, lcd.size.height)
             )
             draw = ImageDraw.Draw(background_image)
-            for y in range(lcd.size["height"]):
+            for y in range(lcd.size.height):
                 color = (y % 256, (y * 2) % 256, (y * 3) % 256)
-                draw.line((0, y, lcd.size["width"], y), fill=color)
+                draw.line((0, y, lcd.size.width, y), fill=color)
 
             # 静的テキスト（IPアドレスなど）を描画
             ip_address = get_ip_address()
@@ -579,8 +579,8 @@ def ballanime(
                 font_small,
                 x="center",
                 y="bottom",
-                width=lcd.size["width"],
-                height=lcd.size["height"],
+                width=lcd.size.width,
+                height=lcd.size.height,
                 color=TEXT_COLOR,
             )
 
@@ -588,7 +588,7 @@ def ballanime(
 
             # オブジェクトを初期化
             balls = _initialize_balls_optimized(
-                num_balls, lcd.size["width"], lcd.size["height"], ball_speed
+                num_balls, lcd.size.width, lcd.size.height, ball_speed
             )
             fps_counter = FpsCounter()
 

@@ -7,7 +7,7 @@ from typing import Union
 import pigpio
 
 from ..utils.mylogger import get_logger
-from .disp_base import DispBase
+from .disp_base import DispBase, Size
 
 
 class DispSpi(DispBase):
@@ -28,20 +28,15 @@ class DispSpi(DispBase):
         bl_at_close: bool = False,
         channel: int = 0,
         pin: dict | None = None,
-        # rst_pin: int = DEF_PIN["rst"],
-        # dc_pin: int = DEF_PIN["dc"],
-        # backlight_pin: int = DEF_PIN["bl"],
         speed_hz: int = SPEED_HZ["default"],
-        size: dict | None = None,
-        # width: int = DispBase.DEF_DISP["width"],
-        # height: int = DispBase.DEF_DISP["height"],
-        rotation: int = DispBase.DEF_DISP["rotation"],
+        size: Size | None = None,
+        rotation: int = DispBase.DEF_ROTATION,
         debug=False,
     ):
         if pin is None:
             pin = self.DEF_PIN
         if size is None:
-            size = DispBase.DEF_DISP
+            size = DispBase.DEF_SIZE
 
         super().__init__(size, rotation, debug=debug)
         self.__debug = debug
@@ -55,8 +50,8 @@ class DispSpi(DispBase):
         self.pin = pin
 
         # Configure GPIO pins
-        for p in self.pin:
-            self.pi.set_mode(pin[p], pigpio.OUTPUT)
+        for p_val in self.pin.values():
+            self.pi.set_mode(p_val, pigpio.OUTPUT)
 
         # Open SPI handle
         self.spi_handle = self.pi.spi_open(channel, speed_hz, 0)

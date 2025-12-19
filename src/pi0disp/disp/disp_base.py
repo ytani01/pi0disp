@@ -1,29 +1,35 @@
 #
 # (c) 2025 Yoichi Tanibayashi
 #
+from typing import NamedTuple
+
 import pigpio
 from PIL import Image
 
 from ..utils.mylogger import get_logger
 
 
+class Size(NamedTuple):
+    """Size class."""
+
+    width: int
+    height: int
+
+
 class DispBase:
     """Base class of display."""
 
-    DEF_DISP = {
-        "width": 240,
-        "height": 320,
-        "rotation": 270,
-    }
+    DEF_SIZE = Size(240, 320)
+    DEF_ROTATION = 270
 
-    def __init__(self, size: dict, rotation, debug=False):
+    def __init__(self, size: Size, rotation: int, debug=False):
         """Constractor."""
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
-        self.__log.debug("disp_size=%s,rotation=%s", size, rotation)
+        self.__log.debug("size=%s,rotation=%s", size, rotation)
 
-        self._native_size = size.copy()
-        self.size = size.copy()
+        self._native_size = size
+        self.size = size
         self.set_rotation(rotation)
 
         # Initialize pigpio
@@ -43,23 +49,19 @@ class DispBase:
 
         # Swap width and height for portrait/landscape modes
         if rotation in (90, 270):
-            self.size["width"], self.size["height"] = (
-                self._native_size["height"],
-                self._native_size["width"],
+            self.size = Size(
+                self._native_size.height, self._native_size.width
             )
         else:
-            self.size["width"], self.size["height"] = (
-                self._native_size["width"],
-                self._native_size["height"],
-            )
+            self.size = self._native_size
 
         self._rotation = rotation
 
     def display(self, image: Image.Image):
         """display."""
         self.__log.debug("adjust image size")
-        if image.size != (self.size["width"], self.size["height"]):
-            image = image.resize((self.size["width"], self.size["height"]))
+        if image.size != self.size:
+            image = image.resize(self.size)
 
     def close(self):
         """Close."""

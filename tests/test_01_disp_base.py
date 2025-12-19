@@ -5,18 +5,18 @@ from unittest.mock import MagicMock
 import pytest
 from PIL import Image
 
-from pi0disp.disp.disp_base import DispBase
+from pi0disp.disp.disp_base import DispBase, Size
 
-DEFAULT_SIZE = {"width": 240, "height": 320}
-DEFAULT_ROTATION = 270
+DEFAULT_SIZE = Size(240, 320)
+DEFAULT_ROTATION = DispBase.DEF_ROTATION
 
 
 def create_disp_base_instance(
-    size: dict | None = None, rotation: int | None = None, debug: bool = False
+    size: Size | None = None, rotation: int | None = None, debug: bool = False
 ) -> DispBase:
     """Helper to create DispBase instance."""
     if size is None:
-        size = DEFAULT_SIZE.copy()
+        size = DEFAULT_SIZE
     if rotation is None:
         raise ValueError("rotation must be specified")
     return DispBase(size, rotation, debug)
@@ -33,8 +33,8 @@ def test_init_success(mock_pi_constructor, mock_logger, mock_pi_instance):
     assert disp_base.pi.connected
 
     # DispBase.__init__でrotationが考慮され、sizeがスワップされる
-    assert disp_base.size["width"] == DEFAULT_SIZE["height"]
-    assert disp_base.size["height"] == DEFAULT_SIZE["width"]
+    assert disp_base.size.width == DEFAULT_SIZE.height
+    assert disp_base.size.height == DEFAULT_SIZE.width
 
     assert disp_base._native_size == DEFAULT_SIZE
     assert disp_base._rotation == DEFAULT_ROTATION
@@ -69,8 +69,8 @@ def test_set_rotation_to_90(mock_pi_instance):
     """set_rotationで90度回転したときのsizeの変更をテスト."""
     disp_base = create_disp_base_instance(rotation=0)
     disp_base.set_rotation(90)
-    assert disp_base.size["width"] == DEFAULT_SIZE["height"]
-    assert disp_base.size["height"] == DEFAULT_SIZE["width"]
+    assert disp_base.size.width == DEFAULT_SIZE.height
+    assert disp_base.size.height == DEFAULT_SIZE.width
     assert disp_base._rotation == 90
 
 
@@ -80,12 +80,12 @@ def test_set_rotation_to_0(mock_pi_instance):
     initial_rotation = 90
     disp_base = create_disp_base_instance(rotation=initial_rotation)
     # 90度回転しているので、widthとheightがスワップされている状態を想定
-    assert disp_base.size["width"] == DEFAULT_SIZE["height"]
-    assert disp_base.size["height"] == DEFAULT_SIZE["width"]
+    assert disp_base.size.width == DEFAULT_SIZE.height
+    assert disp_base.size.height == DEFAULT_SIZE.width
 
     disp_base.set_rotation(0)
-    assert disp_base.size["width"] == DEFAULT_SIZE["width"]
-    assert disp_base.size["height"] == DEFAULT_SIZE["height"]
+    assert disp_base.size.width == DEFAULT_SIZE.width
+    assert disp_base.size.height == DEFAULT_SIZE.height
     assert disp_base._rotation == 0
 
 
@@ -98,7 +98,7 @@ def test_display_resizes_image(mock_pi_instance):
 
     disp_base.display(mock_image)
 
-    expected_size = (disp_base.size["width"], disp_base.size["height"])
+    expected_size = disp_base.size
     mock_image.resize.assert_called_once_with(expected_size)
 
 
@@ -107,7 +107,7 @@ def test_display_with_correct_size_image(mock_pi_instance):
     disp_base = create_disp_base_instance(rotation=DEFAULT_ROTATION)
 
     mock_image = MagicMock(spec=Image.Image)
-    mock_image.size = (disp_base.size["width"], disp_base.size["height"])
+    mock_image.size = disp_base.size
 
     disp_base.display(mock_image)
 
