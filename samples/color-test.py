@@ -7,11 +7,12 @@ color-test.py: pi0disp sample application.
 Interactively adjust RGB intensities and backlight brightness.
 """
 
+import math
 import re
 import sys
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from pi0disp.disp.st7789v import ST7789V
 
@@ -19,7 +20,7 @@ from pi0disp.disp.st7789v import ST7789V
 def generate_test_image(width, height, r, g, b):
     """
     Generates a test image with a white background and a black central canvas,
-    containing three overlapping additive rectangles (R, G, B).
+    containing three overlapping additive circles (R, G, B).
     """
     # 1. Start with a solid white background
     img_np = np.full((height, width, 3), 255, dtype=np.uint8)
@@ -33,40 +34,50 @@ def generate_test_image(width, height, r, g, b):
     # Fill canvas with black
     img_np[offset_y : offset_y + canvas_h, offset_x : offset_x + canvas_w] = 0
 
-    # 3. Create layers for R, G, B within the canvas area
-    # Create empty canvas-sized sub-images for each color
-    r_layer = np.zeros((canvas_h, canvas_w, 3), dtype=np.uint16)
-    g_layer = np.zeros((canvas_h, canvas_w, 3), dtype=np.uint16)
-    b_layer = np.zeros((canvas_h, canvas_w, 3), dtype=np.uint16)
-
+    # 3. Create layers for R, G, B circles within the canvas area
     # Rectangle size within canvas (approx 60% of canvas)
-    rw = int(canvas_w * 0.6)
-    rh = int(canvas_h * 0.6)
+    radius = int(min(canvas_w / 3.5, canvas_h / 3.299))
+    if radius < 1:
+        radius = 1
 
-    # Offsets to create overlap in the center
-    # Top-Center
-    ry0, ry1 = 0, rh
-    rx0, rx1 = (canvas_w - rw) // 2, (canvas_w + rw) // 2
+    c_center_x = canvas_w // 2
+    s = radius * 1.2
+    c_center_y = int(canvas_h // 2 + s / (4 * math.sqrt(3)))
 
-    # Bottom-Left
-    gy0, gy1 = canvas_h - rh, canvas_h
-    gx0, gx1 = 0, rw
+    def draw_circle_layer(color_idx, val, pos, rad, w, h):
+        # Create a single channel layer using uint16 to prevent overflow
+        layer = np.zeros((h, w, 3), dtype=np.uint16)
+        mask_img = Image.new("L", (w, h), 0)
+        draw = ImageDraw.Draw(mask_img)
+        draw.ellipse(
+            (pos[0] - rad, pos[1] - rad, pos[0] + rad, pos[1] + rad),
+            fill=255,
+        )
+        mask_np = np.array(mask_img)
+        # Apply intensity
+        layer[:, :, color_idx] = (mask_np.astype(np.uint16) * val) // 255
+        return layer
 
-    # Bottom-Right
-    by0, by1 = canvas_h - rh, canvas_h
-    bx0, bx1 = canvas_w - rw, canvas_w
+    # Red (top), Green (bottom-left), Blue (bottom-right)
+    red_pos = (int(c_center_x), int(c_center_y - s / math.sqrt(3)))
+    green_pos = (
+        int(c_center_x - s / 2),
+        int(c_center_y + s / (2 * math.sqrt(3))),
+    )
+    blue_pos = (
+        int(c_center_x + s / 2),
+        int(c_center_y + s / (2 * math.sqrt(3))),
+    )
 
-    # Fill R, G, B rectangles (intensities from input)
-    r_layer[ry0:ry1, rx0:rx1, 0] = r
-    g_layer[gy0:gy1, gx0:gx1, 1] = g
-    b_layer[by0:by1, bx0:bx1, 2] = b
+    r_layer = draw_circle_layer(0, r, red_pos, radius, canvas_w, canvas_h)
+    g_layer = draw_circle_layer(1, g, green_pos, radius, canvas_w, canvas_h)
+    b_layer = draw_circle_layer(2, b, blue_pos, radius, canvas_w, canvas_h)
 
     # 4. Additive blending
-    # Use uint16 to prevent overflow before clipping
     combined_layers = r_layer + g_layer + b_layer
     combined_layers = np.clip(combined_layers, 0, 255).astype(np.uint8)
 
-    # 5. Place the combined rectangles onto the black canvas of the original image
+    # 5. Place the combined rectangles onto the black canvas
     img_np[offset_y : offset_y + canvas_h, offset_x : offset_x + canvas_w] = (
         combined_layers
     )
