@@ -11,15 +11,19 @@ import math
 import re
 import sys
 
-import numpy as np
 from PIL import Image, ImageDraw
 
 from pi0disp.disp.st7789v import ST7789V
 
 
 def generate_rgb_circles(width, height, r, g, b):
-    """Generates an image with three overlapping circles with given intensities."""
-    final_image_np = np.zeros((height, width, 3), dtype=np.uint8)
+    """Generates an image with three overlapping circles on a white background."""
+    # Create white background RGBA image
+    img = Image.new("RGBA", (width, height), (255, 255, 255, 255))
+
+    # Create transparent overlay for circles
+    overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
 
     # Based on src/pi0disp/commands/rgb.py
     radius = int(min(width / 3.5, height / 3.299))
@@ -38,37 +42,39 @@ def generate_rgb_circles(width, height, r, g, b):
     )
     blue_pos = (int(center_x + s / 2), int(center_y + s / (2 * math.sqrt(3))))
 
-    def draw_opaque_circle(color, pos, radius, img_width, img_height):
-        img = Image.new("RGB", (img_width, img_height), (0, 0, 0))
-        draw = ImageDraw.Draw(img)
-        draw.ellipse(
-            (
-                pos[0] - radius,
-                pos[1] - radius,
-                pos[0] + radius,
-                pos[1] + radius,
-            ),
-            fill=color,
-        )
-        return np.array(img, dtype=np.uint8)
-
-    # Use input intensities for each circle's primary channel
-    red_circle_np = draw_opaque_circle(
-        (r, 0, 0), red_pos, radius, width, height
+    # Draw circles with alpha based on intensities
+    draw.ellipse(
+        (
+            red_pos[0] - radius,
+            red_pos[1] - radius,
+            red_pos[0] + radius,
+            red_pos[1] + radius,
+        ),
+        fill=(255, 0, 0, r),
     )
-    green_circle_np = draw_opaque_circle(
-        (0, g, 0), green_pos, radius, width, height
+    draw.ellipse(
+        (
+            green_pos[0] - radius,
+            green_pos[1] - radius,
+            green_pos[0] + radius,
+            green_pos[1] + radius,
+        ),
+        fill=(0, 255, 0, g),
     )
-    blue_circle_np = draw_opaque_circle(
-        (0, 0, b), blue_pos, radius, width, height
+    draw.ellipse(
+        (
+            blue_pos[0] - radius,
+            blue_pos[1] - radius,
+            blue_pos[0] + radius,
+            blue_pos[1] + radius,
+        ),
+        fill=(0, 0, 255, b),
     )
 
-    # Additive blending
-    final_image_np = np.clip(final_image_np + red_circle_np, 0, 255)
-    final_image_np = np.clip(final_image_np + green_circle_np, 0, 255)
-    final_image_np = np.clip(final_image_np + blue_circle_np, 0, 255)
+    # Composite overlay on white background
+    combined = Image.alpha_composite(img, overlay)
 
-    return Image.fromarray(final_image_np, "RGB")
+    return combined.convert("RGB")
 
 
 def print_help():
