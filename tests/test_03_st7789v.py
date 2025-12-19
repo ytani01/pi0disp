@@ -5,9 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from PIL import Image
 
-from pi0disp.disp.disp_base import DispBase, DispSize
-from pi0disp.disp.disp_spi import SpiPins
-from pi0disp.disp.st7789v import ST7789V
+from pi0disp import ST7789V, DispBase, DispSize, SpiPins
 
 # Constants
 DEFAULT_SIZE = DispSize(240, 320)

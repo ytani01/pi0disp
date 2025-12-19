@@ -40,5 +40,13 @@ dev = [
 check_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = ['pi0disp', 'pigpio', 'PIL', 'PIL.Image', 'numpy', 'click', 'cairosvg']
+module = [
+    "pi0disp",
+    "pigpio",
+    "PIL", "PIL.Image", "PIL.ImageDraw", "PIL.ImageFont",
+    "numpy",
+    "click",
+    "cairosvg",
+    "pytest"
+]
 ignore_missing_imports = true

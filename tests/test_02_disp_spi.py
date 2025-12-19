@@ -5,8 +5,7 @@ from unittest.mock import ANY, call, patch
 import pigpio
 import pytest
 
-from pi0disp.disp.disp_base import DispBase, DispSize
-from pi0disp.disp.disp_spi import DispSpi, SpiPins
+from pi0disp import DispBase, DispSize, DispSpi, SpiPins
 
 # Constants
 CMD_TEST = 0x10
@@ -36,10 +35,10 @@ def mock_disp_base_init(mock_pi_instance, mock_logger):
         obj_self.pi = mock_pi_instance
         obj_self.pi.connected = True
         obj_self._native_size = size
-        obj_self.size = size
-        obj_self._rotation = rotation
+        obj_self._size = size
+        obj_self.rotation = rotation
         obj_self.debug = debug
-        obj_self.__log = mock_logger
+        # obj_self.__log = mock_logger
 
     with patch(
         "pi0disp.disp.disp_base.DispBase.__init__", autospec=True

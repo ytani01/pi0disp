@@ -11,6 +11,8 @@ if __package__:
 else:
     __version__ = "_._._"
 
+from .disp.disp_base import DispBase, DispSize
+from .disp.disp_spi import DispSpi, SpiPins
 from .disp.st7789v import ST7789V
 from .utils.click_utils import click_common_opts
 from .utils.mylogger import errmsg, get_logger
@@ -21,6 +23,10 @@ __all__ = [
     "errmsg",
     "get_logger",
     "click_common_opts",
+    "DispBase",
+    "DispSize",
+    "DispSpi",
+    "SpiPins",
     "ST7789V",
     "ImageProcessor",
     "get_ip_address",

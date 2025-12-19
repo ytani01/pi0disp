@@ -1,0 +1,1 @@
+The `serena-onboarding` tool has been replaced by the `replace` tool. Please refer to the `replace` tool's documentation for usage.

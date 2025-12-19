@@ -177,7 +177,7 @@ class ImageProcessor:
 
 def get_ip_address() -> str:
     """
-    Tries to determine the local IP address by connecting to an external server.
+    Tries to determine the local IP address by connecting to an external server
     Returns "IP not found" if unsuccessful.
     """
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -186,7 +186,7 @@ def get_ip_address() -> str:
         s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
     except (socket.timeout, OSError) as e:
-        log.warning(f"Could not get IP address: {e}")
+        log.warning("Could not get IP address: %s", e)
         ip = "IP not found"
     finally:
         s.close()

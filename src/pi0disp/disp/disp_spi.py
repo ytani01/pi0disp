@@ -6,7 +6,7 @@ from typing import NamedTuple, Optional, Union
 
 import pigpio
 
-from ..utils.mylogger import get_logger
+from ..utils.mylogger import errmsg, get_logger
 from .disp_base import DispBase, DispSize
 
 
@@ -39,11 +39,6 @@ class DispSpi(DispBase):
         brightness: int = 255,
         debug=False,
     ):
-        if pin is None:
-            pin = self.DEF_PIN
-        if size is None:
-            size = DispBase.DEF_SIZE
-
         super().__init__(size, rotation, debug=debug)
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
@@ -52,6 +47,10 @@ class DispSpi(DispBase):
         self.__log.debug("GPIO: pin=%s", pin)
 
         self.bl_at_close = bl_at_close
+
+        if pin is None:
+            pin = self.DEF_PIN
+
         self.pin = pin
         self._brightness = brightness
         self._backlight_on = False
@@ -94,18 +93,31 @@ class DispSpi(DispBase):
 
     def set_brightness(self, brightness: int):
         """Sets the backlight brightness (0-255)."""
+        if not self.pin.bl:
+            self.__log.debug("pin.bl=%s: do nothing", self.pin.bl)
+            return
+
+        # self.set_backlightのON/OFFに関わらず、値を保持する。
         self._brightness = max(0, min(255, brightness))
-        if self._backlight_on and self.pin.bl is not None:
+
+        if self._backlight_on:
             self.pi.set_PWM_dutycycle(self.pin.bl, self._brightness)
 
     def set_backlight(self, on: bool):
-        """Turns the backlight on or off."""
+        """Turns the backlight on or off.
+
+        self._brightness の値は維持される
+        """
+        if not self.pin.bl:
+            self.__log.debug("pin.bl=%s: do nothing", self.pin.bl)
+            return
+
         self._backlight_on = on
-        if self.pin.bl is not None:
-            if on:
-                self.pi.set_PWM_dutycycle(self.pin.bl, self._brightness)
-            else:
-                self.pi.set_PWM_dutycycle(self.pin.bl, 0)
+
+        if on:
+            self.pi.set_PWM_dutycycle(self.pin.bl, self._brightness)
+        else:
+            self.pi.set_PWM_dutycycle(self.pin.bl, 0)
 
     def init_display(self):
         """Initialize Display."""
@@ -128,11 +140,26 @@ class DispSpi(DispBase):
             bl (bool | None): バックライトの状態
                               省略すると、生成時のオプションを使う
         """
-        if self.pi.connected and self.pin.bl is not None:
-            # backlight
-            bl_sw = self.bl_at_close
-            if bl is not None:
-                bl_sw = bl
-            self.set_backlight(bl_sw)
+        if self.pi.connected:
+            # SPI handle
+            if self.spi_handle >= 0:
+                try:
+                    self.pi.spi_close(self.spi_handle)
+                    self.__log.debug(
+                        "spi_handl=%s: close SPI", self.spi_handle
+                    )
+                except Exception as e:
+                    self.__log.warning(errmsg(e))
 
-        super().close()  # pigpio
+            # backlight
+            if self.pin.bl is not None:
+                bl_sw = False
+                if bl:
+                    bl_sw = bl
+                else:
+                    bl_sw = self.bl_at_close
+                self.set_backlight(bl_sw)
+        else:
+            self.__log.warning("pi.connected=%s", self.pi.connected)
+
+        super().close()  # self.pi の終了処理(stop)は、親クラスに任せる

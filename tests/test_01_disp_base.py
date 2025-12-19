@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 from PIL import Image
 
-from pi0disp.disp.disp_base import DispBase, DispSize
+from pi0disp import DispBase, DispSize
 
 # Constants
 DEFAULT_SIZE = DispSize(240, 320)
@@ -71,14 +71,14 @@ def test_init_display(mock_logger, mock_pi_instance):
 def test_set_rotation_to_90(mock_pi_instance):
     """set_rotationで90度回転したときのsizeの変更をテスト."""
     disp_base = create_disp_base_instance(rotation=0)
-    disp_base.set_rotation(90)
+    disp_base.rotation = 90
     assert disp_base.size.width == DEFAULT_SIZE.height
     assert disp_base.size.height == DEFAULT_SIZE.width
     assert disp_base._rotation == 90
 
 
 def test_set_rotation_to_0(mock_pi_instance):
-    """set_rotationで0度回転（元に戻す）したときのsizeの変更をテスト."""
+    """rotationを0度回転（元に戻す）したときのsizeの変更をテスト."""
     # 初期状態を90度回転にしてから0度に戻すシナリオをテスト
     initial_rotation = 90
     disp_base = create_disp_base_instance(rotation=initial_rotation)
@@ -86,7 +86,7 @@ def test_set_rotation_to_0(mock_pi_instance):
     assert disp_base.size.width == DEFAULT_SIZE.height
     assert disp_base.size.height == DEFAULT_SIZE.width
 
-    disp_base.set_rotation(0)
+    disp_base.rotation = 0
     assert disp_base.size.width == DEFAULT_SIZE.width
     assert disp_base.size.height == DEFAULT_SIZE.height
     assert disp_base._rotation == 0

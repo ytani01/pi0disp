@@ -100,7 +100,7 @@ class ST7789V(DispSpi):
         """
         Sets the display rotation.
         """
-        super().set_rotation(rotation)
+        self.rotation = rotation
         self.__log.debug("%s", self.__class__.__name__)
 
         madctl_values = {0: 0x00, 90: 0x60, 180: 0xC0, 270: 0xA0}
@@ -186,11 +186,7 @@ class ST7789V(DispSpi):
 
     def close(self, bl: bool | None = None):
         """Cleans up resources."""
-        try:
-            if hasattr(self, "spi_handle") and self.spi_handle >= 0:
-                self.pi.spi_close(self.spi_handle)
-        finally:
-            super().close(bl)
+        super().close(bl)
 
     def dispoff(self):
         """DISPOFF."""
