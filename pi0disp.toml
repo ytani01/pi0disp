@@ -9,4 +9,4 @@ rst = 25
 dc = 24
 bl = 23
 channel = 0
-speed_hz = 8_000_000
+speed_hz = 4_000_000
