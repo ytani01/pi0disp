@@ -551,6 +551,7 @@ def ballanime(
         with ST7789V(
             speed_hz=int(spi_mhz * 1_000_000),
             pin=SpiPins(rst=rst, dc=dc, bl=bl),
+            debug=debug,
         ) as lcd:
             # フォントをロード（元の設定維持）
             font_large: ImageFont.FreeTypeFont | ImageFont.ImageFont

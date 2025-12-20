@@ -22,7 +22,6 @@ dev = [
     "flake8>=7.3.0",
     "isort>=6.0.1",
     "mypy>=1.17.1",
-    "pylint>=3.3.8",
     "pytest>=8.4.1",
     "ruff>=0.12.9",
 ]
@@ -42,6 +41,9 @@ check_untyped_defs = false
 # disallow_untyped_defs = true
 # install_types = true # スタブのインストール
 # non_interactive = true # スタブのインストールを許可する
+
+[tool.pylint.messages_control]
+disable = "too-many-instance-attributes" # この警告を無効にする
 
 [[tool.mypy.overrides]]
 module = [

@@ -7,6 +7,7 @@ from typing import NamedTuple
 import pigpio
 from PIL import Image
 
+from ..utils.my_conf import MyConf
 from ..utils.mylogger import get_logger
 
 
@@ -21,24 +22,42 @@ class DispBase(metaclass=ABCMeta):
     """Display Base."""
 
     DEF_SIZE = DispSize(240, 320)
-    DEF_ROTATION = 270
+    DEF_ROTATION = 0
 
     def __init__(
-        self, size: DispSize | None = None, rotation: int = 0, debug=False
+        self,
+        size: DispSize | None = None,
+        rotation: int | None = None,
+        debug=False,
     ):
         """Constractor."""
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
         self.__log.debug("size=%s,rotation=%s", size, rotation)
 
-        if size is None:
-            size = self.DEF_SIZE
-            self.__log.debug("size=%s", size)
+        # load configuration file
+        self._conf = MyConf(debug=self.__debug)
 
+        # size
+        if size is None:
+            if self._conf.data.get("width") and self._conf.data.get("height"):
+                size = DispSize(self._conf.data.width, self._conf.data.height)
+                self.__log.debug("size=%s [conf]", size)
+            else:
+                size = self.DEF_SIZE
+                self.__log.debug("size=%s [DEF_SIZE]", size)
         self._native_size = size
         self._size = size
-        # self.set_rotation(rotation)
-        self.rotation = rotation
+
+        # rotation
+        if rotation is None:
+            if self._conf.data.get("rotation"):
+                rotation = self._conf.data.rotation
+                self.__log.debug("rotation=%s [conf]", rotation)
+            else:
+                rotation = self.DEF_ROTATION
+                self.__log.debug("rotation=%s [DEF_ROTATION]", rotation)
+        self._rotation = rotation
 
         # Initialize pigpio
         self.pi = pigpio.pi()
@@ -46,6 +65,16 @@ class DispBase(metaclass=ABCMeta):
             raise RuntimeError(
                 "Could not connect to pigpio daemon. Is it running?"
             )
+
+    def __enter__(self):
+        self.__log.debug("")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.__log.debug(
+            "exc_type=%s,exc_val=%s,exc_tb=%s", exc_type, exc_val, exc_tb
+        )
+        self.close()
 
     @property
     def size(self):
@@ -76,6 +105,11 @@ class DispBase(metaclass=ABCMeta):
             self._size = self._native_size
 
         self._rotation = rotation
+
+    @property
+    def conf(self):
+        """Conf."""
+        return self._conf
 
     def init_display(self):
         """Initialize display."""

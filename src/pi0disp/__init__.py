@@ -4,10 +4,10 @@
 from importlib.metadata import PackageNotFoundError, version
 
 from .disp.disp_base import DispBase, DispSize
-from .disp.disp_conf import DispConf
 from .disp.disp_spi import DispSpi, SpiPins
 from .disp.st7789v import ST7789V
 from .utils.click_utils import click_common_opts
+from .utils.my_conf import MyConf
 from .utils.mylogger import errmsg, get_logger
 from .utils.performance_core import RegionOptimizer
 from .utils.sprite import Sprite
@@ -35,9 +35,9 @@ __all__ = [
     "get_ip_address",
     "expand_bbox",
     "DispBase",
-    "DispConf",
     "DispSize",
     "DispSpi",
+    "MyConf",
     "RegionOptimizer",
     "SpiPins",
     "Sprite",

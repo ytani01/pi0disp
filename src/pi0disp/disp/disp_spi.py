@@ -22,7 +22,8 @@ class SpiPins(NamedTuple):
 class DispSpi(DispBase):
     """SPI Display."""
 
-    DEF_PIN = SpiPins(rst=25, dc=24, bl=23)
+    # DEF_PIN = SpiPins(rst=25, dc=24, bl=23)
+    DEF_PIN_DICT = {"rst": 25, "dc": 24, "bl": 23, "cs": 0}
     SPEED_HZ = {
         "default": 8_000_000,
         "max": 32_000_000,
@@ -31,12 +32,13 @@ class DispSpi(DispBase):
     def __init__(
         self,
         bl_at_close: bool = False,
-        channel: int = 0,
         pin: SpiPins | None = None,
-        speed_hz: int = SPEED_HZ["default"],
-        size: DispSize | None = None,
-        rotation: int = DispBase.DEF_ROTATION,
         brightness: int = 255,
+        channel: int = 0,
+        speed_hz: int = SPEED_HZ["default"],
+        *,
+        size: DispSize | None = None,
+        rotation: int | None = None,
         debug=False,
     ):
         super().__init__(size, rotation, debug=debug)
@@ -49,34 +51,40 @@ class DispSpi(DispBase):
         self.bl_at_close = bl_at_close
 
         if pin is None:
-            pin = self.DEF_PIN
-
+            pd = self.DEF_PIN_DICT.copy()
+            for k in ["rst", "dc", "bl", "cs"]:
+                if self._conf.data.get("spi").get(k):
+                    pd["rst"] = self._conf.data.spi.get(k)
+            pin = SpiPins(pd["rst"], pd["dc"], pd["bl"], pd["cs"])
+            self.__log.debug("GPIO: pin=%s", pin)
         self.pin = pin
+
         self._brightness = brightness
         self._backlight_on = False
 
         # Configure GPIO pins
-        for p_val in [self.pin.rst, self.pin.dc, self.pin.bl, self.pin.cs]:
-            if p_val is not None:
-                self.pi.set_mode(p_val, pigpio.OUTPUT)
+        for p in [self.pin.rst, self.pin.dc, self.pin.bl, self.pin.cs]:
+            if p:
+                self.pi.set_mode(p, pigpio.OUTPUT)
 
         # Open SPI handle
-        # SPI handle options: if CS is controlled by pigpio, channel is usually used.
+        # SPI handle options:
+        #   if CS is controlled by pigpio, channel is usually used.
         self.spi_handle = self.pi.spi_open(channel, speed_hz, 0)
         if self.spi_handle < 0:
             raise RuntimeError(
                 f"Failed to open SPI bus: handle={self.spi_handle}"
             )
 
-    def __enter__(self):
-        self.__log.debug("")
-        return self
+    # def __enter__(self):
+    #     self.__log.debug("")
+    #     return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.__log.debug(
-            "exc_type=%s,exc_val=%s,exc_tb=%s", exc_type, exc_val, exc_tb
-        )
-        self.close()
+    # def __exit__(self, exc_type, exc_val, exc_tb):
+    #     self.__log.debug(
+    #         "exc_type=%s,exc_val=%s,exc_tb=%s", exc_type, exc_val, exc_tb
+    #     )
+    #     self.close()
 
     def _write_command(self, command: int):
         """Sends a command byte to the display."""
@@ -133,32 +141,32 @@ class DispSpi(DispBase):
 
         self.set_backlight(True)
 
-    def close(self, bl: bool | None = None):
+    def close(self, bl_switch: bool | None = None):
         """Cleans up resources.
 
         Args:
-            bl (bool | None): バックライトの状態
-                              省略すると、生成時のオプションを使う
+            bl_switch (bool | None): バックライトの状態
+                省略すると、生成時のオプションを使う
         """
+        self.__log.debug("bl_switch=%s", bl_switch)
+
         if self.pi.connected:
             # SPI handle
             if self.spi_handle >= 0:
                 try:
                     self.pi.spi_close(self.spi_handle)
                     self.__log.debug(
-                        "spi_handl=%s: close SPI", self.spi_handle
+                        "close SPI: spi_handl=%s", self.spi_handle
                     )
                 except Exception as e:
                     self.__log.warning(errmsg(e))
 
             # backlight
             if self.pin.bl is not None:
-                bl_sw = False
-                if bl:
-                    bl_sw = bl
-                else:
-                    bl_sw = self.bl_at_close
-                self.set_backlight(bl_sw)
+                if not bl_switch:
+                    bl_switch = self.bl_at_close
+                self.__log.debug("bl_swtch=%s", bl_switch)
+                self.set_backlight(bl_switch)
         else:
             self.__log.warning("pi.connected=%s", self.pi.connected)
 

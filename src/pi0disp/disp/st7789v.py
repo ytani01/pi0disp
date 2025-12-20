@@ -16,7 +16,7 @@ from PIL import Image
 
 from ..utils.mylogger import get_logger
 from ..utils.performance_core import create_optimizer_pack
-from .disp_base import DispBase, DispSize
+from .disp_base import DispSize
 from .disp_spi import DispSpi, SpiPins
 
 
@@ -43,34 +43,30 @@ class ST7789V(DispSpi):
     def __init__(
         self,
         bl_at_close: bool = False,
-        channel: int = 0,
         pin: SpiPins | None = None,
-        speed_hz: int = DispSpi.SPEED_HZ["default"],
-        size: DispSize = DispBase.DEF_SIZE,
-        rotation: int = DispBase.DEF_ROTATION,
         brightness: int = 255,
+        channel: int = 0,
+        speed_hz: int = DispSpi.SPEED_HZ["default"],
+        size: DispSize | None = None,
+        rotation: int | None = None,
         debug=False,
     ):
         """
         Initializes the display driver.
         """
-        if pin is None:
-            pin = DispSpi.DEF_PIN
-
+        super().__init__(
+            bl_at_close=bl_at_close,
+            pin=pin,
+            brightness=brightness,
+            channel=channel,
+            speed_hz=speed_hz,
+            size=size,
+            rotation=rotation,
+            debug=debug,
+        )
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
         self.__log.debug("")
-
-        super().__init__(
-            bl_at_close,
-            channel,
-            pin,
-            speed_hz,
-            size,
-            rotation,
-            brightness=brightness,
-            debug=debug,
-        )
 
         # Initialize the optimizer pack
         self._optimizers = create_optimizer_pack()
@@ -97,9 +93,7 @@ class ST7789V(DispSpi):
         self.pi.wait_for_edge(0, pigpio.RISING_EDGE, 0.1)
 
     def set_rotation(self, rotation: int):
-        """
-        Sets the display rotation.
-        """
+        """Sets the display rotation."""
         self.rotation = rotation
         self.__log.debug("%s", self.__class__.__name__)
 
@@ -114,9 +108,7 @@ class ST7789V(DispSpi):
         self._last_window = None  # Invalidate window cache
 
     def set_window(self, x0: int, y0: int, x1: int, y1: int):
-        """
-        Sets the active drawing window on the display.
-        """
+        """Sets the active drawing window on the display."""
         window = (x0, y0, x1, y1)
         if self._last_window == window:
             return
@@ -130,9 +122,7 @@ class ST7789V(DispSpi):
         self._last_window = window
 
     def write_pixels(self, pixel_bytes: bytes):
-        """
-        Writes a raw buffer of pixel data to the current window.
-        """
+        """Writes a raw buffer of pixel data to the current window."""
         chunk_size = self._optimizers["adaptive_chunking"].get_chunk_size()
         data_len = len(pixel_bytes)
 
@@ -147,9 +137,7 @@ class ST7789V(DispSpi):
                 )
 
     def display(self, image: Image.Image):
-        """
-        Displays a full PIL Image on the screen.
-        """
+        """Displays a full PIL Image on the screen."""
         super().display(image)
         self.__log.debug("%s", self.__class__.__name__)
 
@@ -163,9 +151,7 @@ class ST7789V(DispSpi):
     def display_region(
         self, image: Image.Image, x0: int, y0: int, x1: int, y1: int
     ):
-        """
-        Displays a portion of a PIL image within the specified region.
-        """
+        """Displays a portion of a PIL image within the specified region."""
         # Clamp region to be within display boundaries
         region = self._optimizers["region_optimizer"].clamp_region(
             (x0, y0, x1, y1), self.size.width, self.size.height
@@ -184,9 +170,9 @@ class ST7789V(DispSpi):
         self.set_window(region[0], region[1], region[2] - 1, region[3] - 1)
         self.write_pixels(pixel_bytes)
 
-    def close(self, bl: bool | None = None):
-        """Cleans up resources."""
-        super().close(bl)
+    # def close(self, bl: bool | None = None):
+    #     """Cleans up resources."""
+    #     super().close(bl)
 
     def dispoff(self):
         """DISPOFF."""
