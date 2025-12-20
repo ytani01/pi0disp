@@ -38,7 +38,7 @@ def mock_disp_base_init(mock_pi_instance, mock_logger):
         obj_self._size = size
         obj_self._rotation = rotation
         obj_self.debug = debug
-        # obj_self.__log = mock_logger
+        obj_self._log = mock_logger  # Changed: set _log and uncommented
 
     with patch(
         "pi0disp.disp.disp_base.DispBase.__init__", autospec=True

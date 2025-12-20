@@ -6,7 +6,7 @@ from typing import NamedTuple, Optional, Union
 
 import pigpio
 
-from ..utils.mylogger import errmsg, get_logger
+from ..utils.mylogger import errmsg
 from .disp_base import DispBase, DispSize
 
 
@@ -43,10 +43,10 @@ class DispSpi(DispBase):
     ):
         super().__init__(size, rotation, debug=debug)
         self.__debug = debug
-        self.__log = get_logger(self.__class__.__name__, self.__debug)
-        self.__log.debug("bl_at_close=%s", bl_at_close)
-        self.__log.debug("SPI: channel=%s,speed_hz=%s", channel, speed_hz)
-        self.__log.debug("GPIO: pin=%s", pin)
+        # self.__log = get_logger(self.__class__.__name__, self.__debug) # DELETE this line
+        self._log.debug("bl_at_close=%s", bl_at_close)
+        self._log.debug("SPI: channel=%s,speed_hz=%s", channel, speed_hz)
+        self._log.debug("GPIO: pin=%s", pin)
 
         self.bl_at_close = bl_at_close
 
@@ -56,7 +56,7 @@ class DispSpi(DispBase):
                 if self._conf.data.get("spi").get(k):
                     pd["rst"] = self._conf.data.spi.get(k)
             pin = SpiPins(pd["rst"], pd["dc"], pd["bl"], pd["cs"])
-            self.__log.debug("GPIO: pin=%s", pin)
+            self._log.debug("GPIO: pin=%s", pin)
         self.pin = pin
 
         self._brightness = brightness
@@ -77,11 +77,11 @@ class DispSpi(DispBase):
             )
 
     # def __enter__(self):
-    #     self.__log.debug("")
+    #     self._log.debug("")
     #     return self
 
     # def __exit__(self, exc_type, exc_val, exc_tb):
-    #     self.__log.debug(
+    #     self._log.debug(
     #         "exc_type=%s,exc_val=%s,exc_tb=%s", exc_type, exc_val, exc_tb
     #     )
     #     self.close()
@@ -102,7 +102,7 @@ class DispSpi(DispBase):
     def set_brightness(self, brightness: int):
         """Sets the backlight brightness (0-255)."""
         if not self.pin.bl:
-            self.__log.debug("pin.bl=%s: do nothing", self.pin.bl)
+            self._log.debug("pin.bl=%s: do nothing", self.pin.bl)
             return
 
         # self.set_backlightのON/OFFに関わらず、値を保持する。
@@ -117,7 +117,7 @@ class DispSpi(DispBase):
         self._brightness の値は維持される
         """
         if not self.pin.bl:
-            self.__log.debug("pin.bl=%s: do nothing", self.pin.bl)
+            self._log.debug("pin.bl=%s: do nothing", self.pin.bl)
             return
 
         self._backlight_on = on
@@ -129,7 +129,7 @@ class DispSpi(DispBase):
 
     def init_display(self):
         """Initialize Display."""
-        self.__log.debug("backlight ON")
+        self._log.debug("backlight ON")
 
         # Hardware reset
         self.pi.write(self.pin.rst, 1)
@@ -148,26 +148,26 @@ class DispSpi(DispBase):
             bl_switch (bool | None): バックライトの状態
                 省略すると、生成時のオプションを使う
         """
-        self.__log.debug("bl_switch=%s", bl_switch)
+        self._log.debug("bl_switch=%s", bl_switch)
 
         if self.pi.connected:
             # SPI handle
             if self.spi_handle >= 0:
                 try:
                     self.pi.spi_close(self.spi_handle)
-                    self.__log.debug(
+                    self._log.debug(
                         "close SPI: spi_handl=%s", self.spi_handle
                     )
                 except Exception as e:
-                    self.__log.warning(errmsg(e))
+                    self._log.warning(errmsg(e))
 
             # backlight
             if self.pin.bl is not None:
                 if not bl_switch:
                     bl_switch = self.bl_at_close
-                self.__log.debug("bl_swtch=%s", bl_switch)
+                self._log.debug("bl_swtch=%s", bl_switch)
                 self.set_backlight(bl_switch)
         else:
-            self.__log.warning("pi.connected=%s", self.pi.connected)
+            self._log.warning("pi.connected=%s", self.pi.connected)
 
         super().close()  # self.pi の終了処理(stop)は、親クラスに任せる

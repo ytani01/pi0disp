@@ -32,8 +32,8 @@ class DispBase(metaclass=ABCMeta):
     ):
         """Constractor."""
         self.__debug = debug
-        self.__log = get_logger(self.__class__.__name__, self.__debug)
-        self.__log.debug("size=%s,rotation=%s", size, rotation)
+        self._log = get_logger(self.__class__.__name__, self.__debug)
+        self._log.debug("size=%s,rotation=%s", size, rotation)
 
         # load configuration file
         self._conf = MyConf(debug=self.__debug)
@@ -42,10 +42,10 @@ class DispBase(metaclass=ABCMeta):
         if size is None:
             if self._conf.data.get("width") and self._conf.data.get("height"):
                 size = DispSize(self._conf.data.width, self._conf.data.height)
-                self.__log.debug("size=%s [conf]", size)
+                self._log.debug("size=%s [conf]", size)
             else:
                 size = self.DEF_SIZE
-                self.__log.debug("size=%s [DEF_SIZE]", size)
+                self._log.debug("size=%s [DEF_SIZE]", size)
         self._native_size = size
         self._size = size
 
@@ -53,10 +53,10 @@ class DispBase(metaclass=ABCMeta):
         if rotation is None:
             if self._conf.data.get("rotation"):
                 rotation = self._conf.data.rotation
-                self.__log.debug("rotation=%s [conf]", rotation)
+                self._log.debug("rotation=%s [conf]", rotation)
             else:
                 rotation = self.DEF_ROTATION
-                self.__log.debug("rotation=%s [DEF_ROTATION]", rotation)
+                self._log.debug("rotation=%s [DEF_ROTATION]", rotation)
         self._rotation = rotation
         self.rotation = rotation
 
@@ -68,11 +68,11 @@ class DispBase(metaclass=ABCMeta):
             )
 
     def __enter__(self):
-        self.__log.debug("")
+        self._log.debug("")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.__log.debug(
+        self._log.debug(
             "exc_type=%s,exc_val=%s,exc_tb=%s", exc_type, exc_val, exc_tb
         )
         self.close()
@@ -95,7 +95,7 @@ class DispBase(metaclass=ABCMeta):
     @rotation.setter
     def rotation(self, rotation: int):
         """Sets the display rotation."""
-        # self.__log.debug("rotation=%s", rotation)
+        # self._log.debug("rotation=%s", rotation)
 
         self._rotation = rotation
 
@@ -107,7 +107,7 @@ class DispBase(metaclass=ABCMeta):
         else:
             self._size = self._native_size
 
-        self.__log.debug("rotation=%s,size=%s", self._rotation, self.size)
+        self._log.debug("rotation=%s,size=%s", self._rotation, self.size)
 
     @property
     def conf(self):
@@ -116,18 +116,18 @@ class DispBase(metaclass=ABCMeta):
 
     def init_display(self):
         """Initialize display."""
-        self.__log.warning("Please override this method.")
+        self._log.warning("Please override this method.")
 
     def display(self, image: Image.Image):
         """display."""
-        self.__log.debug("adjust image size")
+        self._log.debug("adjust image size")
         if image.size != self._size:
             image = image.resize(self._size)
 
     def close(self):
         """Close."""
         if self.pi.connected:
-            self.__log.debug("close pigpiod connection")
+            self._log.debug("close pigpiod connection")
             self.pi.stop()
         else:
-            self.__log.warning("self.pi.conencted=%s", self.pi.connected)
+            self._log.warning("self.pi.conencted=%s", self.pi.connected)
