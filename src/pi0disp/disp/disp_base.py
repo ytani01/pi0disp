@@ -120,7 +120,7 @@ class DispBase(metaclass=ABCMeta):
 
     def display(self, image: Image.Image):
         """display."""
-        self._log.debug("adjust image size")
+        # self._log.debug("adjust image size")
         if image.size != self._size:
             image = image.resize(self._size)
 

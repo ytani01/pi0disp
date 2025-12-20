@@ -140,7 +140,7 @@ class ST7789V(DispSpi):
     def display(self, image: Image.Image):
         """Displays a full PIL Image on the screen."""
         super().display(image)
-        self.__log.debug("%s", self.__class__.__name__)
+        # self.__log.debug("%s", self.__class__.__name__)
 
         pixel_bytes = self._optimizers["color_converter"].rgb_to_rgb565_bytes(
             np.array(image)
