@@ -1,3 +1,4 @@
+#
 # (c) 2025 Yoichi Tanibayashi
 #
 """
@@ -147,9 +148,7 @@ class ST7789V(DispSpi):
                 )
 
     def display(self, image: Image.Image):
-        """
-        Displays a full PIL Image on the screen.
-        """
+        """Displays a full PIL Image on the screen."""
         super().display(image)
         self.__log.debug("%s", self.__class__.__name__)
 
@@ -163,9 +162,7 @@ class ST7789V(DispSpi):
     def display_region(
         self, image: Image.Image, x0: int, y0: int, x1: int, y1: int
     ):
-        """
-        Displays a portion of a PIL image within the specified region.
-        """
+        """Displays a portion of a PIL image within the specified region."""
         # Clamp region to be within display boundaries
         region = self._optimizers["region_optimizer"].clamp_region(
             (x0, y0, x1, y1), self.size.width, self.size.height

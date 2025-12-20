@@ -28,13 +28,16 @@ pi0disp = "pi0disp.__main__:cli"
 
 [dependency-groups]
 dev = [
-    "flake8>=7.3.0",
     "isort>=6.0.1",
     "mypy>=1.17.1",
-    "pylint>=3.3.8",
+    "pyproject-flake8>=7.0.0",
     "pytest>=8.4.1",
     "ruff>=0.12.9",
 ]
+
+[tool.flake8]
+extend-ignore = ["E203",]
+max-complexity = 10
 
 [tool.mypy]
 check_untyped_defs = true
