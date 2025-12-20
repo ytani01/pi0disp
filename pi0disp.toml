@@ -2,7 +2,7 @@
 name = "2.4 inch IPS LCD 240x320 SPI ST7789 full-color"
 width = 240
 height = 320
-rotation = 0
+rotation = 270
 
 [pi0disp.spi]
 rst = 25
