@@ -36,6 +36,10 @@ source = "vcs"
 [project.scripts]
 pi0disp = "pi0disp.__main__:cli"
 
+[tool.flake8]
+extend-ignore = ["E203",]
+max-complexity = 10
+
 [tool.mypy]
 check_untyped_defs = false
 # disallow_untyped_defs = true
