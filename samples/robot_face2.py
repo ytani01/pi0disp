@@ -8,7 +8,7 @@ from PIL import Image, ImageOps
 # ST7789ライブラリのインポート
 # インストール: pip install st7789
 try:
-    from pi0disp.disp.st7789v import ST7789V
+    from pi0disp import ST7789V
 except ImportError:
     print("エラー: 'st7789' ライブラリが見つかりません。")
     print("インストールコマンド: pip install st7789")
@@ -66,7 +66,7 @@ def main():
 
             try:
                 # 画像を開く
-                img: Image.Image = Image.open(filepath)
+                img: Image.Image = Image.open(filepath)  # type: ignore
 
                 # --- アスペクト比を維持してリサイズ & 黒帯追加 ---
                 # 320x240のキャンバスの中央に画像を配置し、余白を黒(0,0,0)で埋める

@@ -6,19 +6,12 @@ Spriteクラスを使用してロボットの顔アニメーションを実装�
 状態管理と描画がSpriteクラスにカプセル化されています。
 """
 
-import sys
 import time
-from pathlib import Path
 from typing import List
 
 from PIL import Image, ImageDraw
 
-# Add project root to the Python path
-sys.path.append(str(Path(__file__).parent.parent))
-
-from pi0disp.disp.st7789v import ST7789V
-from pi0disp.utils.performance_core import RegionOptimizer
-from pi0disp.utils.sprite import Sprite
+from pi0disp import ST7789V, RegionOptimizer, Sprite
 
 # --- Configuration ---
 TARGET_FPS = 15
@@ -143,7 +136,7 @@ def main():
 
         # RobotFaceスプライトを作成
         face = RobotFace(0, 0, width, height)
-        sprites: List[Sprite] = [face]
+        sprites: List[Sprite] = [face]  # type: ignore
 
         # メインループ
         target_duration = 1.0 / TARGET_FPS

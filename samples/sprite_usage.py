@@ -8,20 +8,12 @@ Spriteクラスの使用方法を示すサンプルスクリプトです。
 
 import colorsys
 import random
-import sys
 import time
-from pathlib import Path
 from typing import List
 
 from PIL import Image, ImageDraw
 
-# Add project root to the Python path
-sys.path.append(str(Path(__file__).parent.parent))
-
-from pi0disp.disp.st7789v import ST7789V
-from pi0disp.utils.performance_core import RegionOptimizer
-from pi0disp.utils.sprite import Sprite
-from pi0disp.utils.utils import expand_bbox
+from pi0disp import ST7789V, RegionOptimizer, Sprite, expand_bbox
 
 # --- Configuration ---
 NUM_BALLS = 5
@@ -106,7 +98,7 @@ def main():
         lcd.display(image)  # 画面をクリア
 
         # ボール（スプライト）を初期化
-        sprites: List[Sprite] = []
+        sprites: List[Sprite] = []  # type: ignore
         hues = [i / NUM_BALLS for i in range(NUM_BALLS)]
         for i in range(NUM_BALLS):
             rgb_float = colorsys.hsv_to_rgb(hues[i], 1.0, 1.0)

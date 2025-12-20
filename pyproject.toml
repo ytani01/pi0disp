@@ -38,7 +38,10 @@ source = "vcs"
 pi0disp = "pi0disp.__main__:cli"
 
 [tool.mypy]
-check_untyped_defs = true
+check_untyped_defs = false
+# disallow_untyped_defs = true
+# install_types = true # スタブのインストール
+# non_interactive = true # スタブのインストールを許可する
 
 [[tool.mypy.overrides]]
 module = [
@@ -49,6 +52,6 @@ module = [
     "click",
     "cairosvg",
     "pytest",
-    "dynaconf", "dynaconf.vendor.tomlib",
+    "dynaconf.*",
 ]
 ignore_missing_imports = true

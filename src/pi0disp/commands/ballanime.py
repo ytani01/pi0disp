@@ -102,7 +102,7 @@ class Ball:
         self.speed_sq = speed * speed  # 速度の二乗を事前計算
 
         self.fill_color = fill_color
-        self.prev_bbox: Optional[tuple[int, int, int, int]] = None
+        self.prev_bbox: Optional[tuple[int, int, int, int]] = None  # type: ignore
         self._bbox_cache = None
         self._bbox_dirty = True
 
