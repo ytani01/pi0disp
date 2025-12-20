@@ -1,5 +1,6 @@
 # pi0disp - Raspberry Pi用 ST7789V 高速ディスプレイドライバ
 
+
 ## 概要
 
 `pi0disp`は、
@@ -58,29 +59,45 @@ sudo systemctl start pigpiod
 
 ## インストール
 
-1.  リポジトリをクローンします。
-    ```sh
-    git clone <repository_url>
-    cd pi0disp
-    ```
+### ``mise`` のインストール
+[mise-en-place](https://mise.jdx.dev/installing-mise.html)
 
-2.  Pythonの仮想環境を作成
-    ※ 有効化()は不要！
+``` bash
+curl https://mise.run | sh
+```
 
-    ```sh
-    python -m venv .venv
-    ```
+for bash
+``` bash
+curl https://mise.run/bash | sh
+```
 
-3.  依存パッケージをインストールします。
 
-    ```sh
-    pip install -e .
-    ```
+### ``uv`` のインストール
 
-    開発用の依存関係を含める場合は、以下のようにインストールしてください。
-    ```sh
-    pip install -e . --group dev
-    ```
+``` bash
+mise use -g uv@latest
+```
+
+
+### ``pi0disp`` のインストール
+
+
+```bash
+git clone <repository_url>
+cd pi0disp
+
+mise trust
+```
+
+
+```bash
+pip install -e .
+```
+
+開発用の依存関係を含める場合は、以下のようにインストールしてください。
+```sh
+pip install -e . --group dev
+```
 
 
 ## 使い方
@@ -102,21 +119,26 @@ uv run samples/basic_usage.py
 from pi0disp import ST7789V
 from PIL import Image, ImageDraw
 
-# ディスプレイを初期化
-with ST7789V() as lcd:
-    # PILを使って画像を作成
-    image = Image.new("RGB", (lcd.width, lcd.height), "black")
-    draw = ImageDraw.Draw(image)
+with ST7789V(bl_at_close=True) as lcd:  # ディスプレイを初期化
+    width = lcd.size.width    # 画面の幅
+    height = lcd.size.height  # 画面の高さ
+    margin = 25               # 余白
+    line_width = 10           # 先の太さ
 
-    # 円を描画
-    draw.ellipse(
-        (10, 10, lcd.width - 10, lcd.height - 10),
-        fill="blue",
-        outline="white"
+    image = Image.new("RGB", (width, height), "white")  # 土台となる画像
+    draw = ImageDraw.Draw(image)                        # 描画するためのキャンバス
+
+    draw.ellipse(                                       # 楕円の描画
+        (
+         (margin, margin),                  # 左上の座標
+         (width - margin, height - margin)  # 右下の座標
+        ),
+        fill="blue",       # 塗り潰しの色
+        width=line_width,  # 線の太さ
+        outline="red"      # 線の色
     )
 
-    # ディスプレイに表示
-    lcd.display(image)
+    lcd.display(image)  # ディスプレイに表示
 ```
 
 **部分更新（差分描画）:**
