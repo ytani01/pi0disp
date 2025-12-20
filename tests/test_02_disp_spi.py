@@ -36,7 +36,7 @@ def mock_disp_base_init(mock_pi_instance, mock_logger):
         obj_self.pi.connected = True
         obj_self._native_size = size
         obj_self._size = size
-        obj_self.rotation = rotation
+        obj_self._rotation = rotation
         obj_self.debug = debug
         # obj_self.__log = mock_logger
 
@@ -49,13 +49,13 @@ def mock_disp_base_init(mock_pi_instance, mock_logger):
 
 
 def create_disp_spi_instance(
+    bl_at_close: bool = False,
+    pin: SpiPins | None = None,
+    brightness: int = 255,
+    channel: int = DEFAULT_CHANNEL,
+    speed_hz: int = DEFAULT_SPEED_HZ,
     size: DispSize | None = None,
     rotation: int = DEFAULT_ROTATION,
-    bl_at_close: bool = False,
-    channel: int = DEFAULT_CHANNEL,
-    pin: SpiPins | None = None,
-    speed_hz: int = DEFAULT_SPEED_HZ,
-    brightness: int = 255,
     debug: bool = False,
 ) -> DispSpi:
     """Helper to create DispSpi instance."""
@@ -65,13 +65,13 @@ def create_disp_spi_instance(
         pin = DEFAULT_PIN
 
     return DispSpi(
+        bl_at_close=bl_at_close,
+        pin=pin,
+        brightness=brightness,
+        channel=channel,
+        speed_hz=speed_hz,
         size=size,
         rotation=rotation,
-        bl_at_close=bl_at_close,
-        channel=channel,
-        pin=pin,
-        speed_hz=speed_hz,
-        brightness=brightness,
         debug=debug,
     )
 

@@ -22,7 +22,7 @@ def create_disp_base_instance(
         size = DEFAULT_SIZE
     if rotation is None:
         raise ValueError("rotation must be specified")
-    return DispBase(size, rotation, debug)
+    return DispBase(size=size, rotation=rotation, debug=debug)
 
 
 def test_init_success(mock_pi_constructor, mock_logger, mock_pi_instance):
@@ -35,9 +35,9 @@ def test_init_success(mock_pi_constructor, mock_logger, mock_pi_instance):
     mock_logger.assert_called_once_with("DispBase", False)
     assert disp_base.pi.connected
 
-    # DispBase.__init__でrotationが考慮され、sizeがスワップされる
-    assert disp_base.size.width == DEFAULT_SIZE.height
-    assert disp_base.size.height == DEFAULT_SIZE.width
+    # DispBase.__init__でrotationが考慮される
+    assert disp_base.size.width == DEFAULT_SIZE.width
+    assert disp_base.size.height == DEFAULT_SIZE.height
 
     assert disp_base._native_size == DEFAULT_SIZE
     assert disp_base._rotation == DEFAULT_ROTATION

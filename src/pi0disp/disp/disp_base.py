@@ -58,6 +58,7 @@ class DispBase(metaclass=ABCMeta):
                 rotation = self.DEF_ROTATION
                 self.__log.debug("rotation=%s [DEF_ROTATION]", rotation)
         self._rotation = rotation
+        self.rotation = rotation
 
         # Initialize pigpio
         self.pi = pigpio.pi()
@@ -96,6 +97,8 @@ class DispBase(metaclass=ABCMeta):
         """Sets the display rotation."""
         # self.__log.debug("rotation=%s", rotation)
 
+        self._rotation = rotation
+
         # Swap width and height for portrait/landscape modes
         if rotation in (90, 270):
             self._size = DispSize(
@@ -104,7 +107,7 @@ class DispBase(metaclass=ABCMeta):
         else:
             self._size = self._native_size
 
-        self._rotation = rotation
+        self.__log.debug("rotation=%s,size=%s", self._rotation, self.size)
 
     @property
     def conf(self):
