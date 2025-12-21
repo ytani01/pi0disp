@@ -15,15 +15,15 @@ class SpiPins(NamedTuple):
 
     rst: int
     dc: int
-    bl: Optional[int] = None
     cs: Optional[int] = None
+    bl: Optional[int] = None
 
 
 class DispSpi(DispBase):
     """SPI Display."""
 
     # DEF_PIN = SpiPins(rst=25, dc=24, bl=23)
-    DEF_PIN_DICT = {"rst": 25, "dc": 24, "bl": 23, "cs": 0}
+    DEF_PIN_DICT = {"rst": 25, "dc": 24, "bl": 23, "cs": 8}
     SPEED_HZ = {
         "default": 8_000_000,
         "max": 32_000_000,
@@ -54,8 +54,8 @@ class DispSpi(DispBase):
             pd = self.DEF_PIN_DICT.copy()
             for k in ["rst", "dc", "bl", "cs"]:
                 if self._conf.data.get("spi").get(k):
-                    pd["rst"] = self._conf.data.spi.get(k)
-            pin = SpiPins(pd["rst"], pd["dc"], pd["bl"], pd["cs"])
+                    pd[k] = self._conf.data.spi.get(k)
+            pin = SpiPins(pd["rst"], pd["dc"], pd["bl"])
             self._log.debug("GPIO: pin=%s", pin)
         self.pin = pin
 

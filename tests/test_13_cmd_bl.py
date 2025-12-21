@@ -7,11 +7,11 @@ from click.testing import CliRunner
 from pi0disp.commands.bl import bl_cmd
 
 
-@patch("pi0disp.commands.bl.ST7789V")
-def test_bl_success(mock_st7789v):
+@patch("pi0disp.commands.bl.DispSpi")
+def test_bl_success(mock_disp_spi):
     """'bl' コマンドの正常系テスト."""
     mock_lcd = MagicMock()
-    mock_st7789v.return_value.__enter__.return_value = mock_lcd
+    mock_disp_spi.return_value.__enter__.return_value = mock_lcd
 
     runner = CliRunner()
     # 輝度 128 を設定
@@ -21,7 +21,7 @@ def test_bl_success(mock_st7789v):
     mock_lcd.set_brightness.assert_called_once_with(128)
 
 
-@patch("pi0disp.commands.bl.ST7789V")
+@patch("pi0disp.commands.bl.DispSpi")
 def test_bl_clamp(mock_st7789v):
     """'bl' コマンドの値のクランプテスト."""
     mock_lcd = MagicMock()

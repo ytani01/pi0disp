@@ -8,10 +8,7 @@ from .commands.ballanime import ballanime
 from .commands.bl import bl_cmd as bl
 from .commands.coltest import coltest
 from .commands.image import image
-from .commands.off import off
 from .commands.rgb import rgb
-from .commands.sleep import sleep
-from .commands.wake import wake
 
 
 @click.group(invoke_without_command=True)
@@ -33,9 +30,6 @@ def cli(ctx: click.Context, debug: bool) -> None:
 
 
 cli.add_command(ballanime)
-cli.add_command(sleep)
-cli.add_command(wake)
-cli.add_command(off)
 cli.add_command(rgb)
 cli.add_command(image)
 cli.add_command(coltest)

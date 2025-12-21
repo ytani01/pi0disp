@@ -5,6 +5,7 @@ height = 320
 rotation = 270
 
 [pi0disp.spi]
+cs = 8
 rst = 25
 dc = 24
 bl = 23
