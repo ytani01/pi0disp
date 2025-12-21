@@ -17,7 +17,7 @@ servo.json
 *.FCBak
 
 #
-uv.lock
+*.lock
 
 #
 *:Zone.Identifier
