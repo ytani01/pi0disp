@@ -49,7 +49,7 @@ def bl_cmd(ctx, val, bl, debug):
             pi.set_PWM_dutycycle(bl, val)
             val2 = pi.get_PWM_dutycycle(bl)
             __log.info(
-                "bl=%s: backlight brightness: %s --> %s", val, val1, val2
+                "bl[GPIO%s]: backlight brightness: %s --> %s", bl, val1, val2
             )
         else:
             raise RuntimeError(
