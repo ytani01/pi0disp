@@ -137,7 +137,7 @@ class LcdOutput(DisplayOutput):
             raise RuntimeError(msg)
 
         try:
-            self.lcd = ST7789V(rotation=270, debug=True)
+            self.lcd = ST7789V(rotation=270, debug=debug)
         except Exception as e:
             self.__log.error(errmsg(e))
             raise RuntimeError(errmsg(e))
