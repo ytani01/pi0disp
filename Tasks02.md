@@ -1,0 +1,30 @@
+## `test_04_disp_conf.py` のタスクリスト
+
+- [x] `tests/test_04_disp_conf.py` ファイルを作成する。
+- [x] 必要なモジュールをインポートする (`pytest`, `unittest.mock` の `MagicMock` と `patch`, `tempfile`, `os`, `pathlib`)。
+- [x] 設定ファイルを一時的に作成・削除するための `toml_file_fixture` フィクスチャを作成する。
+    - `toml_file_fixture` は、有効なTOML形式、無効なTOML形式、空のファイル、存在しないファイルを扱うことができるようにする。
+- [x] `mylogger` をモックするための `mock_logger` フィクスチャを作成する。
+- [x] `os.path` 関連関数をモックするためのフィクスチャを作成する（`expanduser`, `expandvars` など）。
+- [x] `DispConf` インスタンスを生成するヘルパー関数 `create_disp_conf_instance` を作成する。
+- [ ] **`__init__` メソッドのテスト**
+    - [x] デフォルト引数での初期化が成功することを確認するテストケース (`test_init_default_args`)。
+    - [x] カスタムファイル名での初期化が成功することを確認するテストケース (`test_init_custom_filename`)。
+    - [x] `debug=True` で初期化された場合、ロガーがデバッグモードになっていること（モックで検証）。
+    - [x] 設定ファイルが見つからない場合に `_data` が `None` になることを確認するテストケース (`test_init_no_conf_file`)。
+    - [x] 不正な形式の設定ファイル（TOMLDecodeError）の場合に `_data` が `None` になること。
+- [ ] **プロパティのテスト**
+    - [x] `pkg_name` プロパティが正しいパッケージ名を返すことを確認するテストケース (`test_pkg_name_property`)。
+    - [x] `conf_filename` プロパティが正しい設定ファイル名を返すことを確認するテストケース (`test_conf_filename_property`)。
+    - [x] `data` プロパティが `Dynaconf` オブジェクトを返すことを確認するテストケース (`test_data_property_valid`)。
+    - [x] `data` プロパティが `None` を返すことを確認するテストケース (`test_data_property_none`)。
+- [ ] **`load` メソッドのテスト**
+    - [x] 有効な設定ファイルパスのリストとパッケージ名で設定を正常に読み込むことを確認するテストケース (`test_load_success`)。
+    - [x] `settings_files` が `None` の場合にデフォルトパスを使用することを確認するテストケース (`test_load_default_settings_files`)。
+    - [x] `pkg_name` が `None` の場合にデフォルトパッケージ名を使用することを確認するテストケース (`test_load_default_pkg_name`)。
+    - [x] 不正なTOML形式のファイルパスを渡した場合に `TOMLDecodeError` が捕捉され `None` が返されることを確認するテストケース (`test_load_invalid_toml_error`)。
+- [ ] **`to_dict` メソッドのテスト**
+    - [x] 設定が正常に読み込まれた場合、辞書形式で設定データが返されることを確認するテストケース (`test_to_dict_success`)。
+    - [x] 設定が読み込まれなかった場合（`_data` が `None` の場合）、`None` が返されることを確認するテストケース (`test_to_dict_none`)。
+- [x] すべてのテストがパスすることを確認するため、`uv run test tests/test_04_disp_conf.py` を実行する。
+- [ ] `mise run test` を実行し、リンティングと全てのテストがパスすることを確認する。
