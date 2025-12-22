@@ -6,7 +6,7 @@ from typing import NamedTuple, Optional, Union
 
 import pigpio
 
-from ..utils.mylogger import errmsg
+from ..utils.mylogger import errmsg, get_logger
 from .disp_base import DispBase, DispSize
 
 
@@ -35,7 +35,7 @@ class DispSpi(DispBase):
         pin: SpiPins | None = None,
         brightness: int = 255,
         channel: int = 0,
-        speed_hz: int = SPEED_HZ["default"],
+        speed_hz: int | None = None,
         *,
         size: DispSize | None = None,
         rotation: int | None = None,
@@ -43,8 +43,8 @@ class DispSpi(DispBase):
     ):
         super().__init__(size, rotation, debug=debug)
         self.__debug = debug
-        # self.__log = get_logger(self.__class__.__name__, self.__debug) # DELETE this line
-        self._log.debug("bl_at_close=%s", bl_at_close)
+        self._log = get_logger(self.__class__.__name__, self.__debug) # DELETE this line
+        self._log.debug("bl_at_close=%s, brightness=%s", bl_at_close, brightness)
         self._log.debug("SPI: channel=%s,speed_hz=%s", channel, speed_hz)
         self._log.debug("GPIO: pin=%s", pin)
 
@@ -60,6 +60,14 @@ class DispSpi(DispBase):
             )
             self._log.debug("GPIO: pin=%s", pin)
         self.pin = pin
+
+        if speed_hz is None:
+            speed_hz = self.conf.data.spi.get("speed_hz")
+            if speed_hz:
+                self._log.debug("speed_hz=%s (conf)", speed_hz)
+            else:
+                speed_hz = self.SPEED_HZ["default"]
+                self._log.debug("speed_hz=%s (default)", speed_hz)
 
         self._brightness = brightness
         self._backlight_on = False
@@ -133,6 +141,8 @@ class DispSpi(DispBase):
         """Initialize Display."""
         self._log.debug("backlight ON")
 
+        self.set_backlight(True)
+
         # Hardware reset
         self.pi.write(self.pin.rst, 1)
         time.sleep(0.01)
@@ -140,8 +150,6 @@ class DispSpi(DispBase):
         time.sleep(0.01)
         self.pi.write(self.pin.rst, 1)
         time.sleep(0.150)
-
-        self.set_backlight(True)
 
     def close(self, bl_switch: bool | None = None):
         """Cleans up resources.

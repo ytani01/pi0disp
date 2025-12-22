@@ -18,7 +18,7 @@ print("基本的な使用例: 青い円を描画します。")
 with ST7789V(debug=True) as lcd:
     # PILを使って画像を作成
     image1 = Image.new(
-        "RGB", (lcd.size["width"], lcd.size["height"]), "white"
+        "RGB", (lcd.size.width, lcd.size.height), "white"
     )
     # image2 = image1.copy()
     draw = ImageDraw.Draw(image1)
@@ -30,7 +30,7 @@ with ST7789V(debug=True) as lcd:
 
     # 円を描画
     draw.ellipse(
-        (10, 10, lcd.size["width"] - 10, lcd.size["height"] - 10),
+        (10, 10, lcd.size.width - 10, lcd.size.height - 10),
         fill="blue",
         outline="white",
     )
@@ -48,8 +48,8 @@ with ST7789V(debug=True) as lcd:
     W: int = 100
     H: int = 50
 
-    x1: int = int(lcd.size["width"] / 2 - W / 2)
-    y1: int = int(lcd.size["height"] / 2 - H / 2)
+    x1: int = int(lcd.size.width / 2 - W / 2)
+    y1: int = int(lcd.size.height / 2 - H / 2)
     x2: int = x1 + W
     y2: int = y1 + H
 
