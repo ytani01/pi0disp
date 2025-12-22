@@ -1,6 +1,5 @@
 """Tests for 'bl' command."""
 
-from unittest.mock import MagicMock
 
 from click.testing import CliRunner
 
