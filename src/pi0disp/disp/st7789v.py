@@ -9,10 +9,10 @@ optimized for Raspberry Pi environments. It leverages the `performance_core`
 module to achieve high frame rates with low CPU usage.
 """
 
+import time
 from typing import Optional, Tuple
 
 import numpy as np
-import pigpio
 from PIL import Image
 
 from ..utils.mylogger import get_logger
@@ -83,15 +83,15 @@ class ST7789V(DispSpi):
 
         # Initialization sequence
         self._write_command(self.CMD["SWRESET"])
-        self.pi.wait_for_edge(0, pigpio.RISING_EDGE, 0.150)
+        time.sleep(0.150)
         self._write_command(self.CMD["SLPOUT"])
-        self.pi.wait_for_edge(0, pigpio.RISING_EDGE, 0.5)
+        time.sleep(0.5)
         self._write_command(self.CMD["COLMOD"])
         self._write_data(0x55)  # 16 bits per pixel
         self._write_command(self.CMD["INVON"])
         self._write_command(self.CMD["NORON"])
         self._write_command(self.CMD["DISPON"])
-        self.pi.wait_for_edge(0, pigpio.RISING_EDGE, 0.1)
+        time.sleep(0.1)
 
     def set_rotation(self, rotation: int):
         """Sets the display rotation."""

@@ -6,7 +6,7 @@ from typing import NamedTuple, Optional, Union
 
 import pigpio
 
-from ..utils.mylogger import errmsg, get_logger
+from ..utils.mylogger import errmsg
 from .disp_base import DispBase, DispSize
 
 
@@ -43,8 +43,10 @@ class DispSpi(DispBase):
     ):
         super().__init__(size, rotation, debug=debug)
         self.__debug = debug
-        self._log = get_logger(self.__class__.__name__, self.__debug) # DELETE this line
-        self._log.debug("bl_at_close=%s, brightness=%s", bl_at_close, brightness)
+
+        self._log.debug(
+            "bl_at_close=%s, brightness=%s", bl_at_close, brightness
+        )
         self._log.debug("SPI: channel=%s,speed_hz=%s", channel, speed_hz)
         self._log.debug("GPIO: pin=%s", pin)
 

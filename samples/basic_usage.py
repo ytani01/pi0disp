@@ -17,9 +17,7 @@ print("基本的な使用例: 青い円を描画します。")
 # ディスプレイを初期化
 with ST7789V(debug=True) as lcd:
     # PILを使って画像を作成
-    image1 = Image.new(
-        "RGB", (lcd.size.width, lcd.size.height), "white"
-    )
+    image1 = Image.new("RGB", (lcd.size.width, lcd.size.height), "white")
     # image2 = image1.copy()
     draw = ImageDraw.Draw(image1)
     lcd.display(image1)

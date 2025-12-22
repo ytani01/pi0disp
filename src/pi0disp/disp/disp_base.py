@@ -131,3 +131,17 @@ class DispBase(metaclass=ABCMeta):
             self.pi.stop()
         else:
             self._log.warning("self.pi.conencted=%s", self.pi.connected)
+
+
+def get_display_info(debug=False) -> dict:
+    """Get display info from config file."""
+    log = get_logger("get_display_info", debug)
+    log.debug("read config file")
+
+    conf = MyConf(debug=debug)
+    width = conf.data.get("width")
+    height = conf.data.get("height")
+    rotation = conf.data.get("rotation")
+    log.debug("width=%s, height=%s, rotation=%s", width, height, rotation)
+
+    return {"width": width, "height": height, "rotation": rotation}
