@@ -15,7 +15,12 @@ from ..utils.mylogger import get_logger
 @click.command()
 @click.argument("val", type=int)
 @click.option(
-    "--bl", type=int, default=None, show_default=True, help="Backlight PIN"
+    "--bl",
+    "-b",
+    type=int,
+    default=None,
+    show_default=True,
+    help="Backlight PIN",
 )
 @click_common_opts(__version__)
 def bl_cmd(ctx, val, bl, debug):

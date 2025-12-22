@@ -99,7 +99,9 @@ def test_pigpio_connection_failure(cli_mock_env):
 
     result = runner.invoke(bl_cmd, [str(brightness)], catch_exceptions=False)
     assert result.exit_code == 0
-    assert "Could not connect to pigpio daemon. Is it running?" in result.output
+    assert (
+        "Could not connect to pigpio daemon. Is it running?" in result.output
+    )
     mock_pi_instance.set_PWM_dutycycle.assert_not_called()
     mock_pi_instance.stop.assert_called_once()  # finallyブロックでstopが呼ばれることを確認
 
