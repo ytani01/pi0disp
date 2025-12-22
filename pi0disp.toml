@@ -9,5 +9,6 @@ cs = 8
 rst = 25
 dc = 24
 bl = 23
+#bl = 0
 channel = 0
 speed_hz = 4_000_000

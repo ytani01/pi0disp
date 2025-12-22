@@ -14,7 +14,9 @@ from ..utils.mylogger import get_logger
 
 @click.command()
 @click.argument("val", type=int)
-@click.option("--bl", type=int, help="BL PIN")
+@click.option(
+    "--bl", type=int, default=None, show_default=True, help="Backlight PIN"
+)
 @click_common_opts(__version__)
 def bl_cmd(ctx, val, bl, debug):
     """Sets the backlight brightness (0-255)."""
@@ -26,15 +28,24 @@ def bl_cmd(ctx, val, bl, debug):
 
     pi = None
     try:
-        if not bl:
+        if bl is None:
             conf = DispConf(debug=debug)
             bl = conf.data.spi.bl
-            __log.debug("bl=%s", bl)
+            __log.debug("bl=%s (conf)", bl)
+
+        if bl == 0:
+            __log.warning("bl=%s: no backlight: do nothing", bl)
+            return
 
         pi = pigpio.pi()
         if pi.connected:
+            val1 = pi.get_PWM_dutycycle(bl)
             pi.set_mode(bl, pigpio.OUTPUT)
             pi.set_PWM_dutycycle(bl, val)
+            val2 = pi.get_PWM_dutycycle(bl)
+            __log.info(
+                "bl=%s: backlight brightness: %s --> %s", val, val1, val2
+            )
         else:
             raise RuntimeError(
                 "Could not connect to pigpio daemon. Is it running?"
@@ -45,6 +56,6 @@ def bl_cmd(ctx, val, bl, debug):
 
     finally:
         if pi:
-            __log.info("close pigpio connection")
+            __log.debug("close pigpio connection")
             pi.stop()
-        __log.info("Done.")
+        __log.debug("Done.")
