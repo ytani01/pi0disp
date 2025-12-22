@@ -55,7 +55,9 @@ class DispSpi(DispBase):
             for k in ["rst", "dc", "bl", "cs"]:
                 if self._conf.data.get("spi").get(k):
                     pd[k] = self._conf.data.spi.get(k)
-            pin = SpiPins(pd["rst"], pd["dc"], pd["bl"])
+            pin = SpiPins(
+                rst=pd["rst"], dc=pd["dc"], bl=pd["bl"], cs=pd["cs"]
+            )
             self._log.debug("GPIO: pin=%s", pin)
         self.pin = pin
 

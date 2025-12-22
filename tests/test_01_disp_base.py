@@ -1,6 +1,6 @@
 """Tests for DispBase."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 from PIL import Image
@@ -134,3 +134,113 @@ def test_close_does_not_call_pi_stop_when_not_connected(mock_pi_instance):
 
     disp_base.close()
     mock_pi_instance.stop.assert_not_called()
+
+
+def test_init_with_conf_size(mock_pi_constructor, mock_pi_instance):
+    """設定ファイルからサイズを読み込むテスト."""
+    with patch("pi0disp.disp.disp_base.MyConf") as MockMyConf:
+        mock_conf_instance = MockMyConf.return_value
+
+        # data プロパティが返すモックオブジェクトを設定
+        mock_data = MagicMock()
+
+        # .get() メソッドの挙動を設定
+        def get_side_effect(key):
+            if key == "width":
+                return 100
+            if key == "height":
+                return 200
+            return None
+
+        mock_data.get.side_effect = get_side_effect
+
+        # 属性アクセスの設定
+        type(mock_data).width = PropertyMock(return_value=100)
+        type(mock_data).height = PropertyMock(return_value=200)
+
+        mock_conf_instance.data = mock_data
+
+        # size=None で初期化
+        # create_disp_base_instance ヘルパーは size=None だと DEFAULT_SIZE を設定してしまうので、
+        # 設定ファイルからの読み込みをテストする場合は直接 DispBase を呼ぶ必要がある
+        disp_base = DispBase(
+            size=None, rotation=DEFAULT_ROTATION, debug=False
+        )
+
+        assert disp_base.size.width == 100
+        assert disp_base.size.height == 200
+        assert disp_base.native_size == DispSize(100, 200)
+
+
+def test_init_with_conf_rotation(mock_pi_constructor, mock_pi_instance):
+    """設定ファイルから回転を読み込むテスト."""
+    with patch("pi0disp.disp.disp_base.MyConf") as MockMyConf:
+        mock_conf_instance = MockMyConf.return_value
+
+        mock_data = MagicMock()
+        mock_data.get.side_effect = lambda k: 180 if k == "rotation" else None
+        type(mock_data).rotation = PropertyMock(return_value=180)
+
+        mock_conf_instance.data = mock_data
+
+        # rotation=None で初期化
+        # create_disp_base_instance ヘルパーは rotation=None だとエラーになるので直接 DispBase を呼ぶ
+        disp_base = DispBase(size=DEFAULT_SIZE, rotation=None)
+
+        assert disp_base.rotation == 180
+
+
+def test_init_defaults(mock_pi_constructor, mock_pi_instance):
+    """引数なし・設定ファイルなしの場合にデフォルト値が使われるテスト."""
+    with patch("pi0disp.disp.disp_base.MyConf") as MockMyConf:
+        mock_conf_instance = MockMyConf.return_value
+
+        mock_data = MagicMock()
+        mock_data.get.return_value = None
+        mock_conf_instance.data = mock_data
+
+        disp_base = DispBase(size=None, rotation=None)
+
+        assert disp_base.size == DispBase.DEF_SIZE
+        assert disp_base.rotation == DispBase.DEF_ROTATION
+
+
+def test_context_manager(mock_pi_constructor, mock_pi_instance, mock_logger):
+    """コンテキストマネージャ (__enter__, __exit__) のテスト."""
+
+    with DispBase(size=DEFAULT_SIZE, rotation=DEFAULT_ROTATION) as disp:
+        assert isinstance(disp, DispBase)
+        # __enter__ でログが出るはず
+        mock_logger.return_value.debug.assert_called()
+
+    # __exit__ で close が呼ばれ、pi.stop() が実行される
+    mock_pi_instance.stop.assert_called_once()
+    # __exit__ でもログが出る
+    assert mock_logger.return_value.debug.call_count >= 2
+
+
+def test_properties(mock_pi_instance):
+    """プロパティのテスト."""
+    disp_base = create_disp_base_instance(
+        size=DispSize(100, 200), rotation=90
+    )
+
+    # native_size
+    assert disp_base.native_size == DispSize(100, 200)
+
+    # conf
+    assert disp_base.conf is not None
+
+    # rotation settter logic check (initially 90)
+    # 90度なので width/height が swap されているはず
+    assert disp_base.size == DispSize(200, 100)
+
+    # rotation 変更 (180) -> swap 解除
+    disp_base.rotation = 180
+    assert disp_base.rotation == 180
+    assert disp_base.size == DispSize(100, 200)
+
+    # rotation 変更 (270) -> swap
+    disp_base.rotation = 270
+    assert disp_base.rotation == 270
+    assert disp_base.size == DispSize(200, 100)

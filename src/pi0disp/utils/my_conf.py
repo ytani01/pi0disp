@@ -75,7 +75,7 @@ class MyConf:
         )
 
         try:
-            return Dynaconf(settings_files=settings_files).get(self._pkg_name)
+            return Dynaconf(settings_files=settings_files).get(pkg_name)
 
         except TOMLDecodeError as e:
             self.__log.error("%s: configuration is not loaded.", errmsg(e))

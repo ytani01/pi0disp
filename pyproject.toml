@@ -64,4 +64,4 @@ module = [
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
-addopts = "-n auto --cov=pi0disp --cov-report=term-missing --cov-branch"
+addopts = "-v -n auto --cov=pi0disp --cov-report=term-missing --cov-branch"

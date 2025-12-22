@@ -146,6 +146,19 @@ def test_set_rotation(mock_pi_instance):
         disp.set_rotation(45)
 
 
+def test_set_rotation_no_spi_handle(mock_pi_instance):
+    """set_rotation()のテスト (spi_handleなし)."""
+    disp = create_st7789v_instance()
+    # spi_handle 属性を削除してシミュレーション
+    del disp.spi_handle
+    mock_pi_instance.reset_mock()
+
+    disp.set_rotation(90)
+
+    # コマンド送信されないこと
+    mock_pi_instance.spi_write.assert_not_called()
+
+
 def test_set_window(mock_pi_instance):
     """set_window()のテスト."""
     disp = create_st7789v_instance()
@@ -164,6 +177,23 @@ def test_set_window(mock_pi_instance):
     mock_pi_instance.reset_mock()
     disp.set_window(10, 10, 100, 100)
     assert mock_pi_instance.spi_write.call_count >= 5
+
+
+def test_set_window_cache(mock_pi_instance):
+    """set_window()のキャッシュ機能テスト."""
+    disp = create_st7789v_instance()
+    mock_pi_instance.reset_mock()
+
+    # 1回目
+    disp.set_window(0, 0, 100, 100)
+    assert mock_pi_instance.spi_write.call_count >= 1
+
+    # 2回目 (同じ値)
+    mock_pi_instance.reset_mock()
+    disp.set_window(0, 0, 100, 100)
+
+    # 送信されないはず
+    mock_pi_instance.spi_write.assert_not_called()
 
 
 def test_write_pixels(mock_pi_instance, mock_optimizer_pack):

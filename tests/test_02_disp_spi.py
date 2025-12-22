@@ -1,6 +1,6 @@
 """Tests for DispSpi."""
 
-from unittest.mock import ANY, call, patch
+from unittest.mock import ANY, MagicMock, PropertyMock, call, patch
 
 import pigpio
 import pytest
@@ -64,7 +64,7 @@ def create_disp_spi_instance(
     if pin is None:
         pin = DEFAULT_PIN
 
-    return DispSpi(
+    display = DispSpi(
         bl_at_close=bl_at_close,
         pin=pin,
         brightness=brightness,
@@ -74,6 +74,14 @@ def create_disp_spi_instance(
         rotation=rotation,
         debug=debug,
     )
+    # mock_disp_base_init が呼ばれると _conf が設定されるはずだが、
+    # DispSpi は コンストラクタ内で _conf を使う場合がある (pin=None の場合)。
+    # ヘルパーが pin=None を渡す場合、DispSpi は _conf を参照しようとして
+    # mock_disp_base_init が _conf をセットしていないと失敗する可能性がある。
+    # しかし現在の mock_disp_base_init は _conf をセットしない。
+    # 通常のテストケースでは pin != None で呼び出されるので問題ない。
+
+    return display
 
 
 def test_init_success(
@@ -265,3 +273,247 @@ def test_close_with_bl_on(mock_pi_instance, mock_disp_base_init):
         mock_pi_instance.stop.assert_called_once()
         mock_super_close.assert_called_once()
         mock_pi_instance.set_PWM_dutycycle.assert_any_call(disp.pin.bl, 255)
+
+
+def test_set_brightness_no_bl_pin(mock_pi_instance, mock_disp_base_init):
+    """set_brightness()のテスト (BLピンなし)."""
+    no_bl_pin = SpiPins(rst=11, dc=10, bl=None)
+    disp = create_disp_spi_instance(pin=no_bl_pin)
+
+    mock_pi_instance.set_PWM_dutycycle.reset_mock()
+
+    disp.set_brightness(128)
+    # BLピンがないのでPWM制御は呼ばれない
+    mock_pi_instance.set_PWM_dutycycle.assert_not_called()
+
+
+def test_set_backlight_no_bl_pin(mock_pi_instance, mock_disp_base_init):
+    """set_backlight()のテスト (BLピンなし)."""
+    no_bl_pin = SpiPins(rst=11, dc=10, bl=None)
+    disp = create_disp_spi_instance(pin=no_bl_pin)
+
+    mock_pi_instance.set_PWM_dutycycle.reset_mock()
+
+    disp.set_backlight(True)
+    mock_pi_instance.set_PWM_dutycycle.assert_not_called()
+
+    disp.set_backlight(False)
+    mock_pi_instance.set_PWM_dutycycle.assert_not_called()
+
+
+def test_close_spi_close_error(
+    mock_pi_instance, mock_disp_base_init, mock_logger
+):
+    """close時にspi_closeが例外を投げても処理が継続することを確認."""
+    with patch.object(DispBase, "close") as mock_super_close:
+        mock_pi_instance.spi_close.side_effect = RuntimeError("SPI Error")
+
+        disp = create_disp_spi_instance()
+        disp.pi.connected = True
+        disp.spi_handle = 0
+
+        disp.close()
+
+        # エラーログが出て、super().close() までは到達する
+        mock_logger.warning.assert_called()
+        mock_super_close.assert_called_once()
+
+
+def test_close_not_connected(
+    mock_pi_instance, mock_disp_base_init, mock_logger
+):
+    """connected=False時のclose動作."""
+    with patch.object(DispBase, "close") as mock_super_close:
+        disp = create_disp_spi_instance()
+        disp.pi.connected = False
+
+        disp.close()
+
+        # spi_close や backlight 制御は呼ばれない
+        mock_pi_instance.spi_close.assert_not_called()
+        mock_pi_instance.set_PWM_dutycycle.assert_not_called()
+
+        # 警告ログが出る
+        mock_logger.warning.assert_called_with("pi.connected=%s", False)
+        mock_super_close.assert_called_once()
+
+
+def test_init_with_conf_pins(mock_pi_instance, mock_disp_base_init):
+    """設定ファイルからピン配置を読み込むテスト."""
+
+    # DispBase.__init__ のモックで _conf を注入する必要があるが、
+    # DispSpi.__init__ 内で self._conf.data を参照している。
+    # mock_disp_base_init は DispBase.__init__ をモックしているが、
+    # 呼び出し元の DispSpi インスタンス (obj_self) に対して属性を設定している。
+
+    # DispBase.__init__ は super().__init__ で呼ばれる。
+    # その後、DispSpi は self._conf を使う。
+    # mock_disp_base_init で obj_self._conf を設定してあげる必要がある。
+
+    with patch(
+        "pi0disp.disp.disp_base.MyConf"
+    ):  # ここでのPatchはDispBase内でのimportに依存
+        # しかし DispSpi は DispBase を継承しており、DispBase.__init__ を呼ぶ。
+        # 今回 DispBase.__init__ は mock_disp_base_init で完全に置き換えられている。
+        # なので、mock_disp_base_init 内で `obj_self._conf` をセットするように振る舞いを変えるか、
+        # ここで `MyConf` を使って手動でセットする。
+
+        # mock_disp_base_init を少し拡張するのは難しいので、
+        # DispSpi.__init__ の pin=None ルートを通すために、
+        # DispSpiインスタンスが作られる過程で _conf が利用可能になっている必要がある。
+
+        # 実装を見ると:
+        # super().__init__(...)  <-- ここで self._conf が生成される (はずだがモックされている)
+        # if pin is None:
+        #    ... self._conf.data ...
+
+        # したがって、mock_disp_base_init が呼ばれたときに _conf をセットするように副作用を追加する。
+        # しかし mock_disp_base_init は fixture なので、ここだけ挙動を変えるのは少し手間。
+        # 既存の mock_disp_base_init は _conf をセットしていない (コードを見ると)。
+        # DispSpi のテストでは今まで self._conf を使っていなかったから問題なかった。
+
+        # 戦略: mock_disp_base_init の side_effect をラップするか、
+        # DispSpi.__init__ の内部実装に踏み込んで self._conf を事前に用意するのは無理（__init__実行中なので）。
+
+        # fixture を使わずに個別に patch するのが正攻法だが、
+        # ここでは mock_disp_base_init が返す mock オブジェクトの side_effect を上書き更新する。
+
+        original_side_effect = mock_disp_base_init.side_effect
+
+        # モックデータ構築
+        mock_conf_data = MagicMock()
+        # self._conf.data.get("spi").get("rst") -> 11
+        # self._conf.data.spi.get("rst") -> 11
+
+        mock_spi_conf = MagicMock()
+        mock_spi_conf.get.side_effect = lambda k: {
+            "rst": 11,
+            "dc": 12,
+            "bl": 13,
+            "cs": 8,
+        }.get(k)
+
+        mock_conf_data.get.side_effect = (
+            lambda k: mock_spi_conf if k == "spi" else None
+        )
+
+        # attribute access: self._conf.data.spi
+        type(mock_conf_data).spi = PropertyMock(return_value=mock_spi_conf)
+
+        mock_conf = MagicMock()
+        mock_conf.data = mock_conf_data
+
+        def custom_init_side_effect(obj_self, *args, **kwargs):
+            original_side_effect(obj_self, *args, **kwargs)
+            obj_self._conf = mock_conf
+
+        mock_disp_base_init.side_effect = custom_init_side_effect
+
+        # テスト実行
+        # create_disp_spi_instance ヘルパーを使うと pin=None が DEFAULT_PIN に置換されるため
+        # 直接コンストラクタを呼ぶ
+        disp = DispSpi(pin=None)
+
+        # 確認
+        expected_pin = SpiPins(rst=11, dc=12, bl=13, cs=8)
+        assert disp.pin == expected_pin
+
+        # side_effect を元に戻す (他のテストへの影響回避)
+        mock_disp_base_init.side_effect = original_side_effect
+
+
+def test_init_with_conf_pins_partial(mock_pi_instance, mock_disp_base_init):
+    """設定ファイルからピン配置を読み込むテスト (一部欠損)."""
+    original_side_effect = mock_disp_base_init.side_effect
+
+    mock_conf_data = MagicMock()
+    mock_spi_conf = MagicMock()
+    # "bl" が設定にないケース
+    mock_spi_conf.get.side_effect = lambda k: {
+        "rst": 11,
+        "dc": 12,
+        "cs": 8,
+    }.get(k)
+
+    mock_conf_data.get.side_effect = (
+        lambda k: mock_spi_conf if k == "spi" else None
+    )
+    type(mock_conf_data).spi = PropertyMock(return_value=mock_spi_conf)
+
+    mock_conf = MagicMock()
+    mock_conf.data = mock_conf_data
+
+    def custom_init_side_effect(obj_self, *args, **kwargs):
+        original_side_effect(obj_self, *args, **kwargs)
+        obj_self._conf = mock_conf
+
+    mock_disp_base_init.side_effect = custom_init_side_effect
+
+    disp = DispSpi(pin=None)
+
+    # bl はデフォルト(23)が使われるはず
+    expected_pin = SpiPins(rst=11, dc=12, bl=23, cs=8)
+    assert disp.pin == expected_pin
+
+    mock_disp_base_init.side_effect = original_side_effect
+
+
+def test_set_brightness_bl_off(mock_pi_instance, mock_disp_base_init):
+    """バックライトOFF時の set_brightness() テスト."""
+    disp = create_disp_spi_instance()
+    # 初期状態は backlight_on = False
+    assert not disp._backlight_on
+
+    mock_pi_instance.set_PWM_dutycycle.reset_mock()
+
+    disp.set_brightness(100)
+
+    # 値は保持される
+    assert disp._brightness == 100
+    # しかしPWM制御はされない
+    mock_pi_instance.set_PWM_dutycycle.assert_not_called()
+
+
+def test_close_invalid_spi_handle(mock_pi_instance, mock_disp_base_init):
+    """spi_handle < 0 の場合の close() テスト."""
+    with patch.object(DispBase, "close") as mock_super_close:
+        disp = create_disp_spi_instance()
+        disp.pi.connected = True
+        disp.spi_handle = -1  # Invalid handle
+
+        disp.close()
+
+        # spi_close は呼ばれない
+        mock_pi_instance.spi_close.assert_not_called()
+        mock_super_close.assert_called_once()
+
+
+def test_close_no_backlight_pin(mock_pi_instance, mock_disp_base_init):
+    """Backlight pin が None の場合の close() テスト."""
+    with patch.object(DispBase, "close") as mock_super_close:
+        no_bl_pin = SpiPins(rst=11, dc=10, bl=None)
+        # create_helpers will replace pin=None but here we pass specific pin struct
+        disp = create_disp_spi_instance(pin=no_bl_pin)
+        disp.pi.connected = True
+        disp.spi_handle = 0
+
+        disp.close()
+
+        # set_backlight 関連(PWM)は呼ばれない
+        mock_pi_instance.set_PWM_dutycycle.assert_not_called()
+        mock_super_close.assert_called_once()
+
+
+def test_close_explicit_bl_switch_true(mock_pi_instance, mock_disp_base_init):
+    """close(bl_switch=True) のテスト."""
+    with patch.object(DispBase, "close") as mock_super_close:
+        disp = create_disp_spi_instance()
+        disp.pi.connected = True
+
+        # Explicitly pass True
+        disp.close(bl_switch=True)
+
+        mock_pi_instance.set_PWM_dutycycle.assert_called_with(
+            disp.pin.bl, 255
+        )
+        mock_super_close.assert_called_once()
