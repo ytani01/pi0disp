@@ -23,8 +23,8 @@ servo.json
 *:Zone.Identifier
 
 .env
-
 .pypirc
+.coverage
 
 .*_cache/
 
