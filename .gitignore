@@ -1,19 +1,20 @@
 #
 tmp*
 
-prompts.md
-Plan.md
-Tasks.md
-.gemini/
+## Gemini CLI
+# prompts.md
+# Plan*.md
+# Tasks*.md
+# .gemini/
 # .serena/
-archives/
+# archives/
 
 #
 ottopi0.toml
 servo.json
 .markdown*
 
-# FreeCAD
+## FreeCAD
 *.FCBak
 
 #

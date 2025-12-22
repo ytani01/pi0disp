@@ -77,6 +77,33 @@ def test_clamp_with_config(cli_mock_env, input_args, expected_dutycycle):
     )
 
 
+def test_config_zero_from_conf(cli_mock_env):
+    """設定ファイルで bl が 0 の場合（bl is Noneパス経由で何もしない）."""
+    runner, mock_pi_instance, mock_dynaconf = cli_mock_env
+    brightness = 100
+    mock_dynaconf.get.return_value.spi.bl = 0  # Configured bl_pin as 0
+
+    result = runner.invoke(bl_cmd, [str(brightness)])
+    assert result.exit_code == 0
+    mock_pi_instance.set_PWM_dutycycle.assert_not_called()
+    assert "no backlight: do nothing" in result.output
+
+
+def test_pigpio_connection_failure(cli_mock_env):
+    """pigpioデーモンに接続できない場合のエラーハンドリング."""
+    runner, mock_pi_instance, mock_dynaconf = cli_mock_env
+    bl_pin = 23
+    brightness = 128
+    mock_dynaconf.get.return_value.spi.bl = bl_pin
+    mock_pi_instance.connected = False  # 接続失敗をシミュレート
+
+    result = runner.invoke(bl_cmd, [str(brightness)], catch_exceptions=False)
+    assert result.exit_code == 0
+    assert "Could not connect to pigpio daemon. Is it running?" in result.output
+    mock_pi_instance.set_PWM_dutycycle.assert_not_called()
+    mock_pi_instance.stop.assert_called_once()  # finallyブロックでstopが呼ばれることを確認
+
+
 def test_help_message():
     """ヘルプメッセージ表示テスト."""
     runner = CliRunner()
