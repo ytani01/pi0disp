@@ -33,8 +33,8 @@ def bl_cmd(ctx, val, bl, debug):
 
         pi = pigpio.pi()
         if pi.connected:
-            pi.set_mode(bl, pigpio.OUTPUT); print("AAA")
-            pi.set_PWM_dutycycle(bl, val); print("BBB")
+            pi.set_mode(bl, pigpio.OUTPUT)
+            pi.set_PWM_dutycycle(bl, val)
         else:
             raise RuntimeError(
                 "Could not connect to pigpio daemon. Is it running?"
