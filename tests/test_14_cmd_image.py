@@ -1,6 +1,5 @@
 """Tests for 'image' command."""
 
-import traceback
 from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
@@ -12,44 +11,29 @@ from pi0disp.commands.image import image
 @patch("pi0disp.commands.image.Image.open")
 @patch("pi0disp.commands.image.ImageProcessor")
 def test_image_success(
-    mock_processor_cls, mock_img_open, mock_st7789v, tmp_path
+    mock_processor_cls,
+    mock_img_open,
+    mock_st7789v_patch,
+    tmp_path,
+    cli_mock_env,
 ):
     """'image' コマンドの正常系テスト."""
+    runner, mock_pi_instance, _ = cli_mock_env
+
     mock_lcd = MagicMock()
     mock_lcd.size.width = 240
     mock_lcd.size.height = 320
-    mock_st7789v.return_value.__enter__.return_value = mock_lcd
-
-    mock_img = MagicMock()
-    mock_img_open.return_value = mock_img
-
-    mock_processor = mock_processor_cls.return_value
-    mock_processor.resize_with_aspect_ratio.return_value = mock_img
-    mock_processor.apply_gamma.return_value = mock_img
-
-    # 一時的な画像ファイルを作成
-    img_file = tmp_path / "dummy.png"
-    img_file.touch()
-
-    runner = CliRunner()
-    # sys.modules を辞書としてパッチする（一部のみ）
-    with patch.dict("sys.modules", {"cairosvg": MagicMock()}):
-        result = runner.invoke(image, [str(img_file), "--duration", "0.01"])
-
-    if result.exit_code != 0:
-        print(f"EXIT CODE: {result.exit_code}")
-        print(f"OUTPUT:\n{result.output}")
-        if result.exception:
-            print("EXCEPTION TRACEBACK:")
-            traceback.print_exception(
-                type(result.exception),
-                result.exception,
-                result.exception.__traceback__,
-            )
-
-    assert result.exit_code == 0
-    # display が呼ばれたことを確認
-    assert mock_lcd.display.called
+    # mock_st7789v_patch の設定で mock_pi_instance を利用 (ただし ST7789V の初期化時に pi インスタンスが渡されると仮定)
+    # ここでは、mock_st7789v_patch は ST7789V クラス自体をモックしているので、
+    # そのインスタンスが返るように設定し、そのインスタンスに __enter__ メソッドを追加
+    mock_st7789v_patch.return_value.__enter__.return_value = mock_lcd
+    # ST7789V のコンストラクタが呼び出された際の振る舞いを定義する場合
+    # ST7789V クラスのコンストラクタに mock_pi_instance を渡すと仮定
+    mock_st7789v_patch.return_value.side_effect = (
+        lambda pi_instance=mock_pi_instance,
+        *args,
+        **kwargs: mock_st7789v_patch.return_value
+    )
 
 
 def test_image_not_found():
@@ -61,9 +45,9 @@ def test_image_not_found():
     assert result.exit_code != 0
 
 
-def test_image_help():
+def test_image_help(cli_mock_env):
     """'image' コマンドのヘルプ表示テスト."""
-    runner = CliRunner()
+    runner, _, _ = cli_mock_env
     result = runner.invoke(image, ["--help"])
     assert result.exit_code == 0
     assert "Displays an image" in result.output

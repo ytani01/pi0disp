@@ -3,6 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from click.testing import CliRunner  # 追加
 
 from ._testbase_cli import (
     KEY_DOWN,
@@ -52,3 +53,30 @@ def mock_pi_instance(mock_pi_constructor):
     mock_instance.spi_open.return_value = 0
     mock_pi_constructor.return_value = mock_instance
     return mock_instance
+
+
+@pytest.fixture
+def cli_mock_env():
+    """
+    共通CLIモック環境フィクスチャ。
+
+    CliRunnerのインスタンス、pigpio.piのモック、Dynaconfのモックを提供する。
+    """
+    with (
+        patch("pigpio.pi") as mock_pi_constructor,
+        patch("pi0disp.disp.disp_conf.Dynaconf") as mock_dynaconf_class,
+    ):
+        mock_pi_instance = MagicMock()
+        mock_pi_instance.connected = True
+        mock_pi_instance.get_PWM_dutycycle.return_value = 0
+        mock_pi_constructor.return_value = mock_pi_instance
+
+        mock_dynaconf_instance = MagicMock()
+        mock_dynaconf_instance.get.return_value = (
+            MagicMock()
+        )  # .spi.blなどの属性アクセスを可能にする
+        mock_dynaconf_class.return_value = mock_dynaconf_instance
+
+        runner = CliRunner()
+
+        yield runner, mock_pi_instance, mock_dynaconf_instance

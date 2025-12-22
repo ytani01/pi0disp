@@ -1,72 +1,85 @@
-"""Tests for 'bl' command."""
-
+import pytest
 from click.testing import CliRunner
 
 from pi0disp.commands.bl import bl_cmd
-from pi0disp.disp.disp_conf import DispConf
 
 
-def test_bl_success(mock_pi_instance):
-    """'bl' コマンドの正常系テスト."""
-    conf = DispConf()
-    bl_pin = conf.data.spi.bl
-
-    runner = CliRunner()
-    # 輝度 128 を設定
-    result = runner.invoke(bl_cmd, ["128"])
-
-    assert result.exit_code == 0
-    mock_pi_instance.set_PWM_dutycycle.assert_called_once_with(bl_pin, 128)
-
-
-def test_bl_clamp(mock_pi_instance):
-    """'bl' コマンドの値のクランプテスト."""
-    conf = DispConf()
-    bl_pin = conf.data.spi.bl
-
-    runner = CliRunner()
-    # 255 を超える値を指定
-    result = runner.invoke(bl_cmd, ["300"])
-    assert result.exit_code == 0
-
-    # 0 未満の値を指定
-    result = runner.invoke(bl_cmd, ["--", "-10"])
-    assert result.exit_code == 0
-
-    assert mock_pi_instance.set_PWM_dutycycle.call_count == 2
-    mock_pi_instance.set_PWM_dutycycle.assert_any_call(bl_pin, 255)
-    mock_pi_instance.set_PWM_dutycycle.assert_any_call(bl_pin, 0)
-
-
-def test_bl_help():
-    """'bl' コマンドのヘルプ表示テスト."""
-    runner = CliRunner()
-    result = runner.invoke(bl_cmd, ["--help"])
-    assert result.exit_code == 0
-    assert "Sets the backlight brightness (0-255)." in result.output
-
-
-def test_bl_option(mock_pi_instance):
-    """'bl' コマンドの --bl オプションのテスト."""
-    bl_pin = 15
+def test_config_nonzero(cli_mock_env):
+    """設定ファイルで bl が 0 以外の値の場合."""
+    runner, mock_pi_instance, mock_dynaconf = cli_mock_env
+    bl_pin = 23
     brightness = 128
+    mock_dynaconf.get.return_value.spi.bl = bl_pin  # Configured bl_pin
 
-    runner = CliRunner()
-    result = runner.invoke(bl_cmd, ["--bl", str(bl_pin), str(brightness)])
-
+    result = runner.invoke(bl_cmd, [str(brightness)])
     assert result.exit_code == 0
     mock_pi_instance.set_PWM_dutycycle.assert_called_once_with(
         bl_pin, brightness
     )
 
 
-def test_bl_option_with_zero(mock_pi_instance):
-    """'bl' コマンドの --bl オプションに0を指定した場合のテスト."""
-    # bl.pyのコードの制限により、--bl 0を指定すると設定ファイルの値が使われる
-    # このテストはその挙動を検証する
-    brightness = 100
+def test_config_zero(cli_mock_env):
+    """設定ファイルで bl が 0 の場合 (何もしない)."""
+    runner, mock_pi_instance, mock_dynaconf = cli_mock_env
+    brightness = 128
+    mock_dynaconf.get.return_value.spi.bl = 0  # Configured bl_pin as 0
 
-    runner = CliRunner()
+    result = runner.invoke(bl_cmd, [str(brightness)])
+    assert result.exit_code == 0
+    mock_pi_instance.set_PWM_dutycycle.assert_not_called()
+
+
+def test_option_nonzero(cli_mock_env):
+    """--bl オプションで 0 以外の値を指定した場合."""
+    runner, mock_pi_instance, mock_dynaconf = cli_mock_env
+    bl_pin = 15
+    brightness = 128
+    # オプション指定時は設定ファイルの値は使われないことを確認するため、設定は異なる値に
+    mock_dynaconf.get.return_value.spi.bl = 23
+
+    result = runner.invoke(bl_cmd, ["--bl", str(bl_pin), str(brightness)])
+    assert result.exit_code == 0
+    mock_pi_instance.set_PWM_dutycycle.assert_called_once_with(
+        bl_pin, brightness
+    )
+
+
+def test_option_zero(cli_mock_env):
+    """--bl オプションで 0 を指定した場合 (何もしない)."""
+    runner, mock_pi_instance, mock_dynaconf = cli_mock_env
+    brightness = 100
+    # オプション指定時は設定ファイルの値は使われないことを確認するため、設定は異なる値に
+    mock_dynaconf.get.return_value.spi.bl = 23
+
     result = runner.invoke(bl_cmd, ["--bl", "0", str(brightness)])
     assert result.exit_code == 0
+    mock_pi_instance.set_PWM_dutycycle.assert_not_called()
     assert "no backlight: do nothing" in result.output
+
+
+@pytest.mark.parametrize(
+    "input_args, expected_dutycycle",
+    [
+        (["300"], 255),  # 255を超える値を指定した場合
+        (["--", "-10"], 0),  # 0未満の値を指定した場合
+    ],
+)
+def test_clamp_with_config(cli_mock_env, input_args, expected_dutycycle):
+    """値のクランプテスト (設定ファイル使用)."""
+    runner, mock_pi_instance, mock_dynaconf = cli_mock_env
+    bl_pin = 23
+    mock_dynaconf.get.return_value.spi.bl = bl_pin
+
+    result = runner.invoke(bl_cmd, input_args)
+    assert result.exit_code == 0
+    mock_pi_instance.set_PWM_dutycycle.assert_called_once_with(
+        bl_pin, expected_dutycycle
+    )
+
+
+def test_help_message():
+    """ヘルプメッセージ表示テスト."""
+    runner = CliRunner()
+    result = runner.invoke(bl_cmd, ["--help"])
+    assert result.exit_code == 0
+    assert "Sets the backlight brightness (0-255)." in result.output
