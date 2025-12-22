@@ -60,6 +60,7 @@ module = [
     "cairosvg",
     "pytest",
     "dynaconf.*",
+    "cv2",
 ]
 ignore_missing_imports = true
 
