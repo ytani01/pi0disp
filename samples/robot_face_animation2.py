@@ -768,10 +768,10 @@ class RobotFaceApp:
     help="ランダムな表情を自動生成するモードで起動します。",
 )
 @click_common_opts(__version__)
-def main(ctx, faces, random_mode, debug):
+def main(ctx, faces, random, debug):
     """Main."""
     __log = get_logger(__name__, debug)
-    __log.info("faces=%s, random_mode=%s", faces, random_mode)
+    __log.info("faces=%s, random=%s", faces, random)
 
     app = None
     try:
@@ -789,7 +789,7 @@ def main(ctx, faces, random_mode, debug):
             debug=debug,
         )
 
-        if random_mode:
+        if random:
             # ランダム再生モード
             app.main()
         elif faces:
