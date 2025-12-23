@@ -10,8 +10,7 @@ import random
 import socket
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 import click
 from PIL import Image, ImageColor, ImageDraw, ImageOps
@@ -36,48 +35,6 @@ except ImportError:
     HAS_OPENCV = False
 
 
-class EyeState:
-    """Eye status."""
-
-    # __init__で初期化するため、ここでは型アノテーションのみ
-    openness: float
-    size: float
-    curve: float
-
-    def __init__(self, size: float = 8.0, curve: Optional[float] = None):
-        """
-        Constructor.
-        'curve' に値が設定された場合、目は閉じていると判断する。
-        """
-        self.size = size
-        if curve is not None and curve != 0:
-            # 閉じた目（カーブあり）
-            self.openness = 0.0
-            self.curve = curve
-        else:
-            # 開いた目
-            self.openness = 1.0
-            self.curve = 0.0
-
-    def copy(self):
-        """
-        アニメーション中の状態も含めて正確にコピーする
-        """
-        new_state = EyeState(size=self.size)
-        new_state.openness = self.openness
-        new_state.curve = self.curve
-        return new_state
-
-    def __repr__(self):
-        """
-        デバッグ用に現在の内部状態を表示する
-        """
-        return (
-            f"EyeState(size={self.size}, openness={self.openness:.2f}, "
-            f"curve={self.curve:.2f})"
-        )
-
-
 @dataclass
 class FaceState:
     """Face status."""
@@ -85,16 +42,24 @@ class FaceState:
     mouth_curve: float = 0  # 口の曲がり具合: +20(笑顔) ～ -20(への字)
     brow_tilt: float = 0  # 眉毛の角度(abs(brow_tilt) <= 1: 描画しない)
     mouth_open: float = 0  # 口の開き具合: 0(線) ～ 1(丸)
-    left_eye: EyeState = field(default_factory=lambda: EyeState())
-    right_eye: EyeState = field(default_factory=lambda: EyeState())
+    left_eye_openness: float = 1.0
+    left_eye_size: float = 8.0
+    left_eye_curve: float = 0.0
+    right_eye_openness: float = 1.0
+    right_eye_size: float = 8.0
+    right_eye_curve: float = 0.0
 
     def copy(self):
         return FaceState(
             self.mouth_curve,
             self.brow_tilt,
             self.mouth_open,
-            self.left_eye.copy(),
-            self.right_eye.copy(),
+            self.left_eye_openness,
+            self.left_eye_size,
+            self.left_eye_curve,
+            self.right_eye_openness,
+            self.right_eye_size,
+            self.right_eye_curve,
         )
 
 
@@ -237,59 +202,54 @@ class RobotFace:
 
     MOODS = {
         "neutral": FaceState(),
-        "happy": FaceState(
-            mouth_curve=15,
-            brow_tilt=0,
-            left_eye=EyeState(),
-            right_eye=EyeState(),
-        ),
+        "happy": FaceState(mouth_curve=15),
         "sad": FaceState(
             mouth_curve=-10,
             brow_tilt=-10,
-            left_eye=EyeState(size=6),
-            right_eye=EyeState(size=6),
+            left_eye_size=6,
+            right_eye_size=6,
         ),
         "angry": FaceState(
             mouth_curve=-10,
             brow_tilt=25,
-            left_eye=EyeState(size=6),
-            right_eye=EyeState(size=6),
+            left_eye_size=6,
+            right_eye_size=6,
         ),
         "wink-r": FaceState(
             mouth_curve=15,
-            brow_tilt=0,
-            left_eye=EyeState(curve=1),
-            right_eye=EyeState(),
+            left_eye_openness=0.0,
+            left_eye_curve=1,
         ),
         "wink-l": FaceState(
             mouth_curve=15,
-            brow_tilt=0,
-            left_eye=EyeState(),
-            right_eye=EyeState(curve=1),
+            right_eye_openness=0.0,
+            right_eye_curve=1,
         ),
         "sleepy": FaceState(
             mouth_curve=15,
-            brow_tilt=0,
-            left_eye=EyeState(curve=-1),
-            right_eye=EyeState(curve=-1),
+            left_eye_openness=0.0,
+            left_eye_curve=-1,
+            right_eye_openness=0.0,
+            right_eye_curve=-1,
         ),
         "smily": FaceState(
             mouth_curve=15,
-            brow_tilt=0,
-            left_eye=EyeState(curve=1),
-            right_eye=EyeState(curve=1),
+            left_eye_openness=0.0,
+            left_eye_curve=1,
+            right_eye_openness=0.0,
+            right_eye_curve=1,
         ),
         "surprised": FaceState(
-            mouth_curve=0,
             mouth_open=1.1,
-            left_eye=EyeState(size=6),
-            right_eye=EyeState(size=6),
+            left_eye_size=6,
+            right_eye_size=6,
         ),
         "kiss": FaceState(
-            mouth_curve=0,
             mouth_open=0.85,
-            left_eye=EyeState(curve=-1),
-            right_eye=EyeState(curve=-1),
+            left_eye_openness=0.0,
+            left_eye_curve=-1,
+            right_eye_openness=0.0,
+            right_eye_curve=-1,
         ),
     }
 
@@ -327,18 +287,18 @@ class RobotFace:
         )
 
         # left eye
-        c.left_eye.openness = lerp(
-            c.left_eye.openness, t.left_eye.openness, speed
+        c.left_eye_openness = lerp(
+            c.left_eye_openness, t.left_eye_openness, speed
         )
-        c.left_eye.size = lerp(c.left_eye.size, t.left_eye.size, speed)
-        c.left_eye.curve = lerp(c.left_eye.curve, t.left_eye.curve, speed)
+        c.left_eye_size = lerp(c.left_eye_size, t.left_eye_size, speed)
+        c.left_eye_curve = lerp(c.left_eye_curve, t.left_eye_curve, speed)
 
         # right eye
-        c.right_eye.openness = lerp(
-            c.right_eye.openness, t.right_eye.openness, speed
+        c.right_eye_openness = lerp(
+            c.right_eye_openness, t.right_eye_openness, speed
         )
-        c.right_eye.size = lerp(c.right_eye.size, t.right_eye.size, speed)
-        c.right_eye.curve = lerp(c.right_eye.curve, t.right_eye.curve, speed)
+        c.right_eye_size = lerp(c.right_eye_size, t.right_eye_size, speed)
+        c.right_eye_curve = lerp(c.right_eye_curve, t.right_eye_curve, speed)
 
     def set_target_mood(self, mood_name):
         """表情セット"""
@@ -386,14 +346,16 @@ class RobotFace:
         draw,
         eye_x,
         eye_y,
-        eye_state: EyeState,
+        eye_size,
+        eye_openness,
+        eye_curve,
         gaze_offset,
     ):
         """Drow one eye."""
         eye_cx = eye_x + gaze_offset  # 視線を加味した中心X
 
-        eye_w = eye_state.size * self.scale  # 目のサイズ(幅)
-        eye_h = eye_w * eye_state.openness  # 開き具合をかけた目の高さ
+        eye_w = eye_size * self.scale  # 目のサイズ(幅)
+        eye_h = eye_w * eye_openness  # 開き具合をかけた目の高さ
 
         # 描画
         if eye_h >= 6:
@@ -416,7 +378,7 @@ class RobotFace:
         x1 = eye_cx - LINE_OFFSET_X
         x2 = eye_cx + LINE_OFFSET_X
 
-        if eye_state.curve == 0:
+        if eye_curve == 0:
             #
             # 直線
             #
@@ -428,11 +390,11 @@ class RobotFace:
             return
 
         #
-        # eye_state.curve != 0: ベジェ曲線
+        # eye_curve != 0: ベジェ曲線
         #
         BEZIER_OFFSET_Y = self.LAYOUT["eye_bezier_offset_y"]
-        y1 = eye_y + BEZIER_OFFSET_Y * eye_state.curve / 2
-        y2 = eye_y - BEZIER_OFFSET_Y * eye_state.curve
+        y1 = eye_y + BEZIER_OFFSET_Y * eye_curve / 2
+        y2 = eye_y - BEZIER_OFFSET_Y * eye_curve
 
         p0 = self._xy(x1, y1)
         p2 = self._xy(x2, y1)
@@ -481,19 +443,24 @@ class RobotFace:
         """Draw both eyes and brows."""
         eye_y = self.LAYOUT["eye_y"]
         eye_offset = self.LAYOUT["eye_offset"]
+        cs = self.current_state
 
         self._draw_one_eye(
             draw,
             eye_offset,
             eye_y,
-            self.current_state.left_eye,
+            cs.left_eye_size,
+            cs.left_eye_openness,
+            cs.left_eye_curve,
             self.current_gaze_x,
         )
         self._draw_one_eye(
             draw,
             100 - eye_offset,
             eye_y,
-            self.current_state.right_eye,
+            cs.right_eye_size,
+            cs.right_eye_openness,
+            cs.right_eye_curve,
             self.current_gaze_x,
         )
         self._draw_brows(
