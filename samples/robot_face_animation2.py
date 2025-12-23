@@ -61,6 +61,7 @@ class FaceState:
 
 MOODS_STR = {
     "neutral": "_OO_",
+    "zen": "____",
     "happy": "_OOv",
     "smily": "_^^v",
     "sad": "^oo^",
