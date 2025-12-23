@@ -659,10 +659,10 @@ class RobotFaceApp:
     """Robot face App class."""
 
     # 視線制御用
-    GAZE_INTERVAL_MIN = 0.5
-    GAZE_INTERVAL_MAX = 3.0
-    GAZE_WIDTH_MIN = -7.0
-    GAZE_WIDTH_MAX = +7.0
+    GAZE_INTERVAL_MIN = 0.2
+    GAZE_INTERVAL_MAX = 1.0
+    GAZE_X_MIN = -5.0
+    GAZE_X_MAX = +5.0
 
     def __init__(
         self,
@@ -733,7 +733,7 @@ class RobotFaceApp:
     def _handle_gaze_update(self, now: float) -> None:
         """視線のランダム更新."""
         if now > self._next_gaze_time:
-            gaze = random.uniform(self.GAZE_WIDTH_MIN, self.GAZE_WIDTH_MAX)
+            gaze = random.uniform(self.GAZE_X_MIN, self.GAZE_X_MAX)
             self.face.set_gaze(gaze)
             self._next_gaze_time = now + random.uniform(
                 self.GAZE_INTERVAL_MIN, self.GAZE_INTERVAL_MAX
