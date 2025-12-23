@@ -723,7 +723,7 @@ class RobotFaceApp:
         if now > self._next_mood_time:
             new_mood_key = random.choice(list(MOODS_STR.keys()))
             new_mood = MOODS_STR[new_mood_key]
-            print(f"mood: {new_mood_key}({new_mood})")
+            print(f'mood: {new_mood_key} "{new_mood}"')
             self.face.set_target_state(
                 self.parser.parse_face_string(new_mood),
                 duration=random.uniform(0.5, 1.5),
