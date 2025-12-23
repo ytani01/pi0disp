@@ -99,7 +99,7 @@ def main(ctx, faces, debug): # faces引数を維持
     7.  `RobotFaceApp.main` メソッドの `if self.face_sequence:` ブロックのロジックを、新しく追加した `play_interactive_face` を呼び出すように修正し、重複を避ける。
 3.  `mise run lint` を実行し、構文エラーやスタイル違反がないか確認する。
 4.  手動で動作確認を行う。
-    *   コマンドライン引数あり: `uv run samples/robot_face_animation3.py /o_o _O_O` (シーケンス再生モード)
-    *   コマンドライン引数なし: `uv run samples/robot_face_animation3.py` (インタラクティブモード)
+    *   コマンドライン引数あり: `uv run samples/robot_face_animation3.py -d /o_o _O_O` (シーケンス再生モード。`-d` オプションでデバッグログを確認)
+    *   コマンドライン引数なし: `uv run samples/robot_face_animation3.py -d` (インタラクティブモード。`-d` オプションでデバッグログを確認)
 5.  `git add samples/robot_face_animation3.py` を実行する。
 6.  `git commit -m "feat: Add interactive face control via input() fallback"` でコミットする。
