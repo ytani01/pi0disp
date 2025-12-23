@@ -60,6 +60,7 @@ module = [
     "PIL", "PIL.Image", "PIL.ImageDraw", "PIL.ImageFont",
     "numpy",
     "click",
+    "click.*",
     "cairosvg",
     "pytest",
     "dynaconf.*",

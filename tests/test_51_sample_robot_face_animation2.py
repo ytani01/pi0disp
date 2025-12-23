@@ -13,7 +13,6 @@ from PIL import Image
 sys.path.insert(0, str(Path(__file__).parent.parent / "samples"))
 
 from robot_face_animation2 import (  # type: ignore[import-not-found]
-    MOODS,
     FaceState,
     FaceStateParser,
     RobotFace,
@@ -131,18 +130,18 @@ class TestFaceStateParser:
         assert state.mouth_curve == -10  # ^ は悲しい顔
 
     def test_parse_angry_brow(self, parser):
-        """怒り眉毛 /O_O のパース."""
-        state = parser.parse_face_string("/O_O")
-        assert state.brow_tilt == 25  # / は怒り眉
+        """怒り眉毛 ^O_O のパース."""
+        state = parser.parse_face_string("^O_O")
+        assert state.brow_tilt == 25  # ^ は怒り眉
 
     def test_parse_sad_brow(self, parser):
-        r"""悲しい眉毛 \O_O のパース."""
-        state = parser.parse_face_string("\\O_O")
-        assert state.brow_tilt == -10  # \ は悲しい眉
+        r"""悲しい眉毛 vO_O のパース."""
+        state = parser.parse_face_string("vO_O")
+        assert state.brow_tilt == -10  # v は悲しい眉
 
     def test_parse_closed_eyes(self, parser):
-        """閉じた目 _-_- のパース."""
-        state = parser.parse_face_string("_-_-")
+        """閉じた目 ____ のパース."""
+        state = parser.parse_face_string("____")
         assert state.left_eye_openness == 0.0
         assert state.right_eye_openness == 0.0
 
@@ -212,8 +211,8 @@ class TestRobotFace:
         robot_face.set_gaze(10.0)
         robot_face.update()
 
-        # lerp(0, 10, 0.8) = 8.0
-        assert robot_face.current_gaze_x == 8.0
+        # lerp(0, 10, 0.7) = 7.0
+        assert robot_face.current_gaze_x == 7.0
 
     def test_update_state(self, robot_face):
         """update() での状態補間テスト."""
@@ -265,9 +264,7 @@ class TestRobotFaceApp:
             screen_width=320,
             screen_height=240,
             bg_color="black",
-            all_moods=MOODS,
             face_change_duration=0.5,
-            init_mood="neutral",
         )
 
     def test_init(self, robot_face_app):

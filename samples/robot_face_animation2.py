@@ -59,64 +59,24 @@ class FaceState:
 # 設定セクション
 # ===========================================================================
 
-MOODS = {
-    "neutral": FaceState(),
-    "happy": FaceState(mouth_curve=15),
-    "sad": FaceState(
-        mouth_curve=-10,
-        brow_tilt=-10,
-        left_eye_size=6,
-        right_eye_size=6,
-    ),
-    "angry": FaceState(
-        mouth_curve=-10,
-        brow_tilt=25,
-        left_eye_size=6,
-        right_eye_size=6,
-    ),
-    "wink-r": FaceState(
-        mouth_curve=15,
-        left_eye_openness=0.0,
-        left_eye_curve=1,
-    ),
-    "wink-l": FaceState(
-        mouth_curve=15,
-        right_eye_openness=0.0,
-        right_eye_curve=1,
-    ),
-    "sleepy": FaceState(
-        mouth_curve=15,
-        left_eye_openness=0.0,
-        left_eye_curve=-1,
-        right_eye_openness=0.0,
-        right_eye_curve=-1,
-    ),
-    "smily": FaceState(
-        mouth_curve=15,
-        left_eye_openness=0.0,
-        left_eye_curve=1,
-        right_eye_openness=0.0,
-        right_eye_curve=1,
-    ),
-    "surprised": FaceState(
-        mouth_open=1.1,
-        left_eye_size=6,
-        right_eye_size=6,
-    ),
-    "kiss": FaceState(
-        mouth_open=0.85,
-        left_eye_openness=0.0,
-        left_eye_curve=-1,
-        right_eye_openness=0.0,
-        right_eye_curve=-1,
-    ),
+MOODS_STR = {
+    "neutral": "_O_O",
+    "happy": "_OvO",
+    "smily": "_^v^",
+    "sad": "\\o^o",
+    "angry": "/o^o",
+    "wink-r": "_Ov^",
+    "wink-l": "_^vO",
+    "sleepy": "_vvv",
+    "surprised": "_oOo",
+    "kiss": "_vov",
 }
 
-BROW_MAP: dict[str, int] = {"/": 25, "_": 0, "\\": -10}
+BROW_MAP: dict[str, int] = {"^": 25, "_": 0, "v": -10}
 EYE_MAP: dict[str, dict[str, float]] = {
     "O": {"size": 8.0, "openness": 1.0, "curve": 0.0},
     "o": {"size": 6.0, "openness": 1.0, "curve": 0.0},
-    "-": {"openness": 0.0, "curve": 0.0},
+    "_": {"openness": 0.0, "curve": 0.0},
     "^": {"openness": 0.0, "curve": 1.0},
     "v": {"openness": 0.0, "curve": -1.0},
 }
@@ -156,14 +116,14 @@ COLORS: dict[str, str | tuple[int, int, int]] = {
 
 # アニメーション定数
 ANIMATION = {
-    "gaze_lerp_factor": 0.8,  # 視線補間係数
+    "main_loop_interval": 0.1,  # メインループのスリープ間隔
+    "interactive_loop_interval": 0.05,  # インタラクティブモードのスリープ間隔
     "eye_open_threshold": 6,  # 目が開いているとみなす高さの閾値
     "mouth_open_threshold": 0.5,  # 口が開いているとみなす閾値
     "mouth_aspect_ratio": 1.2,  # 開いた口の縦横比
-    "main_loop_interval": 0.1,  # メインループのスリープ間隔
-    "interactive_loop_interval": 0.05,  # インタラクティブモードのスリープ間隔
     "face_change_duration": 0.25,  # 表情変化のデフォルト時間
-    "gaze_loop_duration": 4.75,  # キョロキョロ動作の時間
+    "gaze_loop_duration": 3.0,  # キョロキョロ動作の時間
+    "gaze_lerp_factor": 0.7,  # 視線補間係数
 }
 
 # ===========================================================================
@@ -193,7 +153,9 @@ def lerp(a: float, b: float, t: float) -> float:
 class FaceStateParser:
     def parse_face_string(self, face_str: str) -> FaceState:
         if len(face_str) != 4:
-            raise ValueError("Face string must be 4 characters long")
+            raise ValueError(
+                f"{face_str}: Face string must be 4 characters long"
+            )
 
         brow_char = face_str[0]
         left_eye_char = face_str[1]
@@ -353,7 +315,7 @@ class RobotFace:
         """
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
-        self.__log.debug("initial_state=%a, size=%s", initial_state, size)
+        self.__log.debug("initial_state=%s, size=%s", initial_state, size)
 
         self._change_duration = change_duration
         self._is_changing = False
@@ -697,9 +659,9 @@ class RobotFaceApp:
 
     # 視線制御用
     GAZE_INTERVAL_MIN = 0.5
-    GAZE_INTERVAL_MAX = 2.0
-    GAZE_WIDTH_MIN = -5.0
-    GAZE_WIDTH_MAX = +5.0
+    GAZE_INTERVAL_MAX = 3.0
+    GAZE_WIDTH_MIN = -7.0
+    GAZE_WIDTH_MAX = +7.0
 
     def __init__(
         self,
@@ -707,10 +669,8 @@ class RobotFaceApp:
         screen_width: int,
         screen_height: int,
         bg_color: str,
-        all_moods: dict[str, FaceState],
         face_change_duration: float = 0.5,
-        init_mood: str = "neutral",
-        face_sequence: list[FaceState] | None = None,
+        face_sequence: list[str] | None = None,
         debug: bool = False,
     ) -> None:
         """Constructor.
@@ -720,27 +680,23 @@ class RobotFaceApp:
             screen_width: 画面幅
             screen_height: 画面高さ
             bg_color: 背景色
-            all_moods: 利用可能な表情の辞書
             face_change_duration: 表情変化のデフォルト時間
-            init_mood: 初期表情
             face_sequence: シーケンスモードでの表情リスト
             debug: デバッグモード
         """
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
-        self.__log.debug(
-            "init_mood=%a, face_sequence=%s", init_mood, face_sequence
-        )
+        self.__log.debug("face_sequence=%s", face_sequence)
 
         self.output = output
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.bg_color = bg_color
         self.bg_color_tuple = ImageColor.getrgb(bg_color)
-        self.all_moods = all_moods
         self.face_change_duration = face_change_duration
-        self.init_mood = init_mood
         self.face_sequence = face_sequence
+
+        self.parser = FaceStateParser()
 
         # アニメーションタイミング管理
         now = time.time()
@@ -750,7 +706,9 @@ class RobotFaceApp:
         try:
             face_size = min(self.screen_width, self.screen_height)
             self.face = RobotFace(
-                all_moods[self.init_mood],
+                initial_state=self.parser.parse_face_string(
+                    MOODS_STR["neutral"]
+                ),
                 size=face_size,
                 debug=self.__debug,
                 change_duration=self.face_change_duration,
@@ -762,10 +720,12 @@ class RobotFaceApp:
     def _handle_random_mood_update(self, now: float):
         # 表情変更
         if now > self._next_mood_time:
-            new_mood = random.choice(list(self.all_moods.keys()))
-            print(f"mood: {new_mood}")
+            new_mood_key = random.choice(list(MOODS_STR.keys()))
+            new_mood = MOODS_STR[new_mood_key]
+            print(f"mood: {new_mood_key}({new_mood})")
             self.face.set_target_state(
-                self.all_moods[new_mood], duration=random.uniform(0.5, 1.5)
+                self.parser.parse_face_string(new_mood),
+                duration=random.uniform(0.5, 1.5),
             )
             self._next_mood_time = now + random.uniform(3.0, 5.0)
 
@@ -797,14 +757,10 @@ class RobotFaceApp:
         """メインループ."""
         if self.face_sequence:
             # シーケンス再生モード
-            for state in itertools.cycle(self.face_sequence):
-                self.play_interactive_face(state)
+            for state_str in itertools.cycle(self.face_sequence):
+                state_data = self.parser.parse_face_string(state_str)
+                self.play_interactive_face(state_data)
             return
-
-        # ランダム再生モード
-        if not self.init_mood:
-            self.init_mood = "neutral"
-            self.__log.info("mood=%a", self.init_mood)
 
         while True:
             now = time.time()
@@ -872,9 +828,7 @@ def main(ctx, faces, random, debug):
             320,  # SCREEN_WIDTH
             240,  # SCREEN_HEIGHT
             "black",  # BG_COLOR
-            all_moods=MOODS,  # MOODS 辞書を渡す
             face_change_duration=2.0,  # 追加
-            init_mood="neutral",  # デフォルト mood を設定
             debug=debug,
         )
 
@@ -883,7 +837,8 @@ def main(ctx, faces, random, debug):
             app.main()
         elif faces:
             # コマンドライン引数がある場合: シーケンス再生モード
-            app.face_sequence = [parser.parse_face_string(f) for f in faces]
+            app.face_sequence = faces
+            __log.debug("app.face_sequence=%s", app.face_sequence)
             app.main()
         else:
             # コマンドライン引数がない場合: インタラクティブモード
