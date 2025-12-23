@@ -5,6 +5,7 @@
 ロボットの顔のアニメーション
 """
 
+import itertools
 import math
 import random
 import socket
@@ -61,6 +62,60 @@ class FaceState:
             self.right_eye_size,
             self.right_eye_curve,
         )
+
+
+class FaceStateParser:
+    BROW_MAP: dict[str, int] = {"/": 25, "_": 0, "\\": -10}
+    EYE_MAP: dict[str, dict[str, float]] = {
+        "O": {"size": 8.0, "openness": 1.0, "curve": 0.0},
+        "o": {"size": 6.0, "openness": 1.0, "curve": 0.0},
+        "-": {"openness": 0.0, "curve": 0.0},
+        "^": {"openness": 0.0, "curve": 1.0},
+        "v": {"openness": 0.0, "curve": -1.0},
+    }
+    MOUTH_MAP: dict[str, dict[str, float]] = {
+        "^": {"curve": 15},
+        "_": {"curve": 0},
+        "v": {"curve": -10},
+        "O": {"open": 1.1},
+        "o": {"open": 0.85},
+    }
+
+    def parse_face_string(self, face_str: str) -> FaceState:
+        if len(face_str) != 4:
+            raise ValueError("Face string must be 4 characters long")
+
+        brow_char = face_str[0]
+        left_eye_char = face_str[1]
+        mouth_char = face_str[2]
+        right_eye_char = face_str[3]
+
+        params: dict[str, float] = {}
+
+        # Brow
+        if brow_char in self.BROW_MAP:
+            params["brow_tilt"] = float(self.BROW_MAP[brow_char])
+
+        # Left Eye
+        if left_eye_char in self.EYE_MAP:
+            for key, value in self.EYE_MAP[left_eye_char].items():
+                params[f"left_eye_{key}"] = value
+
+        # Right Eye
+        if right_eye_char in self.EYE_MAP:
+            for key, value in self.EYE_MAP[right_eye_char].items():
+                params[f"right_eye_{key}"] = value
+
+        # Mouth
+        if mouth_char in self.MOUTH_MAP:
+            if "curve" in self.MOUTH_MAP[mouth_char]:
+                params["mouth_curve"] = self.MOUTH_MAP[mouth_char]["curve"]
+                params["mouth_open"] = 0
+            if "open" in self.MOUTH_MAP[mouth_char]:
+                params["mouth_open"] = self.MOUTH_MAP[mouth_char]["open"]
+                params["mouth_curve"] = 0
+
+        return FaceState(**params)
 
 
 def lerp(a, b, t):
@@ -305,6 +360,10 @@ class RobotFace:
         if mood_name in self.MOODS:
             self.target_state = self.MOODS[mood_name].copy()
 
+    def set_target_state(self, state: FaceState):
+        """状態セット"""
+        self.target_state = state.copy()
+
     def set_gaze(self, x):
         """視線セット (-20 to +20)"""
         self.target_gaze_x = x
@@ -528,24 +587,28 @@ class RobotFaceApp:
 
     def __init__(
         self,
-        init_mood: str,
         output: DisplayOutput,
         screen_width: int,
         screen_height: int,
         bg_color: str,
+        init_mood: str = "neutral",
+        face_sequence: list[FaceState] | None = None,
         debug=False,
     ):
         """Constractor."""
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
-        self.__log.debug("init_mood=%a", init_mood)
+        self.__log.debug(
+            "init_mood=%a, face_sequence=%s", init_mood, face_sequence
+        )
 
-        self.mood = init_mood
         self.output = output
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.bg_color = bg_color
         self.bg_color_tuple = ImageColor.getrgb(bg_color)
+        self.init_mood = init_mood
+        self.face_sequence = face_sequence
 
         # アニメーションタイミング管理
         now = time.time()
@@ -555,7 +618,7 @@ class RobotFaceApp:
         try:
             face_size = min(self.screen_width, self.screen_height)
             self.face = RobotFace(
-                self.mood, size=face_size, debug=self.__debug
+                self.init_mood, size=face_size, debug=self.__debug
             )
         except Exception as e:
             self.__log.error(errmsg(e))
@@ -563,10 +626,27 @@ class RobotFaceApp:
 
     def main(self):
         """Main."""
+        if self.face_sequence:
+            # シーケンス再生モード
+            for state in itertools.cycle(self.face_sequence):
+                self.face.set_target_state(state)
+                # アニメーションのために複数回 update/draw を実行
+                for _ in range(5):
+                    self.face.update(speed=0.5)
+                    img = self.face.draw(
+                        self.screen_width,
+                        self.screen_height,
+                        self.bg_color_tuple,
+                    )
+                    self.output.show(img)
+                    time.sleep(0.05)
+                time.sleep(1)
+            return
 
-        if not self.mood:
-            self.mood = "neutral"
-            self.__log.info("mood=%a", self.mood)
+        # ランダム再生モード
+        if not self.init_mood:
+            self.init_mood = "neutral"
+            self.__log.info("mood=%a", self.init_mood)
 
         while True:
             now = time.time()
@@ -599,25 +679,28 @@ class RobotFaceApp:
 
 
 @click.command(__file__.split("/")[-1])  # file name
-@click.argument("mood", type=str, default="")
+@click.argument("faces", nargs=-1)
 @click_common_opts(__version__)
-def main(ctx, mood, debug):
+def main(ctx, faces, debug):
     """Main."""
     __log = get_logger(__name__, debug)
-    __log.info("mood=%a", mood)
+    __log.info("faces=%s", faces)
 
     app = None
     try:
-        if not mood:
-            mood = "neutral"
-
         output_device = create_output_device(debug=debug)
+
+        face_sequence = None
+        if faces:
+            parser = FaceStateParser()
+            face_sequence = [parser.parse_face_string(f) for f in faces]
+
         app = RobotFaceApp(
-            mood,
             output_device,
             320,  # SCREEN_WIDTH
             240,  # SCREEN_HEIGHT
             "black",  # BG_COLOR
+            face_sequence=face_sequence,
             debug=debug,
         )
         app.main()

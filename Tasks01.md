@@ -12,5 +12,5 @@
 - [x] `samples/robot_face_animation.py` の `RobotFace._draw_eyes()` メソッドから `_draw_one_eye()` を呼び出す部分を修正する。
 - [x] `mise run lint` を実行し、リンティングエラーを修正する。
 - [x] `mise run test` を実行し、テストが成功することを確認する。テストが失敗した場合は、エラーがなくなるまで修正する。
-- [ ] `git add .`
-- [ ] `git commit -m "refactor: Flatten FaceState structure in robot_face_animation.py"`
+- [x] `git add .`
+- [x] `git commit -m "refactor: Flatten FaceState structure in robot_face_animation.py"`
