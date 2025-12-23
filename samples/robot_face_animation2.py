@@ -319,11 +319,25 @@ def create_output_device(debug=False) -> DisplayOutput:
 class RobotFace:
     """顔の状態管理と描画を担当するクラス"""
 
-    def __init__(self, initial_state: FaceState, size=240, debug=False):
+    _start_state: FaceState  # 追加
+    _change_start_time: float  # 追加
+    _change_duration: float  # 追加
+    _is_changing: bool  # 追加
+
+    def __init__(
+        self,
+        initial_state: FaceState,
+        size=240,
+        debug=False,
+        change_duration: float = 0.5,
+    ):
         """Constructor."""
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
         self.__log.debug("initial_state=%a,size=%s", initial_state, size)
+
+        self._change_duration = change_duration  # 追加
+        self._is_changing = False  # 追加
 
         self.size = size
 
@@ -337,33 +351,58 @@ class RobotFace:
         self.current_gaze_x: float = 0.0
         self.target_gaze_x: float = 0.0
 
-    def update(self, speed=0.5):
+    def update(self):
         """状態をターゲットに近づける"""
+        if not self._is_changing:
+            return  # 追加
+
+        now = time.time()  # 追加
+        elapsed_time = now - self._change_start_time
+        t_factor = min(1.0, max(0.0, elapsed_time / self._change_duration))
+
         c, t = self.current_state, self.target_state
-        c.mouth_curve = lerp(c.mouth_curve, t.mouth_curve, speed)
-        c.brow_tilt = lerp(c.brow_tilt, t.brow_tilt, speed)
-        c.mouth_open = lerp(c.mouth_open, t.mouth_open, speed)
+        s = self._start_state
+
+        c.mouth_curve = lerp(s.mouth_curve, t.mouth_curve, t_factor)
+        c.brow_tilt = lerp(s.brow_tilt, t.brow_tilt, t_factor)
+        c.mouth_open = lerp(s.mouth_open, t.mouth_open, t_factor)
+
+        # 視線はこれまで通り減速変化
         self.current_gaze_x = lerp(
-            self.current_gaze_x, self.target_gaze_x, speed
+            self.current_gaze_x, self.target_gaze_x, 0.5
         )
 
         # left eye
         c.left_eye_openness = lerp(
-            c.left_eye_openness, t.left_eye_openness, speed
+            s.left_eye_openness, t.left_eye_openness, t_factor
         )
-        c.left_eye_size = lerp(c.left_eye_size, t.left_eye_size, speed)
-        c.left_eye_curve = lerp(c.left_eye_curve, t.left_eye_curve, speed)
+        c.left_eye_size = lerp(s.left_eye_size, t.left_eye_size, t_factor)
+        c.left_eye_curve = lerp(s.left_eye_curve, t.left_eye_curve, t_factor)
 
         # right eye
         c.right_eye_openness = lerp(
-            c.right_eye_openness, t.right_eye_openness, speed
+            s.right_eye_openness, t.right_eye_openness, t_factor
         )
-        c.right_eye_size = lerp(c.right_eye_size, t.right_eye_size, speed)
-        c.right_eye_curve = lerp(c.right_eye_curve, t.right_eye_curve, speed)
+        c.right_eye_size = lerp(s.right_eye_size, t.right_eye_size, t_factor)
+        c.right_eye_curve = lerp(
+            s.right_eye_curve, t.right_eye_curve, t_factor
+        )
 
-    def set_target_state(self, state: FaceState):
+        if t_factor >= 1.0:
+            self._is_changing = False
+            self.current_state = self.target_state.copy()
+
+    def set_target_state(
+        self, state: FaceState, duration: float | None = None
+    ):
         """状態セット"""
+        self._start_state = self.current_state.copy()  # 追加
+        self._change_start_time = time.time()  # 追加
         self.target_state = state.copy()
+        self._change_duration = (
+            duration if duration is not None else self._change_duration
+        )  # 修正
+        self._is_changing = True  # 追加
 
     def set_gaze(self, x):
         """視線セット (-20 to +20)"""
@@ -593,6 +632,7 @@ class RobotFaceApp:
         screen_height: int,
         bg_color: str,
         all_moods: dict[str, FaceState],  # 追加
+        face_change_duration: float = 0.5,  # 追加
         init_mood: str = "neutral",
         face_sequence: list[FaceState] | None = None,
         debug=False,
@@ -610,6 +650,7 @@ class RobotFaceApp:
         self.bg_color = bg_color
         self.bg_color_tuple = ImageColor.getrgb(bg_color)
         self.all_moods = all_moods  # 追加
+        self.face_change_duration = face_change_duration  # 追加
         self.init_mood = init_mood
         self.face_sequence = face_sequence
 
@@ -624,6 +665,7 @@ class RobotFaceApp:
                 all_moods[self.init_mood],
                 size=face_size,
                 debug=self.__debug,  # 変更
+                change_duration=self.face_change_duration,
             )
         except Exception as e:
             self.__log.error(errmsg(e))
@@ -634,7 +676,9 @@ class RobotFaceApp:
         if now > self._next_mood_time:
             new_mood = random.choice(list(self.all_moods.keys()))
             print(f"mood: {new_mood}")
-            self.face.set_target_state(self.all_moods[new_mood])
+            self.face.set_target_state(
+                self.all_moods[new_mood], duration=random.uniform(0.5, 1.5)
+            )
             self._next_mood_time = now + random.uniform(3.0, 5.0)
 
     def _handle_gaze_update(self, now: float):
@@ -664,7 +708,7 @@ class RobotFaceApp:
             self._handle_gaze_update(now)  # ヘルパーメソッド呼び出し
 
             # 更新と描画
-            self.face.update(speed=0.5)
+            self.face.update()
             img = self.face.draw(
                 self.screen_width,
                 self.screen_height,
@@ -681,10 +725,10 @@ class RobotFaceApp:
     def play_interactive_face(self, target_state: FaceState):
         """インタラクティブモードで単一の表情を表示し、目のキョロキョロ動作を行う."""
         # 1. 表情を設定・変化させる
-        self.face.set_target_state(target_state)
+        self.face.set_target_state(target_state, duration=0.25)
         start_time = time.time()
         while time.time() - start_time < 0.25:
-            self.face.update(speed=0.5)
+            self.face.update()
             img = self.face.draw(
                 self.screen_width,
                 self.screen_height,
@@ -705,7 +749,7 @@ class RobotFaceApp:
                 self._next_gaze_time = now + random.uniform(0.5, 1.5)
 
             # 更新と描画
-            self.face.update(speed=0.5)  # 視線を滑らかに動かす
+            self.face.update()  # 視線を滑らかに動かす
             img = self.face.draw(
                 self.screen_width,
                 self.screen_height,
@@ -734,6 +778,7 @@ def main(ctx, faces, debug):
             240,  # SCREEN_HEIGHT
             "black",  # BG_COLOR
             all_moods=MOODS,  # MOODS 辞書を渡す
+            face_change_duration=2.0,  # 追加
             init_mood="neutral",  # デフォルト mood を設定
             debug=debug,
         )
