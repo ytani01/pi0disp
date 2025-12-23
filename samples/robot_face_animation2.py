@@ -63,11 +63,11 @@ MOODS_STR = {
     "neutral": "_OO_",
     "happy": "_OOv",
     "smily": "_^^v",
-    "sad": "\\oo^",
-    "angry": "/oo^",
+    "sad": "^oo^",
+    "angry": "voo^",
     "wink-r": "_O^v",
     "wink-l": "_^Ov",
-    "sleepy": "_vvv",
+    "sleepy": "_vv_",
     "surprised": "_ooO",
     "kiss": "_vvo",
 }
@@ -723,7 +723,7 @@ class RobotFaceApp:
         if now > self._next_mood_time:
             new_mood_key = random.choice(list(MOODS_STR.keys()))
             new_mood = MOODS_STR[new_mood_key]
-            print(f'mood: {new_mood_key} "{new_mood}"')
+            print(f"{new_mood} {new_mood_key}")
             self.face.set_target_state(
                 self.parser.parse_face_string(new_mood),
                 duration=random.uniform(0.5, 1.5),
