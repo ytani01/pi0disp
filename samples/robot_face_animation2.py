@@ -60,19 +60,19 @@ class FaceState:
 # ===========================================================================
 
 MOODS_STR = {
-    "neutral": "_O_O",
-    "happy": "_OvO",
-    "smily": "_^v^",
-    "sad": "\\o^o",
-    "angry": "/o^o",
-    "wink-r": "_Ov^",
-    "wink-l": "_^vO",
+    "neutral": "_OO_",
+    "happy": "_OOv",
+    "smily": "_^^v",
+    "sad": "\\oo^",
+    "angry": "/oo^",
+    "wink-r": "_O^v",
+    "wink-l": "_^Ov",
     "sleepy": "_vvv",
-    "surprised": "_oOo",
-    "kiss": "_vov",
+    "surprised": "_ooO",
+    "kiss": "_vvo",
 }
 
-BROW_MAP: dict[str, int] = {"^": 25, "_": 0, "v": -10}
+BROW_MAP: dict[str, int] = {"v": 25, "_": 0, "^": -10}
 EYE_MAP: dict[str, dict[str, float]] = {
     "O": {"size": 8.0, "openness": 1.0, "curve": 0.0},
     "o": {"size": 6.0, "openness": 1.0, "curve": 0.0},
@@ -159,8 +159,8 @@ class FaceStateParser:
 
         brow_char = face_str[0]
         left_eye_char = face_str[1]
-        mouth_char = face_str[2]
-        right_eye_char = face_str[3]
+        right_eye_char = face_str[2]
+        mouth_char = face_str[3]
 
         params: dict[str, float] = {}
 
@@ -470,6 +470,7 @@ class RobotFace:
         gaze_offset: float,
     ) -> None:
         """Draw one eye."""
+        self.__log.debug("opennes=%s,curve=%s", eye_openness, eye_curve)
         eye_cx = eye_x + gaze_offset  # 視線を加味した中心X
         self.__log.debug("Drawing eye with gaze_offset=%s", gaze_offset)
 

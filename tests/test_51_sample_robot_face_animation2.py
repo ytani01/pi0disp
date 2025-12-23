@@ -110,8 +110,8 @@ class TestFaceStateParser:
         return FaceStateParser()
 
     def test_parse_neutral(self, parser):
-        """ニュートラル顔 _O_O のパース."""
-        state = parser.parse_face_string("_O_O")
+        """ニュートラル顔 _OO_ のパース."""
+        state = parser.parse_face_string("_OO_")
         assert state.brow_tilt == 0
         assert state.left_eye_openness == 1.0
         assert state.left_eye_size == 8.0
@@ -120,24 +120,24 @@ class TestFaceStateParser:
         assert state.mouth_curve == 0
 
     def test_parse_happy(self, parser):
-        """笑顔 _O^O のパース."""
-        state = parser.parse_face_string("_OvO")
+        """笑顔 _OO^ のパース."""
+        state = parser.parse_face_string("_OOv")
         assert state.mouth_curve == 15  # v は笑顔
 
     def test_parse_sad(self, parser):
-        """悲しい顔 _O^O のパース."""
-        state = parser.parse_face_string("_O^O")
+        """悲しい顔 _OO^ のパース."""
+        state = parser.parse_face_string("_OO^")
         assert state.mouth_curve == -10  # ^ は悲しい顔
 
     def test_parse_angry_brow(self, parser):
-        """怒り眉毛 ^O_O のパース."""
-        state = parser.parse_face_string("^O_O")
-        assert state.brow_tilt == 25  # ^ は怒り眉
+        """怒り眉毛 vOO_ のパース."""
+        state = parser.parse_face_string("vOO_")
+        assert state.brow_tilt == 25  # v は怒り眉
 
     def test_parse_sad_brow(self, parser):
-        r"""悲しい眉毛 vO_O のパース."""
-        state = parser.parse_face_string("vO_O")
-        assert state.brow_tilt == -10  # v は悲しい眉
+        r"""悲しい眉毛 ^OO_ のパース."""
+        state = parser.parse_face_string("^OO_")
+        assert state.brow_tilt == -10  # ^ は悲しい眉
 
     def test_parse_closed_eyes(self, parser):
         """閉じた目 ____ のパース."""
@@ -146,31 +146,31 @@ class TestFaceStateParser:
         assert state.right_eye_openness == 0.0
 
     def test_parse_small_eyes(self, parser):
-        """小さい目 _o_o のパース."""
-        state = parser.parse_face_string("_o_o")
+        """小さい目 _oo_ のパース."""
+        state = parser.parse_face_string("_oo_")
         assert state.left_eye_size == 6.0
         assert state.right_eye_size == 6.0
 
     def test_parse_curved_closed_eyes(self, parser):
-        """にこにこ目 _^_^ のパース."""
-        state = parser.parse_face_string("_^_^")
+        """にこにこ目 _^^_ のパース."""
+        state = parser.parse_face_string("_^^_")
         assert state.left_eye_openness == 0.0
         assert state.left_eye_curve == 1.0
         assert state.right_eye_openness == 0.0
         assert state.right_eye_curve == 1.0
 
     def test_parse_open_mouth(self, parser):
-        """開いた口 _OO のパース."""
+        """開いた口 _OOO のパース."""
         state = parser.parse_face_string("_OOO")
         assert state.mouth_open == 1.1
 
     def test_parse_invalid_length(self, parser):
         """4文字以外はエラー."""
         with pytest.raises(ValueError, match="4 characters"):
-            parser.parse_face_string("_O_")
+            parser.parse_face_string("__O")
 
         with pytest.raises(ValueError, match="4 characters"):
-            parser.parse_face_string("_O_O_")
+            parser.parse_face_string("_OO__")
 
 
 # ===========================================================================
