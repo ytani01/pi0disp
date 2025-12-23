@@ -74,9 +74,9 @@ class FaceStateParser:
         "v": {"openness": 0.0, "curve": -1.0},
     }
     MOUTH_MAP: dict[str, dict[str, float]] = {
-        "^": {"curve": 15},
+        "v": {"curve": 15},
         "_": {"curve": 0},
-        "v": {"curve": -10},
+        "^": {"curve": -10},
         "O": {"open": 1.1},
         "o": {"open": 0.85},
     }
