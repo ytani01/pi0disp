@@ -665,6 +665,11 @@ class RobotFaceApp:
     GAZE_X_MIN = -5.0
     GAZE_X_MAX = +5.0
 
+    MOOD_INTERVAL_MIN = 2.0
+    MOOD_INTERVAL_MAX = 5.0
+    MOOD_CHANGE_DURATION_MIN = 0.5
+    MOOD_CHANGE_DURATION_MAX = 1.5
+
     def __init__(
         self,
         output: DisplayOutput,
@@ -702,8 +707,8 @@ class RobotFaceApp:
 
         # アニメーションタイミング管理
         now = time.time()
-        self._next_mood_time: float = now + 3.0
-        self._next_gaze_time: float = now + 1.0
+        self._next_mood_time: float = now + self.MOOD_INTERVAL_MIN
+        self._next_gaze_time: float = now + self.GAZE_INTERVAL_MIN
 
         try:
             face_size = min(self.screen_width, self.screen_height)
@@ -727,9 +732,14 @@ class RobotFaceApp:
             print(f"{new_mood} {new_mood_key}")
             self.face.set_target_state(
                 self.parser.parse_face_string(new_mood),
-                duration=random.uniform(0.5, 1.5),
+                duration=random.uniform(
+                    self.MOOD_CHANGE_DURATION_MIN,
+                    self.MOOD_CHANGE_DURATION_MAX,
+                ),
             )
-            self._next_mood_time = now + random.uniform(3.0, 5.0)
+            self._next_mood_time = now + random.uniform(
+                self.MOOD_INTERVAL_MIN, self.MOOD_INTERVAL_MAX
+            )
 
     def _handle_gaze_update(self, now: float) -> None:
         """視線のランダム更新."""
@@ -760,8 +770,7 @@ class RobotFaceApp:
         if self.face_sequence:
             # シーケンス再生モード
             for state_str in itertools.cycle(self.face_sequence):
-                state_data = self.parser.parse_face_string(state_str)
-                self.play_interactive_face(state_data)
+                self.play_interactive_face(state_str)
             return
 
         while True:
@@ -775,12 +784,14 @@ class RobotFaceApp:
         """アプリケーション終了処理."""
         self.output.close()
 
-    def play_interactive_face(self, target_state: FaceState) -> None:
+    def play_interactive_face(self, target_state_str: str) -> None:
         """インタラクティブモードで単一の表情を表示し、目のキョロキョロ動作を行う.
 
         Args:
-            target_state: 表示する表情の状態
+            target_state (str): 表示する表情の状態
         """
+        target_state = self.parser.parse_face_string(target_state_str)
+
         # 表情を設定・変化させる
         duration = ANIMATION["face_change_duration"]
         self.face.set_target_state(target_state, duration=duration)
@@ -823,7 +834,6 @@ def main(ctx, faces, random, debug):
     app = None
     try:
         output_device = create_output_device(debug=debug)
-        parser = FaceStateParser()  # ここでインスタンスを作成
 
         app = RobotFaceApp(
             output_device,
@@ -845,13 +855,12 @@ def main(ctx, faces, random, debug):
         else:
             # コマンドライン引数がない場合: インタラクティブモード
             while True:
-                user_input = input("顔の記号 (例: _O_O, qで終了): ").strip()
+                user_input = input("顔の記号 (例: _OO_, qで終了): ").strip()
                 if user_input.lower() == "q" or not user_input:
                     break  # 終了
 
                 try:
-                    target_face_state = parser.parse_face_string(user_input)
-                    app.play_interactive_face(target_face_state)
+                    app.play_interactive_face(user_input)
 
                 except ValueError as e:
                     __log.error(f"入力エラー: {e}")
