@@ -761,11 +761,17 @@ class RobotFaceApp:
 
 @click.command(__file__.split("/")[-1])  # file name
 @click.argument("faces", nargs=-1)
+@click.option(
+    "-r",
+    "--random",
+    is_flag=True,
+    help="ランダムな表情を自動生成するモードで起動します。",
+)
 @click_common_opts(__version__)
-def main(ctx, faces, debug):
+def main(ctx, faces, random_mode, debug):
     """Main."""
     __log = get_logger(__name__, debug)
-    __log.info("faces=%s", faces)
+    __log.info("faces=%s, random_mode=%s", faces, random_mode)
 
     app = None
     try:
@@ -783,10 +789,13 @@ def main(ctx, faces, debug):
             debug=debug,
         )
 
-        if faces:
+        if random_mode:
+            # ランダム再生モード
+            app.main()
+        elif faces:
             # コマンドライン引数がある場合: シーケンス再生モード
             app.face_sequence = [parser.parse_face_string(f) for f in faces]
-            app.main()  # 既存のmainメソッドでシーケンス再生
+            app.main()
         else:
             # コマンドライン引数がない場合: インタラクティブモード
             while True:
