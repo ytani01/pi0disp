@@ -336,8 +336,9 @@ class RobotFace:
         self.__log = get_logger(self.__class__.__name__, self.__debug)
         self.__log.debug("initial_state=%a,size=%s", initial_state, size)
 
-        self._change_duration = change_duration  # 追加
-        self._is_changing = False  # 追加
+        self._change_duration = change_duration
+        self._is_changing = False
+        self._change_start_time: float = time.time()  # 初期化を追加
 
         self.size = size
 
@@ -353,10 +354,20 @@ class RobotFace:
 
     def update(self):
         """状態をターゲットに近づける"""
-        if not self._is_changing:
-            return  # 追加
+        # 視線は常に更新する
+        self.current_gaze_x = lerp(
+            self.current_gaze_x, self.target_gaze_x, 0.8
+        )
+        self.__log.debug(
+            "Face gaze updated. current_gaze_x=%s, target_gaze_x=%s",
+            self.current_gaze_x,
+            self.target_gaze_x,
+        )
 
-        now = time.time()  # 追加
+        if not self._is_changing:
+            return
+
+        now = time.time()
         elapsed_time = now - self._change_start_time
         t_factor = min(1.0, max(0.0, elapsed_time / self._change_duration))
 
@@ -366,11 +377,6 @@ class RobotFace:
         c.mouth_curve = lerp(s.mouth_curve, t.mouth_curve, t_factor)
         c.brow_tilt = lerp(s.brow_tilt, t.brow_tilt, t_factor)
         c.mouth_open = lerp(s.mouth_open, t.mouth_open, t_factor)
-
-        # 視線はこれまで通り減速変化
-        self.current_gaze_x = lerp(
-            self.current_gaze_x, self.target_gaze_x, 0.5
-        )
 
         # left eye
         c.left_eye_openness = lerp(
@@ -391,6 +397,9 @@ class RobotFace:
         if t_factor >= 1.0:
             self._is_changing = False
             self.current_state = self.target_state.copy()
+            self.__log.debug(
+                "Face change completed. current_state=%a", self.current_state
+            )
 
     def set_target_state(
         self, state: FaceState, duration: float | None = None
@@ -403,6 +412,11 @@ class RobotFace:
             duration if duration is not None else self._change_duration
         )  # 修正
         self._is_changing = True  # 追加
+        self.__log.debug(
+            "Target state set. target_state=%a, duration=%s",
+            self.target_state,
+            self._change_duration,
+        )
 
     def set_gaze(self, x):
         """視線セット (-20 to +20)"""
@@ -452,6 +466,7 @@ class RobotFace:
     ):
         """Drow one eye."""
         eye_cx = eye_x + gaze_offset  # 視線を加味した中心X
+        self.__log.debug("Drawing eye with gaze_offset=%s", gaze_offset)
 
         eye_w = eye_size * self.scale  # 目のサイズ(幅)
         eye_h = eye_w * eye_openness  # 開き具合をかけた目の高さ
@@ -619,11 +634,14 @@ class RobotFace:
         )
         return final_img
 
+    @property
+    def is_changing(self) -> bool:
+        """Is face changing?"""
+        return self._is_changing
+
 
 class RobotFaceApp:
     """Robot face App class."""
-
-    GAZE_WIDTH = 5
 
     def __init__(
         self,
@@ -659,6 +677,12 @@ class RobotFaceApp:
         self._next_mood_time: float = now + 5.0
         self._next_gaze_time: float = now + 5.0
 
+        # 視線制御用の状態変数
+        self._gaze_interval_min: float = 0.5
+        self._gaze_interval_max: float = 2.0
+        self._gaze_width_range_min: float = -15.0
+        self._gaze_width_range_max: float = 15.0
+
         try:
             face_size = min(self.screen_width, self.screen_height)
             self.face = RobotFace(
@@ -684,9 +708,18 @@ class RobotFaceApp:
     def _handle_gaze_update(self, now: float):
         # 視線変更
         if now > self._next_gaze_time:
-            gaze = random.uniform(-self.GAZE_WIDTH, self.GAZE_WIDTH)
+            gaze = random.uniform(
+                self._gaze_width_range_min, self._gaze_width_range_max
+            )
             self.face.set_gaze(gaze)
-            self._next_gaze_time = now + random.uniform(0.5, 2.0)
+            self._next_gaze_time = now + random.uniform(
+                self._gaze_interval_min, self._gaze_interval_max
+            )
+            self.__log.debug(
+                "Gaze target changed to %s. Current gaze_x=%s",
+                gaze,
+                self.face.current_gaze_x,
+            )
 
     def main(self):
         """Main."""
@@ -716,7 +749,7 @@ class RobotFaceApp:
             )
             self.output.show(img)
 
-            time.sleep(0.2)
+            time.sleep(0.1)
 
     def end(self):
         """End."""
@@ -737,19 +770,22 @@ class RobotFaceApp:
             self.output.show(img)
             time.sleep(0.05)
 
-        # 2. 約4.75秒間、視線を動かす
-        gaze_loop_end_time = time.time() + 4.75
-        self._next_gaze_time = time.time()
-        while time.time() < gaze_loop_end_time:
-            now = time.time()
-            # 視線変更タイミングか？
-            if now > self._next_gaze_time:
-                gaze = random.uniform(-self.GAZE_WIDTH, self.GAZE_WIDTH)
-                self.face.set_gaze(gaze)
-                self._next_gaze_time = now + random.uniform(0.5, 1.5)
+        # 表情変化後、キョロキョロ動作を開始
+        self._is_gazing_randomly = True
+        self._gaze_loop_end_time = (
+            time.time() + 4.75
+        )  # 現在のplay_interactive_faceのキョロキョロ動作期間に合わせる
+        self.__log.debug(
+            "Interactive gaze loop started. is_gazing_randomly=%s, gaze_loop_end_time=%s",
+            self._is_gazing_randomly,
+            self._gaze_loop_end_time,
+        )
 
-            # 更新と描画
-            self.face.update()  # 視線を滑らかに動かす
+        # その後の描画ループ内で _handle_gaze_update を呼び出すように変更
+        while self._is_gazing_randomly:  # gaze_loop_end_timeによって_is_gazing_randomlyがFalseになるまで続ける
+            now = time.time()
+            self._handle_gaze_update(now)  # 共通の視線更新ロジックを使用
+            self.face.update()
             img = self.face.draw(
                 self.screen_width,
                 self.screen_height,
