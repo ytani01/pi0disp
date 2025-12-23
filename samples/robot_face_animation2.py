@@ -770,19 +770,17 @@ class RobotFaceApp:
             self.output.show(img)
             time.sleep(0.05)
 
-        # 表情変化後、キョロキョロ動作を開始
-        self._is_gazing_randomly = True
-        self._gaze_loop_end_time = (
-            time.time() + 4.75
-        )  # 現在のplay_interactive_faceのキョロキョロ動作期間に合わせる
+        # 表情変化後、キョロキョロ動作を一定時間行う
+        gaze_loop_duration = 4.75
+        gaze_loop_end_time = time.time() + gaze_loop_duration
         self.__log.debug(
-            "Interactive gaze loop started. is_gazing_randomly=%s, gaze_loop_end_time=%s",
-            self._is_gazing_randomly,
-            self._gaze_loop_end_time,
+            "Interactive gaze loop started. duration=%s, end_time=%s",
+            gaze_loop_duration,
+            gaze_loop_end_time,
         )
 
-        # その後の描画ループ内で _handle_gaze_update を呼び出すように変更
-        while self._is_gazing_randomly:  # gaze_loop_end_timeによって_is_gazing_randomlyがFalseになるまで続ける
+        # gaze_loop_end_timeまでキョロキョロ動作を続ける
+        while time.time() < gaze_loop_end_time:
             now = time.time()
             self._handle_gaze_update(now)  # 共通の視線更新ロジックを使用
             self.face.update()
