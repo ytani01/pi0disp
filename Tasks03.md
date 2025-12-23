@@ -13,5 +13,5 @@
 - [x] `mise run lint` を実行し、リンティングエラーを修正する。
 - [x] `mise run test` を実行し、既存のテストが壊れていないことを確認する。
 - [x] 手動で動作確認を行う (`uv run samples/robot_face_animation.py /o_o _O_O \^v^`)。
-- [ ] `git add .`
-- [ ] `git commit -m "feat: Add interactive face control via string arguments"`
+- [x] `git add .`
+- [x] `git commit -m "feat: Add interactive face control via string arguments"`
