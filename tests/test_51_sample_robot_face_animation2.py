@@ -264,7 +264,6 @@ class TestRobotFaceApp:
             screen_width=320,
             screen_height=240,
             bg_color="black",
-            face_change_duration=0.5,
         )
 
     def test_init(self, robot_face_app):
