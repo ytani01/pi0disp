@@ -158,15 +158,10 @@ def lerp(a: float, b: float, t: float) -> float:
 
 
 class FaceStateParser:
-    def __init__(
-        self,
-        brow_map: dict[str, int],
-        eye_map: dict[str, dict[str, float]],
-        mouth_map: dict[str, dict[str, float]],
-    ) -> None:
-        self._brow_map = brow_map
-        self._eye_map = eye_map
-        self._mouth_map = mouth_map
+    def __init__(self) -> None:
+        self._brow_map = BROW_MAP
+        self._eye_map = EYE_MAP
+        self._mouth_map = MOUTH_MAP
 
     def parse_face_string(self, face_str: str) -> FaceState:
         if len(face_str) != 4:
@@ -569,7 +564,11 @@ class FaceAnimator:
     ) -> None:
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
-        self.__log.debug("initial_state=%s", initial_state)
+        self.__log.debug(
+            "initial_state=%s, animation_config=%s",
+            initial_state,
+            animation_config,
+        )
 
         self._animation_config = animation_config
         self._change_duration = self._animation_config["face_change_duration"]
@@ -983,6 +982,7 @@ class RobotFace:
 
     def __init__(
         self,
+        initial_state: FaceState,
         size: int = 240,
         layout_config: dict = LAYOUT,
         color_config: dict = COLORS,
@@ -994,7 +994,7 @@ class RobotFace:
         self.__log.debug("size=%s", size)
 
         self.animator = FaceAnimator(
-            initial_state=FaceState(),
+            initial_state=initial_state,
             animation_config=animation_config,
             debug=debug,
         )
@@ -1082,11 +1082,15 @@ class RobotFaceApp:
         self.moods_str = moods_str
         self.current_mode = mode
 
-        self.parser = FaceStateParser(brow_map, eye_map, mouth_map)
+        self.parser = FaceStateParser()
 
         try:
             face_size = min(self.screen_width, self.screen_height)
+            initial_face_state = self.parser.parse_face_string(
+                moods_str["neutral"]
+            )
             self.face = RobotFace(
+                initial_state=initial_face_state,
                 size=face_size,
                 layout_config=layout_config,
                 color_config=color_config,

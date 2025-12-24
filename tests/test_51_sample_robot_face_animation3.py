@@ -80,7 +80,7 @@ class TestFaceStateParser:
     @pytest.fixture
     def parser(self):
         """FaceStateParser インスタンス."""
-        return FaceStateParser(BROW_MAP, EYE_MAP, MOUTH_MAP)
+        return FaceStateParser()
 
     def test_parse_neutral(self, parser):
         """_OO_ の解析."""
@@ -151,7 +151,7 @@ class TestRobotFace:
     @pytest.fixture
     def robot_face(self):
         """RobotFace インスタンス."""
-        return RobotFace()
+        return RobotFace(initial_state=FaceState())
 
     def test_init(self, robot_face):
         """初期化のテスト."""
@@ -278,16 +278,20 @@ class TestRobotFaceApp:
     @patch("time.sleep")
     def test_handle_random_mood_update(self, mock_sleep, robot_face_app):
         """ランダムモードでの表情更新テスト (間接的に)"""
-        # 通常のテストでは、_handle_random_mood_update は RandomMode の内部に移ったため
-        # ここでは RobotFaceApp の direct なテストは不要
-        pass
+        with pytest.raises(
+            AttributeError
+        ):  # または、メソッドがもはや存在しないことを検証する
+            robot_face_app._handle_random_mood_update(time.time())
 
     @patch("time.sleep")
     def test_handle_gaze_update(self, mock_sleep, robot_face_app):
         """ランダムモードでの視線更新テスト (間接的に)"""
         # _handle_gaze_update も RandomMode の内部に移ったため
         # ここでは RobotFaceApp の direct なテストは不要
-        pass
+        with pytest.raises(
+            AttributeError
+        ):  # または、メソッドがもはや存在しないことを検証する
+            robot_face_app._handle_gaze_update(time.time())
 
 
 class TestMainCLI:

@@ -304,6 +304,7 @@ class RobotFace:
         initial_state: FaceState,
         size: int = 240,
         debug: bool = False,
+        change_duration: float | None = None,
     ) -> None:
         """Constructor.
 
@@ -319,7 +320,10 @@ class RobotFace:
 
         self.size = size
 
-        self._change_duration = ANIMATION["face_change_duration"]
+        if change_duration is None:
+            self._change_duration = ANIMATION["face_change_duration"]
+        else:
+            self._change_duration = change_duration
         self._change_start_time = time.time()
 
         self._is_changing = False
@@ -418,17 +422,19 @@ class RobotFace:
             state: 新しいターゲット状態
             duration: 変化にかける時間 (None の場合はデフォルト値を使用)
         """
-        self.__log.debug("duration=%s", duration)
-        if not duration:
-            duration = ANIMATION["face_change_duration"]
-            self.__log.debug("duration=%s", duration)
-        self._change_duration = duration
+        actual_duration = (
+            duration if duration is not None else self._change_duration
+        )
+        self.__log.debug(
+            "duration=%s, actual_duration=%s", duration, actual_duration
+        )
 
         self.target_state = state.copy()
         self._start_state = self.current_state.copy()
         self._change_start_time = time.time()
 
         self._is_changing = True
+        self._change_duration = actual_duration
 
         self.__log.debug(
             "target_state=%a,change_start_time=%s,change_duration=%s",
