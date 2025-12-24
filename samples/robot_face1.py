@@ -941,8 +941,8 @@ class FaceRenderer:
             # 丸い口 (驚きなど)
             factor = (
                 current_state.mouth_open
-                - self._animation_config["mouth_open_threshold"]
-            ) * 2
+                - self._animation_config["mouth_open_threshold"] * 2
+            )
             r = (
                 self._layout_config["mouth_open_radius_factor"]
                 * self.scale
@@ -1143,8 +1143,7 @@ class RobotFaceApp:
                 robot_face=self.face,
                 parser=self.parser,
                 animation_config=self.face_config.animation_config,
-                face_sequence=self.faces_arg
-                or [],  # faces_arg が None の場合、空リストを渡す
+                face_sequence=self.faces_arg or [],
                 app_render_frame_callback=self.render_frame,
                 debug=self.__debug,
             )

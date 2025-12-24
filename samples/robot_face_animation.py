@@ -363,8 +363,7 @@ class SequenceMode(FaceMode):
         parser: FaceStateParser | None,  # 型ヒントを修正
         animation_config: dict,
         face_sequence: list[str],
-        app_render_frame_callback: Callable[[], None]
-        | None,  # 型ヒントを修正
+        app_render_frame_callback: Callable[[], None] | None,
         debug: bool = False,
     ):
         super().__init__(robot_face, parser, animation_config, debug)
@@ -1167,7 +1166,7 @@ def main(ctx, faces, random, debug):
                 parser=None,  # RobotFaceApp の中で初期化されるため仮にNone
                 animation_config=ANIMATION,
                 moods_str=MOODS_STR,
-                app_render_frame_callback=None,  # RobotFaceApp の render_frame を渡すため仮にNone
+                app_render_frame_callback=None,
                 debug=debug,
             )
         elif faces:
@@ -1176,7 +1175,7 @@ def main(ctx, faces, random, debug):
                 parser=None,  # RobotFaceApp の中で初期化されるため仮にNone
                 animation_config=ANIMATION,
                 face_sequence=list(faces),
-                app_render_frame_callback=None,  # RobotFaceApp の render_frame を渡すため仮にNone
+                app_render_frame_callback=None,
                 debug=debug,
             )
         else:
@@ -1184,7 +1183,7 @@ def main(ctx, faces, random, debug):
                 robot_face=None,  # RobotFaceApp の中で初期化されるため仮にNone
                 parser=None,  # RobotFaceApp の中で初期化されるため仮にNone
                 animation_config=ANIMATION,
-                app_render_frame_callback=None,  # RobotFaceApp の render_frame を渡すため仮にNone
+                app_render_frame_callback=None,
                 debug=debug,
             )
 
