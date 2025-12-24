@@ -1160,7 +1160,7 @@ def main(ctx, faces, random, debug):
         output_device = create_output_device(debug=debug)
 
         # モードの決定とモードインスタンスの生成
-        selected_mode: FaceMode
+        selected_mode = None
         if random:
             selected_mode = RandomMode(
                 robot_face=None,  # RobotFaceApp の中で初期化されるため仮にNone
