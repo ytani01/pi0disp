@@ -80,7 +80,7 @@ class TestFaceStateParser:
     @pytest.fixture
     def parser(self):
         """FaceStateParser インスタンス."""
-        return FaceStateParser()
+        return FaceStateParser(BROW_MAP, EYE_MAP, MOUTH_MAP)
 
     def test_parse_neutral(self, parser):
         """_OO_ の解析."""
