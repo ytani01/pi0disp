@@ -5,7 +5,8 @@ import pytest
 from click.testing import CliRunner
 from PIL import Image  # PIL.Image をインポート
 
-from samples.robot_face_animation3 import (
+# main 関数もインポート
+from samples.robot_face_animation import (
     ANIMATION,
     BROW_MAP,
     COLORS,
@@ -20,10 +21,8 @@ from samples.robot_face_animation3 import (
     RobotFace,
     RobotFaceApp,
     lerp,
+    main,
 )
-
-# main 関数もインポート
-from samples.robot_face_animation3 import main as robot_face_animation3_main
 
 
 class TestLerp:
@@ -302,18 +301,19 @@ class TestRobotFaceApp:
 class TestMainCLI:
     """CLI の main 関数のテスト"""
 
-    @patch("samples.robot_face_animation3.create_output_device")
-    def test_help(self, mock_create_output):
+    @patch("samples.robot_face_animation.create_output_device")
+    @patch("time.sleep")
+    def test_help(self, mock_sleep, mock_create_output):  # ここを修正
         """--help オプションのテスト."""
         mock_output = MagicMock()
         mock_create_output.return_value = mock_output
 
         runner = CliRunner()
-        result = runner.invoke(robot_face_animation3_main, ["--help"])
+        result = runner.invoke(main, ["--help"])
         assert result.exit_code == 0
         assert "Usage:" in result.output
 
-    @patch("samples.robot_face_animation3.create_output_device")
+    @patch("samples.robot_face_animation.create_output_device")
     @patch("time.sleep")
     def test_random_mode(self, mock_sleep, mock_create_output):
         """ランダムモードのテスト."""
@@ -324,12 +324,12 @@ class TestMainCLI:
         mock_sleep.side_effect = KeyboardInterrupt("Stop loop")
 
         runner = CliRunner()
-        result = runner.invoke(robot_face_animation3_main, ["--random"])
+        result = runner.invoke(main, ["--random"])
         assert result.exit_code == 0
         mock_sleep.assert_called()
         mock_output.show.assert_called()  # render_frame が呼ばれたことを確認
 
-    @patch("samples.robot_face_animation3.create_output_device")
+    @patch("samples.robot_face_animation.create_output_device")
     @patch("time.sleep")
     def test_sequence_mode(self, mock_sleep, mock_create_output):
         """シーケンスモードのテスト."""
@@ -340,12 +340,12 @@ class TestMainCLI:
         mock_sleep.side_effect = KeyboardInterrupt("Stop loop")
 
         runner = CliRunner()
-        result = runner.invoke(robot_face_animation3_main, ["_O_O", "/O_O"])
+        result = runner.invoke(main, ["_O_O", "/O_O"])
         assert result.exit_code == 0
         mock_sleep.assert_called()
         mock_output.show.assert_called()  # render_frame が呼ばれたことを確認
 
-    @patch("samples.robot_face_animation3.create_output_device")
+    @patch("samples.robot_face_animation.create_output_device")
     @patch(
         "builtins.input", side_effect=["_OO_", "q"]
     )  # ユーザー入力のモック
@@ -362,9 +362,7 @@ class TestMainCLI:
         )  # ループを抜けるため
 
         runner = CliRunner()
-        result = runner.invoke(
-            robot_face_animation3_main, []
-        )  # 引数なしでインタラクティブモード
+        result = runner.invoke(main, [])  # 引数なしでインタラクティブモード
         assert result.exit_code == 0
         mock_input.assert_any_call("顔の記号 (例: _OO_, qで終了): ")
         mock_output.show.assert_called()  # render_frame が呼ばれたことを確認

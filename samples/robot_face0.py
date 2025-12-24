@@ -123,14 +123,14 @@ COLORS: dict[str, str | tuple[int, int, int]] = {
 
 # アニメーション定数
 ANIMATION = {
-    "main_loop_interval": 0.1,  # メインループのスリープ間隔
-    "interactive_loop_interval": 0.1,  # インタラクティブモードのスリープ間隔
-    "eye_open_threshold": 6,  # 目が開いているとみなす高さの閾値
-    "mouth_open_threshold": 0.5,  # 口が開いているとみなす閾値
-    "mouth_aspect_ratio": 1.2,  # 開いた口の縦横比
-    "face_change_duration": 0.4,  # 表情変化のデフォルト時間
-    "gaze_loop_duration": 3.0,  # キョロキョロ動作の時間
-    "gaze_lerp_factor": 0.7,  # 視線補間係数
+    "main_loop_interval": 0.1,
+    "interactive_loop_interval": 0.1,
+    "eye_open_threshold": 6,
+    "mouth_open_threshold": 0.5,
+    "mouth_aspect_ratio": 1.2,
+    "face_change_duration": 0.4,
+    "gaze_loop_duration": 3.0,
+    "gaze_lerp_factor": 0.7,
 }
 
 # ===========================================================================
@@ -627,7 +627,7 @@ class FaceAnimator:
     def _update_eyes(self, t_factor):
         cur = self.current_state
         start = self._start_state
-        target = self.target_state
+        target = self._target_state
 
         cur.left_eye_openness = lerp(
             start.left_eye_openness,
@@ -1141,7 +1141,7 @@ class RobotFaceApp:
         self.current_mode.run()
 
 
-@click.command(__file__.split("/")[-1])  # file name
+@click.command("robot_face0.py")  # file name
 @click.argument("faces", nargs=-1)
 @click.option(
     "-r",

@@ -1,3 +1,4 @@
+# mypy: disable-error-code="attr-defined"
 #
 # (c) 2025 Yoichi Tanibayashi
 #
@@ -254,19 +255,22 @@ class FaceMode(ABC):
 
     def __init__(
         self,
-        robot_face: RobotFace | None,  # 型ヒントを修正
-        parser: FaceStateParser | None,  # 型ヒントを修正
+        robot_face: RobotFace,
+        parser: FaceStateParser,
         animation_config: dict,
+        app_render_frame_callback: Callable[[], None],  # 追加
         debug: bool = False,
     ):
+        super().__init__()
         self._robot_face = robot_face
         self._parser = parser
         self._animation_config = animation_config
-        self._debug = debug  # __debug を _debug に変更
+        self._app_render_frame_callback = app_render_frame_callback  # 追加
+        self._debug = debug
         self._log = get_logger(
             self.__class__.__name__,
             self._debug,
-        )  # __log を _log に変更
+        )
 
     @abstractmethod
     def run(self) -> None:
@@ -291,17 +295,21 @@ class RandomMode(FaceMode):
 
     def __init__(
         self,
-        robot_face: RobotFace | None,  # 型ヒントを修正
-        parser: FaceStateParser | None,  # 型ヒントを修正
+        robot_face: RobotFace,
+        parser: FaceStateParser,
         animation_config: dict,
         moods_str: dict,
-        app_render_frame_callback: Callable[[], None]
-        | None,  # 型ヒントを修正
+        app_render_frame_callback: Callable[[], None],
         debug: bool = False,
     ):
-        super().__init__(robot_face, parser, animation_config, debug)
+        super().__init__(
+            robot_face,
+            parser,
+            animation_config,
+            app_render_frame_callback,
+            debug,
+        )
         self.moods_str = moods_str
-        self._app_render_frame_callback = app_render_frame_callback
 
         now = time.time()
         self._next_mood_time: float = now + self.MOOD_INTERVAL_MIN
@@ -314,10 +322,8 @@ class RandomMode(FaceMode):
             new_mood = self.moods_str[new_mood_key]
             print(f"{new_mood} {new_mood_key}")
 
-            assert self._parser is not None  # None チェックを追加
             target_state = self._parser.parse_face_string(new_mood)
             duration = self._animation_config["face_change_duration"]
-            assert self._robot_face is not None  # None チェックを追加
             self._robot_face.set_target_state(target_state, duration=duration)
 
             self._next_mood_time = now + random.uniform(
@@ -328,7 +334,6 @@ class RandomMode(FaceMode):
         """視線のランダム更新."""
         if now > self._next_gaze_time:
             gaze = random.uniform(self.GAZE_X_MIN, self.GAZE_X_MAX)
-            assert self._robot_face is not None  # None チェックを追加
             self._robot_face.set_gaze(gaze)
             self._next_gaze_time = now + random.uniform(
                 self.GAZE_INTERVAL_MIN, self.GAZE_INTERVAL_MAX
@@ -345,8 +350,7 @@ class RandomMode(FaceMode):
             now = time.time()
             self._handle_random_mood_update(now)
             self._handle_gaze_update(now)
-            if self._app_render_frame_callback:
-                self._app_render_frame_callback()
+            self._app_render_frame_callback()
             time.sleep(self._animation_config["main_loop_interval"])
 
 
@@ -359,27 +363,29 @@ class SequenceMode(FaceMode):
 
     def __init__(
         self,
-        robot_face: RobotFace | None,  # 型ヒントを修正
-        parser: FaceStateParser | None,  # 型ヒントを修正
+        robot_face: RobotFace,
+        parser: FaceStateParser,
         animation_config: dict,
         face_sequence: list[str],
-        app_render_frame_callback: Callable[[], None]
-        | None,  # 型ヒントを修正
+        app_render_frame_callback: Callable[[], None],
         debug: bool = False,
     ):
-        super().__init__(robot_face, parser, animation_config, debug)
+        super().__init__(
+            robot_face,
+            parser,
+            animation_config,
+            app_render_frame_callback,
+            debug,
+        )
         self._face_sequence = itertools.cycle(
             face_sequence
         )  # 無限ループシーケンス
-        self._app_render_frame_callback = app_render_frame_callback
 
     def run(self) -> None:
         """モードのメインループを実行する"""
         for state_str in self._face_sequence:
-            assert self._parser is not None  # None チェックを追加
             target_state = self._parser.parse_face_string(state_str)
             duration = self._animation_config["face_change_duration"]
-            assert self._robot_face is not None  # None チェックを追加
             self._robot_face.set_target_state(target_state, duration=duration)
 
             start_time = time.time()
@@ -387,8 +393,7 @@ class SequenceMode(FaceMode):
 
             # 表情変化アニメーション
             while time.time() - start_time < duration:
-                if self._app_render_frame_callback:
-                    self._app_render_frame_callback()
+                self._app_render_frame_callback()
                 time.sleep(interval)
 
             # 表情変化後、視線キョロキョロ動作
@@ -404,10 +409,8 @@ class SequenceMode(FaceMode):
                 gaze = random.uniform(
                     RandomMode.GAZE_X_MIN, RandomMode.GAZE_X_MAX
                 )  # RandomMode の定数を再利用
-                assert self._robot_face is not None  # None チェックを追加
                 self._robot_face.set_gaze(gaze)
-                if self._app_render_frame_callback:
-                    self._app_render_frame_callback()
+                self._app_render_frame_callback()
                 time.sleep(interval)
 
 
@@ -421,15 +424,19 @@ class InteractiveMode(FaceMode):
 
     def __init__(
         self,
-        robot_face: RobotFace | None,  # 型ヒントを修正
-        parser: FaceStateParser | None,  # 型ヒントを修正
+        robot_face: RobotFace,
+        parser: FaceStateParser,
         animation_config: dict,
-        app_render_frame_callback: Callable[[], None]
-        | None,  # 型ヒントを修正
+        app_render_frame_callback: Callable[[], None],
         debug: bool = False,
     ):
-        super().__init__(robot_face, parser, animation_config, debug)
-        self._app_render_frame_callback = app_render_frame_callback
+        super().__init__(
+            robot_face,
+            parser,
+            animation_config,
+            app_render_frame_callback,
+            debug,
+        )
 
     def play_interactive_face(self, target_state_str: str) -> None:
         """インタラクティブモードで単一の表情を表示し、目のキョロキョロ動作を行う.
@@ -437,19 +444,16 @@ class InteractiveMode(FaceMode):
         Args:
             target_state_str (str): 表示する表情の状態文字列
         """
-        assert self._parser is not None  # None チェックを追加
         target_state = self._parser.parse_face_string(target_state_str)
 
         # 表情を設定・変化させる
         duration = self._animation_config["face_change_duration"]
-        assert self._robot_face is not None  # None チェックを追加
         self._robot_face.set_target_state(target_state, duration=duration)
         start_time = time.time()
         interval = self._animation_config["interactive_loop_interval"]
 
         while time.time() - start_time < duration:
-            if self._app_render_frame_callback:
-                self._app_render_frame_callback()
+            self._app_render_frame_callback()
             time.sleep(interval)
 
         # 表情変化後、キョロキョロ動作を一定時間行う
@@ -466,10 +470,8 @@ class InteractiveMode(FaceMode):
             gaze = random.uniform(
                 RandomMode.GAZE_X_MIN, RandomMode.GAZE_X_MAX
             )  # RandomMode の定数を再利用
-            assert self._robot_face is not None  # None チェックを追加
             self._robot_face.set_gaze(gaze)
-            if self._app_render_frame_callback:
-                self._app_render_frame_callback()
+            self._app_render_frame_callback()
             time.sleep(interval)
 
     def run(self) -> None:
@@ -573,11 +575,6 @@ class FaceAnimator:
     FaceStateオブジェクト間の補間、視線の変化、状態変化のタイミングなどを制御する。
     """
 
-    _start_state: FaceState
-    _change_start_time: float
-    _change_duration: float
-    _is_changing: bool
-
     def __init__(
         self,
         initial_state: FaceState,
@@ -593,10 +590,15 @@ class FaceAnimator:
         )
 
         self._animation_config = animation_config
-        self._change_duration = self._animation_config["face_change_duration"]
-        self._change_start_time = time.time()
 
-        self._is_changing = False
+        self._start_state: FaceState = (
+            initial_state.copy()
+        )  # __init__内で初期化
+        self._change_start_time: float = time.time()  # __init__内で初期化
+        self._change_duration: float = self._animation_config[
+            "face_change_duration"
+        ]  # __init__内で初期化
+        self._is_changing: bool = False  # __init__内で初期化
 
         self.current_state = initial_state.copy()
         self.target_state = initial_state.copy()
@@ -715,7 +717,7 @@ class FaceAnimator:
 
     @property
     def is_changing(self) -> bool:
-        return self._is_changing
+        return self.animator.is_changing
 
 
 class FaceRenderer:
@@ -955,7 +957,7 @@ class FaceRenderer:
                     fill=self._color_config["mouth_fill"],
                     width=self._scale_width(4),
                 )
-            return
+                return
 
         # カーブする口
         dx = self._layout_config["mouth_curve_half_width"]
@@ -1015,7 +1017,7 @@ class RobotFace:
         self.__log = get_logger(self.__class__.__name__, self.__debug)
         self.__log.debug("size=%s", size)
 
-        self.animator = FaceAnimator(
+        self.animator: FaceAnimator = FaceAnimator(
             initial_state=initial_state,
             animation_config=animation_config,
             debug=debug,
@@ -1041,7 +1043,9 @@ class RobotFace:
     def set_gaze(self, x: float) -> None:
         self.animator.set_gaze(x)
 
-    def draw(self, screen_width: int, screen_height: int, bg_color: tuple):
+    def draw(
+        self, screen_width: int, screen_height: int, bg_color: tuple
+    ) -> Image.Image:  # type: ignore[attr-defined]
         return self.renderer.render(
             self.animator.current_state,
             self.animator.current_gaze_x,
@@ -1065,62 +1069,93 @@ class RobotFaceApp:
 
     def __init__(
         self,
-        output: DisplayOutput,
         screen_width: int,
         screen_height: int,
         bg_color: str,
-        mode: FaceMode,
-        face_sequence: list[str] | None = None,
-        face_config: FaceConfig = FaceConfig(),
+        mode_name: str,
+        faces_arg: list[str] | None = None,
         debug: bool = False,
     ) -> None:
+        self.current_mode: FaceMode  # 追加
+
         """Constructor.
 
         Args:
-            output: 出力デバイス
             screen_width: 画面幅
             screen_height: 画面高さ
             bg_color: 背景色
-            mode: 実行する顔のアニメーションモード
-            face_sequence: シーケンスモードでの表情リスト
+            mode_name: 実行する顔のアニメーションモードの名前 (random, sequence, interactive)
+            faces_arg: シーケンスモードでの表情リスト
             debug: デバッグモード
         """
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
-        self.__log.debug("face_sequence=%s", face_sequence)
+        self.__log.debug("faces_arg=%s", faces_arg)
 
-        self.output = output
+        self.output = create_output_device(
+            debug=self.__debug
+        )  # 出力デバイスの初期化
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.bg_color = bg_color
         self.bg_color_tuple = ImageColor.getrgb(bg_color)
-        self.face_sequence = face_sequence
-        self.current_mode = mode
+        self.faces_arg = faces_arg  # 引数の名前をfaces_argに変更
+        self.mode_name = mode_name
+
+        self.face_config = FaceConfig()  # FaceConfig の初期化をここで行う
 
         self.parser = FaceStateParser(
-            face_config.brow_map,
-            face_config.eye_map,
-            face_config.mouth_map,
+            self.face_config.brow_map,
+            self.face_config.eye_map,
+            self.face_config.mouth_map,
         )
 
         try:
             face_size = min(self.screen_width, self.screen_height)
             initial_face_state = self.parser.parse_face_string(
-                face_config.moods_str["neutral"]
+                self.face_config.moods_str["neutral"]
             )
             self.face = RobotFace(
                 initial_state=initial_face_state,
                 size=face_size,
-                layout_config=face_config.layout_config,
-                color_config=face_config.color_config,
-                animation_config=face_config.animation_config,
+                layout_config=self.face_config.layout_config,
+                color_config=self.face_config.color_config,
+                animation_config=self.face_config.animation_config,
                 debug=self.__debug,
             )
-            # FaceAnimator は RobotFace の中に移動したので、直接アクセスする
 
         except Exception as e:
             self.__log.error(errmsg(e))
             raise
+
+        # モードの決定とモードインスタンスの生成
+        if self.mode_name == "random":
+            self.current_mode = RandomMode(
+                robot_face=self.face,
+                parser=self.parser,
+                animation_config=self.face_config.animation_config,
+                moods_str=self.face_config.moods_str,
+                app_render_frame_callback=self.render_frame,
+                debug=self.__debug,
+            )
+        elif self.mode_name == "sequence":
+            self.current_mode = SequenceMode(
+                robot_face=self.face,
+                parser=self.parser,
+                animation_config=self.face_config.animation_config,
+                face_sequence=self.faces_arg
+                or [],  # faces_arg が None の場合、空リストを渡す
+                app_render_frame_callback=self.render_frame,
+                debug=self.__debug,
+            )
+        else:  # interactive mode
+            self.current_mode = InteractiveMode(
+                robot_face=self.face,
+                parser=self.parser,
+                animation_config=self.face_config.animation_config,
+                app_render_frame_callback=self.render_frame,
+                debug=self.__debug,
+            )
 
     def render_frame(self) -> None:
         """1フレームを更新して描画."""
@@ -1141,7 +1176,7 @@ class RobotFaceApp:
         self.current_mode.run()
 
 
-@click.command("robot_face_animation.py")  # file name
+@click.command("robot_face.py")  # file name
 @click.argument("faces", nargs=-1)
 @click.option(
     "-r",
@@ -1157,70 +1192,23 @@ def main(ctx, faces, random, debug):
 
     app = None
     try:
-        output_device = create_output_device(debug=debug)
-
-        # モードの決定とモードインスタンスの生成
-        selected_mode: FaceMode
+        mode_name: str
         if random:
-            selected_mode = RandomMode(
-                robot_face=None,  # RobotFaceApp の中で初期化されるため仮にNone
-                parser=None,  # RobotFaceApp の中で初期化されるため仮にNone
-                animation_config=ANIMATION,
-                moods_str=MOODS_STR,
-                app_render_frame_callback=None,  # RobotFaceApp の render_frame を渡すため仮にNone
-                debug=debug,
-            )
+            mode_name = "random"
         elif faces:
-            selected_mode = SequenceMode(
-                robot_face=None,  # RobotFaceApp の中で初期化されるため仮にNone
-                parser=None,  # RobotFaceApp の中で初期化されるため仮にNone
-                animation_config=ANIMATION,
-                face_sequence=list(faces),
-                app_render_frame_callback=None,  # RobotFaceApp の render_frame を渡すため仮にNone
-                debug=debug,
-            )
+            mode_name = "sequence"
         else:
-            selected_mode = InteractiveMode(
-                robot_face=None,  # RobotFaceApp の中で初期化されるため仮にNone
-                parser=None,  # RobotFaceApp の中で初期化されるため仮にNone
-                animation_config=ANIMATION,
-                app_render_frame_callback=None,  # RobotFaceApp の render_frame を渡すため仮にNone
-                debug=debug,
-            )
-
-        # FaceConfig オブジェクトを作成
-        face_config = FaceConfig(
-            moods_str=MOODS_STR,
-            brow_map=BROW_MAP,
-            eye_map=EYE_MAP,
-            mouth_map=MOUTH_MAP,
-            layout_config=LAYOUT,
-            color_config=COLORS,
-            animation_config=ANIMATION,
-        )
+            mode_name = "interactive"
 
         app = RobotFaceApp(
-            output=output_device,
             screen_width=320,
             screen_height=240,
             bg_color="black",
-            mode=selected_mode,  # ここでモードインスタンスを渡す
-            face_config=face_config,  # FaceConfig オブジェクトを渡す
+            mode_name=mode_name,
+            faces_arg=list(faces),
             debug=debug,
         )
-
-        # モードインスタンスに RobotFaceApp の依存を注入
-        # RobotFaceApp.__init__ の中で self.face と self.parser が初期化されるため、
-        # ここで selected_mode のコンストラクタ引数を更新する。
-        # これは暫定的な措置であり、より良い依存性注入の仕組みを後で検討する必要がある。
-        if selected_mode._robot_face is None:
-            selected_mode._robot_face = app.face
-        if selected_mode._parser is None:
-            selected_mode._parser = app.parser
-        if selected_mode._app_render_frame_callback is None:
-            selected_mode._app_render_frame_callback = app.render_frame
-
-        app.main()  # RobotFaceApp の main メソッドを呼び出すと、selected_mode.run() が実行される
+        app.main()
 
     except KeyboardInterrupt:
         print("\nEnd.")
