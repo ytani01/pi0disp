@@ -156,16 +156,7 @@ class FaceConfig:
 
 
 def lerp(a: float, b: float, t: float) -> float:
-    """線形補間 (Linear Interpolation).
-
-    Args:
-        a: 開始値
-        b: 終了値
-        t: 補間係数 (0.0 ~ 1.0)
-
-    Returns:
-        補間された値
-    """
+    """線形補間 (Linear Interpolation)."""
     return a + (b - a) * t
 
 
@@ -245,23 +236,17 @@ class DisplayOutput(ABC):
 
 
 class FaceMode(ABC):
-    """顔のアニメーションモードの抽象基底クラス。
-
-    各モード（ランダム、シーケンス、インタラクティブ）の共通インターフェースを定義し、
-    RobotFaceApp から必要な依存（RobotFace、FaceStateParser、設定、render_frameコールバック）
-    を受け取る。具体的な実行ロジックはサブクラスで実装する。
-    """
+    """顔のアニメーションモードの抽象基底クラス。"""
 
     def __init__(
         self,
         debug: bool = False,
     ):
-        # サブクラスで直接設定するため、ここでは何もしない
-        self._debug = debug  # __debug を _debug に変更
+        self._debug = debug
         self._log = get_logger(
             self.__class__.__name__,
             self._debug,
-        )  # __log を _log に変更
+        )
 
     @abstractmethod
     def run(self) -> None:
@@ -270,11 +255,7 @@ class FaceMode(ABC):
 
 
 class RandomMode(FaceMode):
-    """ランダムな表情と視線を自動生成して表示するモード。
-
-    一定時間ごとにランダムな表情に変化し、同時に視線もランダムに移動する。
-    RobotFaceApp の render_frame メソッドをコールバックとして利用する。
-    """
+    """ランダムな表情と視線を自動生成して表示するモード。"""
 
     GAZE_INTERVAL_MIN = 0.2
     GAZE_INTERVAL_MAX = 1.0
@@ -305,7 +286,6 @@ class RandomMode(FaceMode):
         self._next_gaze_time: float = now + self.GAZE_INTERVAL_MIN
 
     def _handle_random_mood_update(self, now: float):
-        # 表情変更
         if now > self._next_mood_time:
             new_mood_key = random.choice(list(self.moods_str.keys()))
             new_mood = self.moods_str[new_mood_key]
@@ -322,7 +302,6 @@ class RandomMode(FaceMode):
             )
 
     def _handle_gaze_update(self, now: float) -> None:
-        """視線のランダム更新."""
         if now > self._next_gaze_time:
             gaze = random.uniform(self.GAZE_X_MIN, self.GAZE_X_MAX)
             assert self._robot_face is not None
@@ -337,22 +316,17 @@ class RandomMode(FaceMode):
             )
 
     def run(self) -> None:
-        """モードのメインループを実行する"""
         while True:
             now = time.time()
             self._handle_random_mood_update(now)
             self._handle_gaze_update(now)
-            if self._app_render_frame_callback:
+            if self._app_render_frame_callback is not None:
                 self._app_render_frame_callback()
             time.sleep(self._animation_config["main_loop_interval"])
 
 
 class SequenceMode(FaceMode):
-    """定義された表情シーケンスを順に再生するモード。
-
-    指定された表情のリストを繰り返し表示し、各表情の間には目のキョロキョロ動作も行う。
-    RobotFaceApp の render_frame メソッドをコールバックとして利用する。
-    """
+    """定義された表情シーケンスを順に再生するモード。"""
 
     def __init__(
         self,
@@ -371,7 +345,6 @@ class SequenceMode(FaceMode):
         self._app_render_frame_callback = app_render_frame_callback
 
     def run(self) -> None:
-        """モードのメインループを実行する"""
         for state_str in self._face_sequence:
             assert self._parser is not None
             target_state = self._parser.parse_face_string(state_str)
@@ -382,13 +355,11 @@ class SequenceMode(FaceMode):
             start_time = time.time()
             interval = self._animation_config["interactive_loop_interval"]
 
-            # 表情変化アニメーション
             while time.time() - start_time < duration:
-                if self._app_render_frame_callback:
+                if self._app_render_frame_callback is not None:
                     self._app_render_frame_callback()
                 time.sleep(interval)
 
-            # 表情変化後、視線キョロキョロ動作
             gaze_duration = self._animation_config["gaze_loop_duration"]
             gaze_loop_end_time = time.time() + gaze_duration
             self._log.debug(
@@ -397,24 +368,18 @@ class SequenceMode(FaceMode):
                 gaze_loop_end_time,
             )
             while time.time() < gaze_loop_end_time:
-                # 視線のランダム更新
                 gaze = random.uniform(
                     RandomMode.GAZE_X_MIN, RandomMode.GAZE_X_MAX
                 )
                 assert self._robot_face is not None
                 self._robot_face.set_gaze(gaze)
-                if self._app_render_frame_callback:
+                if self._app_render_frame_callback is not None:
                     self._app_render_frame_callback()
                 time.sleep(interval)
 
 
 class InteractiveMode(FaceMode):
-    """ユーザーからの入力に基づいて表情を表示するインタラクティブモード。
-
-    コンソールからの文字列入力（例: "_OO_"）を受け付け、対応する表情に変化させる。
-    表情変化後には一定時間のキョロキョロ動作を行う。
-    RobotFaceApp の render_frame メソッドをコールバックとして利用する。
-    """
+    """ユーザーからの入力に基づいて表情を表示するインタラクティブモード。"""
 
     def __init__(
         self,
@@ -431,15 +396,9 @@ class InteractiveMode(FaceMode):
         self._app_render_frame_callback = app_render_frame_callback
 
     def play_interactive_face(self, target_state_str: str) -> None:
-        """インタラクティブモードで単一の表情を表示し、目のキョロキョロ動作を行う. 
-
-        Args:
-            target_state_str (str): 表示する表情の状態文字列
-        """
         assert self._parser is not None
         target_state = self._parser.parse_face_string(target_state_str)
 
-        # 表情を設定・変化させる
         duration = self._animation_config["face_change_duration"]
         assert self._robot_face is not None
         self._robot_face.set_target_state(target_state, duration=duration)
@@ -447,11 +406,10 @@ class InteractiveMode(FaceMode):
         interval = self._animation_config["interactive_loop_interval"]
 
         while time.time() - start_time < duration:
-            if self._app_render_frame_callback:
+            if self._app_render_frame_callback is not None:
                 self._app_render_frame_callback()
             time.sleep(interval)
 
-        # 表情変化後、キョロキョロ動作を一定時間行う
         gaze_duration = self._animation_config["gaze_loop_duration"]
         gaze_loop_end_time = time.time() + gaze_duration
         self._log.debug(
@@ -461,22 +419,20 @@ class InteractiveMode(FaceMode):
         )
 
         while time.time() < gaze_loop_end_time:
-            # 視線のランダム更新
             gaze = random.uniform(
                 RandomMode.GAZE_X_MIN, RandomMode.GAZE_X_MAX
             )
             assert self._robot_face is not None
             self._robot_face.set_gaze(gaze)
-            if self._app_render_frame_callback:
-                self._app_app_render_frame_callback() # NOTE: Typo here, should be _app_render_frame_callback
+            if self._app_render_frame_callback is not None:
+                self._app_render_frame_callback()
             time.sleep(interval)
 
     def run(self) -> None:
-        """モードのメインループを実行する"""
         while True:
             user_input = input("顔の記号 (例: _OO_, qで終了): ").strip()
             if user_input.lower() == "q" or not user_input:
-                break  # 終了
+                break
 
             try:
                 self.play_interactive_face(user_input)
@@ -532,7 +488,6 @@ class PreviewOutput(DisplayOutput):
         self.__log.debug("initialized PreviewOutput")
 
     def show(self, pil_image):
-        # PIL -> OpenCV (BGR)
         frame = np.array(pil_image)
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         cv2.imshow("Robot Face", frame)
@@ -545,32 +500,24 @@ class PreviewOutput(DisplayOutput):
 
 
 def create_output_device(debug=False) -> DisplayOutput:
-    """利用可能な出力デバイスを検出して返すファクトリ関数"""
     _log = get_logger("()", debug)
 
-    # 1. ハードウェア (ST7789) の確認
     if HAS_LCD:
         try:
             return LcdOutput(debug=debug)
         except Exception as e:
             _log.error(errmsg(e))
 
-    # 2. OpenCVプレビュー
     if HAS_OPENCV:
         _log.warning("Found OpenCV, returning PreviewOutput.")
         return PreviewOutput(debug=debug)
 
-    # 3. なし
     _log.warning("警告: 表示可能なデバイスがありません (コンソール実行のみ)")
-    # 実際には、何も表示しないDummyOutputなどを返すことも検討できる
     raise RuntimeError("No suitable display output device found.")
 
 
 class FaceAnimator:
-    """顔の状態の時間的変化を管理するクラス。
-
-    FaceStateオブジェクト間の補間、視線の変化、状態変化のタイミングなどを制御する。
-    """
+    """顔の状態の時間的変化を管理するクラス。"""
 
     _start_state: FaceState
     _change_start_time: float
@@ -600,7 +547,6 @@ class FaceAnimator:
         self.current_state = initial_state.copy()
         self.target_state = initial_state.copy()
 
-        # 視線状態管理
         self.current_gaze_x: float = 0.0
         self.target_gaze_x: float = 0.0
 
@@ -718,10 +664,7 @@ class FaceAnimator:
 
 
 class FaceRenderer:
-    """顔のパーツを描画するクラス。
-
-    FaceStateオブジェクトと設定データに基づいて、PIL.Imageオブジェクトとして顔を描画する。
-    """
+    """顔のパーツを描画するクラス。"""
 
     def __init__(
         self,
@@ -743,15 +686,12 @@ class FaceRenderer:
         self.scale = size / 100.0
 
     def _scale_xy(self, x: float, y: float) -> tuple[int, int]:
-        """座標をスケールに合わせて変換."""
         return (round(x * self.scale), round(y * self.scale))
 
     def _scale_width(self, width: float) -> int:
-        """幅をスケールに合わせて変換."""
         return round(max(1, int(width * self.scale)))
 
     def _draw_bezier_curve(self, draw, p0, p1, p2, color, width, steps=5):
-        """3点の制御点からベジェ曲線を計算して描画する"""
         self.__log.debug(
             "p0,p1,p2=%s,%s,%s, color=%s, width=%s", p0, p1, p2, color, width
         )
@@ -759,7 +699,6 @@ class FaceRenderer:
         points = []
         for i in range(steps + 1):
             t = i / steps
-            # 2次ベジェ曲線の公式
             bx = (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t**2 * p2[0]
             by = (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t**2 * p2[1]
             points.append((bx, by))
@@ -786,19 +725,14 @@ class FaceRenderer:
         eye_curve: float,
         gaze_offset: float,
     ) -> None:
-        """Draw one eye."""
         self.__log.debug("opennes=%s,curve=%s", eye_openness, eye_curve)
-        eye_cx = eye_x + gaze_offset  # 視線を加味した中心X
+        eye_cx = eye_x + gaze_offset
         self.__log.debug("Drawing eye with gaze_offset=%s", gaze_offset)
 
-        eye_w = eye_size * self.scale  # 目のサイズ(幅)
-        eye_h = eye_w * eye_openness  # 開き具合をかけた目の高さ
+        eye_w = eye_size * self.scale
+        eye_h = eye_w * eye_openness
 
-        # 描画
         if eye_h >= self._animation_config["eye_open_threshold"]:
-            # 
-            # 開いている場合: 楕円
-            # 
             cx, cy = self._scale_xy(eye_cx, eye_y)
             draw.ellipse(
                 [cx - eye_w, cy - eye_h, cx + eye_w, cy + eye_h],
@@ -808,17 +742,11 @@ class FaceRenderer:
             )
             return
 
-        # 
-        # 目が閉じている場合
-        # 
         OFFSET_X = self._layout_config["eye_line_offset_x"]
         x1 = eye_cx - OFFSET_X
         x2 = eye_cx + OFFSET_X
 
         if eye_curve == 0:
-            # 
-            # 直線
-            # 
             draw.line(
                 [self._scale_xy(x1, eye_y), self._scale_xy(x2, eye_y)],
                 fill=self._color_config["line"],
@@ -826,9 +754,6 @@ class FaceRenderer:
             )
             return
 
-        # 
-        # eye_curve != 0: ベジェ曲線
-        # 
         OFFSET_Y = self._layout_config["eye_bezier_offset_y"]
         y1 = eye_y + OFFSET_Y * eye_curve / 2
         y2 = eye_y - OFFSET_Y * eye_curve
@@ -847,9 +772,7 @@ class FaceRenderer:
         )
 
     def _draw_brows(self, draw, left_cx, right_cx, eye_y, brow_tilt):
-        """Draw brows."""
         if abs(brow_tilt) <= 1:
-            # 描画しない
             return
 
         brow_y = eye_y + self._layout_config["brow_y_offset"]
@@ -858,7 +781,6 @@ class FaceRenderer:
             * self._layout_config["brow_bezier_y_offset_factor"]
         )
 
-        # 左眉
         p1_l = self._scale_xy(
             left_cx - self._layout_config["brow_bezier_offset_x"],
             brow_y - offset_y,
@@ -873,8 +795,6 @@ class FaceRenderer:
             width=self._scale_width(5),
         )
 
-        # 右眉
-        # 右目の眉毛はX軸方向のオフセットの符号が逆になる
         p1_r = self._scale_xy(
             right_cx - self._layout_config["brow_bezier_offset_x"],
             brow_y + offset_y,
@@ -895,7 +815,6 @@ class FaceRenderer:
         current_state: FaceState,
         current_gaze_x: float,
     ):
-        """Draw both eyes and brows."""
         eye_y = self._layout_config["eye_y"]
         eye_offset = self._layout_config["eye_offset"]
 
@@ -919,8 +838,8 @@ class FaceRenderer:
         )
         self._draw_brows(
             draw,
-            eye_offset,  # left_brow_cx (視線に追従しない)
-            100 - eye_offset,  # right_brow_cx (視線に追従しない)
+            eye_offset,
+            100 - eye_offset,
             eye_y,
             current_state.brow_tilt,
         )
@@ -930,15 +849,13 @@ class FaceRenderer:
         draw: ImageDraw.ImageDraw,
         current_state: FaceState,
     ) -> None:
-        """Draw mouth."""
-        mouth_cx = 50  # 水平中央
+        mouth_cx = 50
         mouth_cy = self._layout_config["mouth_cy"]
 
         if (
             current_state.mouth_open
             > self._animation_config["mouth_open_threshold"]
         ):
-            # 丸い口 (驚きなど)
             factor = (
                 current_state.mouth_open
                 - self._animation_config["mouth_open_threshold"]
@@ -959,7 +876,6 @@ class FaceRenderer:
                 )
                 return
 
-        # カーブする口
         dx = self._layout_config["mouth_curve_half_width"]
         p0 = self._scale_xy(mouth_cx - dx, mouth_cy)
         p2 = self._scale_xy(mouth_cx + dx, mouth_cy)
@@ -979,8 +895,6 @@ class FaceRenderer:
         screen_height: int,
         bg_color: tuple,
     ):
-        # 画像生成
-        # 正方形キャンバスを作成してからパディングする
         img = Image.new("RGB", (self.size, self.size), bg_color)
         draw = ImageDraw.Draw(img)
 
@@ -988,7 +902,6 @@ class FaceRenderer:
         self._draw_eyes(draw, current_state, current_gaze_x)
         self._draw_mouth(draw, current_state)
 
-        # パディングして画面サイズに合わせる (中央寄せなど)
         final_img = ImageOps.pad(
             img,
             (screen_width, screen_height),
@@ -999,10 +912,7 @@ class FaceRenderer:
 
 
 class RobotFace:
-    """顔の状態管理と描画を統合するファサードクラス。
-
-    FaceAnimatorとFaceRendererのインスタンスを持ち、それらを連携させてロボットの顔として機能させる。
-    """
+    """顔の状態管理と描画を統合するファサードクラス。"""
 
     def __init__(
         self,
@@ -1058,12 +968,7 @@ class RobotFace:
 
 
 class RobotFaceApp:
-    """ロボットの顔のアニメーションアプリケーション。
-
-    アプリケーションのライフサイクル管理、イベント処理、
-    各コンポーネント（FaceStateParser, RobotFace, DisplayOutput）の連携を担当する。
-    また、選択された実行モードの FacaeMode インスタンスを管理し、その実行を委譲する。
-    """
+    """ロボットの顔のアニメーションアプリケーション。"""
 
     def __init__(
         self,
@@ -1076,18 +981,6 @@ class RobotFaceApp:
         face_config: FaceConfig = FaceConfig(),
         debug: bool = False,
     ) -> None:
-        """Constructor.
-
-        Args:
-            output: 出力デバイス
-            screen_width: 画面幅
-            screen_height: 画面高さ
-            bg_color: 背景色
-            random_mode_enabled: ランダムモードが有効かどうか
-            face_sequence_cli_args: シーケンスモードでの表情リスト (CLI引数から)
-            face_config: 顔の表示設定
-            debug: デバッグモード
-        """
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
         self.__log.debug("face_sequence=%s", face_sequence_cli_args)
@@ -1119,8 +1012,7 @@ class RobotFaceApp:
                 debug=self.__debug,
             )
 
-            # モードの決定とモードインスタンスの生成
-            self.current_mode: FaceMode  # 型ヒントを追加
+            self.current_mode: FaceMode
             if random_mode_enabled:
                 self.current_mode = RandomMode(
                     robot_face=self.face,
@@ -1153,7 +1045,6 @@ class RobotFaceApp:
             raise
 
     def render_frame(self) -> None:
-        """1フレームを更新して描画."""
         self.face.update()
         img = self.face.draw(
             self.screen_width,
@@ -1163,15 +1054,13 @@ class RobotFaceApp:
         self.output.show(img)
 
     def end(self) -> None:
-        """アプリケーション終了処理."""
         self.output.close()
 
     def main(self) -> None:
-        """メインループ."""
-        self.current_mode.run()  # RobotFaceApp の main メソッドを呼び出す
+        self.current_mode.run()
 
 
-@click.command("robot_face0.py")  # file name
+@click.command("robot_face0.py")
 @click.argument("faces", nargs=-1)
 @click.option(
     "-r",
@@ -1181,7 +1070,6 @@ class RobotFaceApp:
 )
 @click_common_opts(__version__)
 def main(ctx, faces, random, debug):
-    """Main."""
     _log = get_logger(__name__, debug)
     _log.info("faces=%s, random=%s", faces, random)
 
@@ -1194,14 +1082,12 @@ def main(ctx, faces, random, debug):
             screen_width=320,
             screen_height=240,
             bg_color="black",
-            random_mode_enabled=random,  # random 引数を渡す
-            face_sequence_cli_args=list(faces)
-            if faces
-            else None,  # faces 引数を渡す
+            random_mode_enabled=random,
+            face_sequence_cli_args=list(faces) if faces else None,
             debug=debug,
         )
 
-        app.main()  # RobotFaceApp の main メソッドを呼び出す
+        app.main()
 
     except KeyboardInterrupt:
         print("\nEnd.")
