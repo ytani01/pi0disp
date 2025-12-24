@@ -13,6 +13,7 @@ from samples.robot_face_animation3 import (
     LAYOUT,
     MOODS_STR,
     MOUTH_MAP,
+    FaceConfig,
     FaceMode,
     FaceState,
     FaceStateParser,
@@ -239,12 +240,7 @@ class TestRobotFaceApp:
             None  # run メソッドが呼ばれても何もしない
         )
 
-        return RobotFaceApp(
-            output=mock_output,
-            screen_width=320,
-            screen_height=240,
-            bg_color="black",
-            mode=dummy_mode,  # ここで mode を渡す
+        face_config = FaceConfig(
             moods_str=MOODS_STR,
             brow_map=BROW_MAP,
             eye_map=EYE_MAP,
@@ -252,6 +248,15 @@ class TestRobotFaceApp:
             layout_config=LAYOUT,
             color_config=COLORS,
             animation_config=ANIMATION,
+        )
+
+        return RobotFaceApp(
+            output=mock_output,
+            screen_width=320,
+            screen_height=240,
+            bg_color="black",
+            mode=dummy_mode,  # ここで mode を渡す
+            face_config=face_config,
         )
 
     def test_init(self, robot_face_app, mock_output):

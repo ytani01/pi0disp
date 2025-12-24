@@ -16,7 +16,7 @@ import random
 import socket
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from typing import Callable
 
 import click
@@ -136,6 +136,23 @@ ANIMATION = {
 # ===========================================================================
 # ヘルパー関数
 # ===========================================================================
+
+
+@dataclass
+class FaceConfig:
+    """顔の表示設定をまとめたデータクラス."""
+
+    moods_str: dict[str, str] = field(default_factory=lambda: MOODS_STR)
+    brow_map: dict[str, int] = field(default_factory=lambda: BROW_MAP)
+    eye_map: dict[str, dict[str, float]] = field(
+        default_factory=lambda: EYE_MAP
+    )
+    mouth_map: dict[str, dict[str, float]] = field(
+        default_factory=lambda: MOUTH_MAP
+    )
+    layout_config: dict = field(default_factory=lambda: LAYOUT)
+    color_config: dict = field(default_factory=lambda: COLORS)
+    animation_config: dict = field(default_factory=lambda: ANIMATION)
 
 
 def lerp(a: float, b: float, t: float) -> float:
@@ -1054,13 +1071,7 @@ class RobotFaceApp:
         bg_color: str,
         mode: FaceMode,
         face_sequence: list[str] | None = None,
-        moods_str: dict = MOODS_STR,
-        brow_map: dict = BROW_MAP,
-        eye_map: dict = EYE_MAP,
-        mouth_map: dict = MOUTH_MAP,
-        layout_config: dict = LAYOUT,
-        color_config: dict = COLORS,
-        animation_config: dict = ANIMATION,
+        face_config: FaceConfig = FaceConfig(),
         debug: bool = False,
     ) -> None:
         """Constructor.
@@ -1084,22 +1095,25 @@ class RobotFaceApp:
         self.bg_color = bg_color
         self.bg_color_tuple = ImageColor.getrgb(bg_color)
         self.face_sequence = face_sequence
-        self.moods_str = moods_str
         self.current_mode = mode
 
-        self.parser = FaceStateParser(brow_map, eye_map, mouth_map)
+        self.parser = FaceStateParser(
+            face_config.brow_map,
+            face_config.eye_map,
+            face_config.mouth_map,
+        )
 
         try:
             face_size = min(self.screen_width, self.screen_height)
             initial_face_state = self.parser.parse_face_string(
-                moods_str["neutral"]
+                face_config.moods_str["neutral"]
             )
             self.face = RobotFace(
                 initial_state=initial_face_state,
                 size=face_size,
-                layout_config=layout_config,
-                color_config=color_config,
-                animation_config=animation_config,
+                layout_config=face_config.layout_config,
+                color_config=face_config.color_config,
+                animation_config=face_config.animation_config,
                 debug=self.__debug,
             )
             # FaceAnimator は RobotFace の中に移動したので、直接アクセスする
@@ -1174,12 +1188,8 @@ def main(ctx, faces, random, debug):
                 debug=debug,
             )
 
-        app = RobotFaceApp(
-            output=output_device,
-            screen_width=320,
-            screen_height=240,
-            bg_color="black",
-            mode=selected_mode,  # ここでモードインスタンスを渡す
+        # FaceConfig オブジェクトを作成
+        face_config = FaceConfig(
             moods_str=MOODS_STR,
             brow_map=BROW_MAP,
             eye_map=EYE_MAP,
@@ -1187,6 +1197,15 @@ def main(ctx, faces, random, debug):
             layout_config=LAYOUT,
             color_config=COLORS,
             animation_config=ANIMATION,
+        )
+
+        app = RobotFaceApp(
+            output=output_device,
+            screen_width=320,
+            screen_height=240,
+            bg_color="black",
+            mode=selected_mode,  # ここでモードインスタンスを渡す
+            face_config=face_config,  # FaceConfig オブジェクトを渡す
             debug=debug,
         )
 
