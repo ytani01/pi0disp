@@ -70,3 +70,8 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 addopts = "-v -n auto --cov=pi0disp --cov-report=term-missing --cov-branch"
+
+[tool.uv.workspace]
+members = [
+    "app1",
+]

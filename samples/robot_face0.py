@@ -858,8 +858,8 @@ class FaceRenderer:
         ):
             factor = (
                 current_state.mouth_open
-                - self._animation_config["mouth_open_threshold"]
-            ) * 2
+                - self._animation_config["mouth_open_threshold"] * 2
+            )
             r = (
                 self._layout_config["mouth_open_radius_factor"]
                 * self.scale
