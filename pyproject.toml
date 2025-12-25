@@ -57,7 +57,7 @@ check_untyped_defs = false
 module = [
     "pi0disp",
     "pigpio",
-    "PIL", "PIL.Image", "PIL.ImageDraw", "PIL.ImageFont",
+    "PIL", "PIL.*",
     "numpy",
     "click",
     "click.*",
