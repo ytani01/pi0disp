@@ -14,10 +14,10 @@ import socket
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, replace
-from typing import Callable
 
+# from typing import Callable
 import click
-from PIL import Image, ImageColor, ImageDraw, ImageOps
+from PIL import Image, ImageDraw, ImageOps
 
 from pi0disp import __version__, click_common_opts, errmsg, get_logger
 
@@ -225,10 +225,11 @@ class FaceMode(ABC):
 
     def __init__(
         self,
+        output,
+        bg_color,
         robot_face: RobotFace,
         parser: FaceStateParser,
         animation_config: dict,
-        app_render_frame_callback: Callable[[], None],
         debug: bool = False,
     ):
         self._debug = debug
@@ -237,15 +238,23 @@ class FaceMode(ABC):
             self._debug,
         )
 
+        self._output = output
+        self._bg_color = bg_color
         self._robot_face = robot_face
         self._parser = parser
         self._animation_config = animation_config
-        self._app_render_frame_callback = app_render_frame_callback
 
     @abstractmethod
     def run(self) -> None:
         """モードのメインループを実行する"""
         pass
+
+    def render_frame(self) -> None:
+        self._robot_face.update()
+        img = self._robot_face.draw(
+            self._output.width, self._output.height, self._bg_color
+        )
+        self._output.show(img)
 
 
 class RandomMode(FaceMode):
@@ -253,18 +262,20 @@ class RandomMode(FaceMode):
 
     def __init__(
         self,
+        output,
+        bg_color,
         robot_face: RobotFace,
         parser: FaceStateParser,
         animation_config: dict,
-        app_render_frame_callback: Callable[[], None],
         mood_words: dict,
         debug: bool = False,
     ):
         super().__init__(
+            output,
+            bg_color,
             robot_face,
             parser,
             animation_config,
-            app_render_frame_callback,
             debug=debug,
         )
         self.mood_words = mood_words
@@ -308,8 +319,7 @@ class RandomMode(FaceMode):
             self._handle_random_mood_update(now)
             self._handle_gaze_update(now)
 
-            if self._app_render_frame_callback is not None:
-                self._app_render_frame_callback()
+            self.render_frame()
 
             time.sleep(interval)
 
@@ -319,18 +329,20 @@ class SequenceMode(FaceMode):
 
     def __init__(
         self,
+        output,
+        bg_color,
         robot_face: RobotFace,
         parser: FaceStateParser,
         animation_config: dict,
-        app_render_frame_callback: Callable[[], None],
         face_sequence: list[str],
         debug: bool = False,
     ):
         super().__init__(
+            output,
+            bg_color,
             robot_face,
             parser,
             animation_config,
-            app_render_frame_callback,
             debug=debug,
         )
         self._face_sequence = itertools.cycle(face_sequence)
@@ -347,8 +359,7 @@ class SequenceMode(FaceMode):
             start_time = time.time()
 
             while time.time() - start_time < duration:
-                if self._app_render_frame_callback is not None:
-                    self._app_render_frame_callback()
+                self.render_frame()
                 time.sleep(interval)
 
             now = time.time()
@@ -360,8 +371,7 @@ class SequenceMode(FaceMode):
                 gaze = random.uniform(self.GAZE_X_MIN, self.GAZE_X_MAX)
                 self._robot_face.set_gaze(gaze)
 
-                if self._app_render_frame_callback is not None:
-                    self._app_render_frame_callback()
+                self.render_frame()
 
                 time.sleep(interval)
 
@@ -371,23 +381,24 @@ class InteractiveMode(FaceMode):
 
     def __init__(
         self,
+        output,
+        bg_color,
         robot_face: RobotFace,
         parser: FaceStateParser,
         animation_config: dict,
-        app_render_frame_callback: Callable[[], None],
         debug: bool = False,
     ):
         super().__init__(
+            output,
+            bg_color,
             robot_face,
             parser,
             animation_config,
-            app_render_frame_callback,
             debug=debug,
         )
         self._robot_face = robot_face
         self._parser = parser
         self._animation_config = animation_config
-        self._app_render_frame_callback = app_render_frame_callback
 
     def play_interactive_face(self, target_state_str: str) -> None:
         assert self._parser is not None
@@ -400,8 +411,7 @@ class InteractiveMode(FaceMode):
         interval = self._animation_config["loop_interval"]
 
         while time.time() - start_time < duration:
-            if self._app_render_frame_callback is not None:
-                self._app_render_frame_callback()
+            self.render_frame()
             time.sleep(interval)
 
         gaze_duration = self._animation_config["gaze_loop_duration"]
@@ -418,8 +428,7 @@ class InteractiveMode(FaceMode):
             )
             assert self._robot_face is not None
             self._robot_face.set_gaze(gaze)
-            if self._app_render_frame_callback is not None:
-                self._app_render_frame_callback()
+            self.render_frame()
             time.sleep(interval)
 
     def run(self) -> None:
@@ -439,11 +448,24 @@ class InteractiveMode(FaceMode):
 class DisplayOutput(ABC):
     """ディスプレイ出力を抽象化するクラス"""
 
-    def __init__(self, debug=False):
+    def __init__(self, width, heigtht, debug=False):
         """Constructor."""
         self.__debug = debug
         self.__log = get_logger(DisplayOutput.__name__, self.__debug)
         self.__log.debug("(abstract)")
+
+        self._width = width
+        self._height = heigtht
+
+    @property
+    def width(self):
+        """Property: width."""
+        return self._width
+
+    @property
+    def height(self):
+        """Property: height."""
+        return self._height
 
     @abstractmethod
     def show(self, pil_image):
@@ -459,8 +481,8 @@ class DisplayOutput(ABC):
 class LcdOutput(DisplayOutput):
     """LCD Output (ST7789V)."""
 
-    def __init__(self, debug=False):
-        super().__init__(debug=debug)
+    def __init__(self, width, height, debug=False):
+        super().__init__(width, height, debug=debug)
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
 
@@ -495,8 +517,8 @@ class LcdOutput(DisplayOutput):
 class PreviewOutput(DisplayOutput):
     """OpenCV."""
 
-    def __init__(self, debug=False):
-        super().__init__(debug)
+    def __init__(self, width, height, debug=False):
+        super().__init__(width, height, debug)
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
         self.__log.debug("initialized PreviewOutput")
@@ -513,18 +535,19 @@ class PreviewOutput(DisplayOutput):
         cv2.destroyAllWindows()
 
 
-def create_output_device(debug=False) -> DisplayOutput:
+def create_output_device(width, height, debug=False) -> DisplayOutput:
+    """Create output device."""
     _log = get_logger("()", debug)
 
     if HAS_LCD:
         try:
-            return LcdOutput(debug=debug)
+            return LcdOutput(width, height, debug=debug)
         except Exception as e:
             _log.error(errmsg(e))
 
     if HAS_OPENCV:
         _log.warning("Found OpenCV, returning PreviewOutput.")
-        return PreviewOutput(debug=debug)
+        return PreviewOutput(width, height, debug=debug)
 
     _log.warning("警告: 表示可能なデバイスがありません (コンソール実行のみ)")
     raise RuntimeError("No suitable display output device found.")
@@ -876,7 +899,7 @@ class FaceRenderer:
         gaze_offset_x: float,
         screen_width: int,
         screen_height: int,
-        bg_color: tuple,
+        bg_color: str | tuple,
     ):
         img = Image.new("RGB", (self.size, self.size), bg_color)
         draw = ImageDraw.Draw(img)
@@ -956,24 +979,19 @@ class RobotFaceApp:
     def __init__(
         self,
         output: DisplayOutput,
-        screen_width: int,
-        screen_height: int,
         bg_color: str,
         random_mode_enabled: bool = False,
-        face_sequence_cli_args: list[str] | None = None,
+        faces: list[str] | None = None,
         face_config: FaceConfig = FaceConfig(),
         debug: bool = False,
     ) -> None:
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
-        self.__log.debug("face_sequence=%s", face_sequence_cli_args)
+        self.__log.debug("face_sequence=%s", faces)
 
         self.output = output
-        self.screen_width = screen_width
-        self.screen_height = screen_height
         self.bg_color = bg_color
-        self.bg_color_tuple = ImageColor.getrgb(bg_color)
-        self.face_sequence_cli_args = face_sequence_cli_args
+        self.faces = faces
 
         self.parser = FaceStateParser(
             face_config.brow_map,
@@ -982,7 +1000,7 @@ class RobotFaceApp:
         )
 
         try:
-            face_size = min(self.screen_width, self.screen_height)
+            face_size = min(self.output.width, self.output.height)
             initial_face_state = self.parser.parse_face_string(
                 face_config.mood_words["neutral"]
             )
@@ -998,43 +1016,37 @@ class RobotFaceApp:
             self.current_mode: FaceMode
             if random_mode_enabled:
                 self.current_mode = RandomMode(
+                    self.output,
+                    self.bg_color,
                     robot_face=self.face,
                     parser=self.parser,
                     animation_config=face_config.animation_config,
                     mood_words=face_config.mood_words,
-                    app_render_frame_callback=self.render_frame,
                     debug=debug,
                 )
-            elif self.face_sequence_cli_args:
+            elif self.faces:
                 self.current_mode = SequenceMode(
+                    self.output,
+                    self.bg_color,
                     robot_face=self.face,
                     parser=self.parser,
                     animation_config=face_config.animation_config,
-                    face_sequence=list(self.face_sequence_cli_args),
-                    app_render_frame_callback=self.render_frame,
+                    face_sequence=list(self.faces),
                     debug=debug,
                 )
             else:
                 self.current_mode = InteractiveMode(
+                    self.output,
+                    self.bg_color,
                     robot_face=self.face,
                     parser=self.parser,
                     animation_config=face_config.animation_config,
-                    app_render_frame_callback=self.render_frame,
                     debug=debug,
                 )
 
         except Exception as e:
             self.__log.error(errmsg(e))
             raise
-
-    def render_frame(self) -> None:
-        self.face.update()
-        img = self.face.draw(
-            self.screen_width,
-            self.screen_height,
-            self.bg_color_tuple,
-        )
-        self.output.show(img)
 
     def end(self) -> None:
         self.output.close()
@@ -1051,22 +1063,53 @@ class RobotFaceApp:
     is_flag=True,
     help="ランダムな表情を自動生成するモードで起動します。",
 )
-@click_common_opts(__version__)
-def main(ctx, faces, random, debug):
+@click.option(
+    "--bg-color",
+    "--bg",
+    type=str,
+    default="black",
+    show_default=True,
+    help="background color",
+)
+@click.option(
+    "--screen-width",
+    "-w",
+    type=int,
+    default=320,
+    show_default=True,
+    help="Screen Width",
+)
+@click.option(
+    "--screen-height",
+    "-h",
+    type=int,
+    default=240,
+    show_default=True,
+    help="Screen Height",
+)
+@click_common_opts(__version__, use_h=False)
+def main(ctx, faces, random, bg_color, screen_width, screen_height, debug):
     _log = get_logger(__name__, debug)
-    _log.info("faces=%s, random=%s", faces, random)
+    _log.info(
+        "faces=%s,random=%s,bg_color=%a,screen=%s",
+        faces,
+        random,
+        bg_color,
+        (screen_width, screen_height),
+    )
 
+    faces = list(faces) if faces else None
     app = None
     try:
-        output_device = create_output_device(debug=debug)
+        output_device = create_output_device(
+            screen_width, screen_height, debug=debug
+        )
 
         app = RobotFaceApp(
             output=output_device,
-            screen_width=320,
-            screen_height=240,
-            bg_color="black",
+            bg_color=bg_color,
             random_mode_enabled=random,
-            face_sequence_cli_args=list(faces) if faces else None,
+            faces=faces,
             debug=debug,
         )
 
