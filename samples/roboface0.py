@@ -517,7 +517,7 @@ class Lcd(DisplayBase):
             return False
 
     def show(self, pil_image):
-        self.lcd.disp_dev(pil_image)
+        self.lcd.display(pil_image)
 
     def close(self):
         self.lcd.close(True)
