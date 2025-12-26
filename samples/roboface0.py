@@ -11,6 +11,8 @@ import itertools
 import math
 import random
 import socket
+
+# import sys
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, replace
@@ -112,7 +114,7 @@ LAYOUT = {
 
 # アニメーション定数
 ANIMATION = {
-    "loop_interval": 0.1,
+    "frame_interval": 0.1,
     "eye_open_threshold": 6,
     "mouth_open_threshold": 0.5,
     "mouth_aspect_ratio": 1.2,
@@ -225,7 +227,7 @@ class FaceMode(ABC):
 
     def __init__(
         self,
-        output,
+        disp_dev,
         bg_color,
         robot_face: RobotFace,
         parser: FaceStateParser,
@@ -238,7 +240,7 @@ class FaceMode(ABC):
             self._debug,
         )
 
-        self._output = output
+        self._disp_dev = disp_dev
         self._bg_color = bg_color
         self._robot_face = robot_face
         self._parser = parser
@@ -249,12 +251,12 @@ class FaceMode(ABC):
         """モードのメインループを実行する"""
         pass
 
-    def render_frame(self) -> None:
+    def update_face_and_show(self) -> None:
         self._robot_face.update()
         img = self._robot_face.draw(
-            self._output.width, self._output.height, self._bg_color
+            self._disp_dev.width, self._disp_dev.height, self._bg_color
         )
-        self._output.show(img)
+        self._disp_dev.show(img)
 
 
 class RandomMode(FaceMode):
@@ -262,7 +264,7 @@ class RandomMode(FaceMode):
 
     def __init__(
         self,
-        output,
+        disp_dev,
         bg_color,
         robot_face: RobotFace,
         parser: FaceStateParser,
@@ -271,7 +273,7 @@ class RandomMode(FaceMode):
         debug: bool = False,
     ):
         super().__init__(
-            output,
+            disp_dev,
             bg_color,
             robot_face,
             parser,
@@ -293,11 +295,10 @@ class RandomMode(FaceMode):
             new_mood = self.mood_words[new_mood_key]
             print(f"{new_mood} {new_mood_key}")
 
-            assert self._parser is not None
-            target_state = self._parser.parse_face_string(new_mood)
+            target_face = self._parser.parse_face_string(new_mood)
             duration = self._animation_config["face_change_duration"]
             assert self._robot_face is not None
-            self._robot_face.set_target_state(target_state, duration=duration)
+            self._robot_face.start_change(target_face, duration=duration)
 
             self._next_mood_time = now + random.uniform(
                 self.MOOD_INTERVAL_MIN, self.MOOD_INTERVAL_MAX
@@ -312,14 +313,14 @@ class RandomMode(FaceMode):
             self._next_gaze_time = now + duration
 
     def run(self) -> None:
-        interval = self._animation_config["loop_interval"]
+        interval = self._animation_config["frame_interval"]
 
         while True:
             now = time.time()
             self._handle_random_mood_update(now)
             self._handle_gaze_update(now)
 
-            self.render_frame()
+            self.update_face_and_show()
 
             time.sleep(interval)
 
@@ -329,37 +330,38 @@ class SequenceMode(FaceMode):
 
     def __init__(
         self,
-        output,
+        disp_dev,
         bg_color,
         robot_face: RobotFace,
         parser: FaceStateParser,
         animation_config: dict,
-        face_sequence: list[str],
+        face_str_sequent: list[str],
         debug: bool = False,
     ):
         super().__init__(
-            output,
+            disp_dev,
             bg_color,
             robot_face,
             parser,
             animation_config,
             debug=debug,
         )
-        self._face_sequence = itertools.cycle(face_sequence)
+        self._face_str_sequent = face_str_sequent
 
     def run(self) -> None:
-        for state_str in self._face_sequence:
-            interval = self._animation_config["loop_interval"]
+        interval = self._animation_config["frame_interval"]
 
-            target_state = self._parser.parse_face_string(state_str)
+        for face_str in itertools.cycle(self._face_str_sequent):  # 無限
+            target_face = self._parser.parse_face_string(face_str)
 
             duration = self._animation_config["face_change_duration"]
-            self._robot_face.set_target_state(target_state, duration=duration)
+            self._robot_face.start_change(target_face, duration=duration)
 
-            start_time = time.time()
+            # start_time = self._robot_face.change_start_time
+            # while time.time() - start_time < duration:
 
-            while time.time() - start_time < duration:
-                self.render_frame()
+            while self._robot_face.is_changing:
+                self.update_face_and_show()
                 time.sleep(interval)
 
             now = time.time()
@@ -371,7 +373,7 @@ class SequenceMode(FaceMode):
                 gaze = random.uniform(self.GAZE_X_MIN, self.GAZE_X_MAX)
                 self._robot_face.set_gaze(gaze)
 
-                self.render_frame()
+                self.update_face_and_show()
 
                 time.sleep(interval)
 
@@ -381,7 +383,7 @@ class InteractiveMode(FaceMode):
 
     def __init__(
         self,
-        output,
+        disp_dev,
         bg_color,
         robot_face: RobotFace,
         parser: FaceStateParser,
@@ -389,29 +391,28 @@ class InteractiveMode(FaceMode):
         debug: bool = False,
     ):
         super().__init__(
-            output,
+            disp_dev,
             bg_color,
             robot_face,
             parser,
             animation_config,
             debug=debug,
         )
-        self._robot_face = robot_face
-        self._parser = parser
-        self._animation_config = animation_config
 
-    def play_interactive_face(self, target_state_str: str) -> None:
-        assert self._parser is not None
-        target_state = self._parser.parse_face_string(target_state_str)
+    def play_interactive_face(self, target_face_str: str) -> None:
+        self._log.debug("target_face_str=%s", target_face_str)
+
+        interval = self._animation_config["frame_interval"]
+
+        target_face = self._parser.parse_face_string(target_face_str)
 
         duration = self._animation_config["face_change_duration"]
-        assert self._robot_face is not None
-        self._robot_face.set_target_state(target_state, duration=duration)
-        start_time = time.time()
-        interval = self._animation_config["loop_interval"]
+        self._robot_face.start_change(target_face, duration=duration)
 
-        while time.time() - start_time < duration:
-            self.render_frame()
+        # start_time = time.time()
+        # while time.time() - start_time < duration:
+        while self._robot_face.is_changing:
+            self.update_face_and_show()
             time.sleep(interval)
 
         gaze_duration = self._animation_config["gaze_loop_duration"]
@@ -428,7 +429,7 @@ class InteractiveMode(FaceMode):
             )
             assert self._robot_face is not None
             self._robot_face.set_gaze(gaze)
-            self.render_frame()
+            self.update_face_and_show()
             time.sleep(interval)
 
     def run(self) -> None:
@@ -445,13 +446,13 @@ class InteractiveMode(FaceMode):
                 self._log.error(f"予期せぬエラー: {e}")
 
 
-class DisplayOutput(ABC):
+class DisplayBase(ABC):
     """ディスプレイ出力を抽象化するクラス"""
 
     def __init__(self, width, heigtht, debug=False):
         """Constructor."""
         self.__debug = debug
-        self.__log = get_logger(DisplayOutput.__name__, self.__debug)
+        self.__log = get_logger(self.__class__.__name__, self.__debug)
         self.__log.debug("(abstract)")
 
         self._width = width
@@ -478,8 +479,8 @@ class DisplayOutput(ABC):
         pass
 
 
-class LcdOutput(DisplayOutput):
-    """LCD Output (ST7789V)."""
+class Lcd(DisplayBase):
+    """LCD Display (ST7789V)."""
 
     def __init__(self, width, height, debug=False):
         super().__init__(width, height, debug=debug)
@@ -497,7 +498,7 @@ class LcdOutput(DisplayOutput):
             self.__log.error(errmsg(e))
             raise RuntimeError(errmsg(e))
 
-        self.__log.debug("Found LCD, returning LcdOutput.")
+        self.__log.debug("Found LCD, returning Lcd.")
 
     def _check_pigpio(self, host="localhost", port=8888, timeout=0.1):
         """pigpioデーモンの存在確認"""
@@ -508,20 +509,20 @@ class LcdOutput(DisplayOutput):
             return False
 
     def show(self, pil_image):
-        self.lcd.display(pil_image)
+        self.lcd.disp_dev(pil_image)
 
     def close(self):
         self.lcd.close(True)
 
 
-class PreviewOutput(DisplayOutput):
+class CV2Disp(DisplayBase):
     """OpenCV."""
 
     def __init__(self, width, height, debug=False):
         super().__init__(width, height, debug)
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
-        self.__log.debug("initialized PreviewOutput")
+        self.__log.debug("initialized CV2Disp")
 
     def show(self, pil_image):
         frame = np.array(pil_image)
@@ -535,30 +536,30 @@ class PreviewOutput(DisplayOutput):
         cv2.destroyAllWindows()
 
 
-def create_output_device(width, height, debug=False) -> DisplayOutput:
-    """Create output device."""
+def get_disp_dev(width, height, debug=False) -> DisplayBase:
+    """Create display device."""
     _log = get_logger("()", debug)
 
     if HAS_LCD:
         try:
-            return LcdOutput(width, height, debug=debug)
+            return Lcd(width, height, debug=debug)
         except Exception as e:
             _log.error(errmsg(e))
 
     if HAS_OPENCV:
-        _log.warning("Found OpenCV, returning PreviewOutput.")
-        return PreviewOutput(width, height, debug=debug)
+        _log.warning("Found OpenCV, returning CV2Disp.")
+        return CV2Disp(width, height, debug=debug)
 
     _log.warning("警告: 表示可能なデバイスがありません (コンソール実行のみ)")
-    raise RuntimeError("No suitable display output device found.")
+    raise RuntimeError("No suitable display display device found.")
 
 
 class FaceAnimator:
     """顔の状態の時間的変化を管理するクラス。"""
 
     _start_state: FaceState
-    _change_start_time: float
-    _change_duration: float
+    _start_time: float
+    _duration: float
     _is_changing: bool
 
     def __init__(
@@ -577,37 +578,37 @@ class FaceAnimator:
 
         self._animation_config = animation_config
         self._change_duration = self._animation_config["face_change_duration"]
-        self._change_start_time = time.time()
+        self._start_time = time.time()
 
         self._is_changing = False
 
         self.current_state = initial_state.copy()
-        self.target_state = initial_state.copy()
+        self.target_face = initial_state.copy()
 
         self.current_gaze_x: float = 0.0
         self.target_gaze_x: float = 0.0
 
     def _update_brow(self, t_factor):
         self.current_state.brow_tilt = lerp(
-            self._start_state.brow_tilt, self.target_state.brow_tilt, t_factor
+            self._start_state.brow_tilt, self.target_face.brow_tilt, t_factor
         )
 
     def _update_mouth(self, t_factor):
         self.current_state.mouth_curve = lerp(
             self._start_state.mouth_curve,
-            self.target_state.mouth_curve,
+            self.target_face.mouth_curve,
             t_factor,
         )
         self.current_state.mouth_open = lerp(
             self._start_state.mouth_open,
-            self.target_state.mouth_open,
+            self.target_face.mouth_open,
             t_factor,
         )
 
     def _update_eyes(self, t_factor):
         cur = self.current_state
         start = self._start_state
-        target = self.target_state
+        target = self.target_face
 
         cur.left_eye_openness = lerp(
             start.left_eye_openness, target.left_eye_openness, t_factor
@@ -635,13 +636,14 @@ class FaceAnimator:
             self.target_gaze_x,
             self._animation_config["gaze_lerp_factor"],
         )
-
         if not self._is_changing:
             return
 
-        now = time.time()
-        elapsed_time = now - self._change_start_time
-        t_factor = min(1.0, max(0.0, elapsed_time / self._change_duration))
+        self.__log.debug("elapsed time: %f", self.elapsed_time)
+
+        t_factor = min(
+            1.0, max(0.0, self.elapsed_time / self._change_duration)
+        )
 
         self._update_brow(t_factor)
         self._update_mouth(t_factor)
@@ -649,37 +651,62 @@ class FaceAnimator:
 
         if t_factor >= 1.0:
             self._is_changing = False
-            self.current_state = self.target_state.copy()
-            self.__log.debug(
-                "Face change completed. current_state=%a", self.current_state
-            )
+            self.current_state = self.target_face.copy()
+            self.__log.debug("Face change completed: %a", self.current_state)
 
-    def set_target_state(
+    def start_change(
         self,
-        state: FaceState,
+        target_face: FaceState,
         duration: float | None = None,
     ) -> None:
-        self.__log.debug("duration=%s", duration)
+        """次に変化する顔を指定."""
+        self.__log.debug("duration=%s, target_face=%s", duration, target_face)
+
         if not duration:
             duration = self._animation_config["face_change_duration"]
             self.__log.debug("duration=%s", duration)
-        self._change_duration = duration
 
-        self.target_state = state.copy()
+        self._chnage_duration = duration
+        self.target_face = target_face.copy()
+
+        # 変化前の顔を保存
         self._start_state = self.current_state.copy()
+
         self._change_start_time = time.time()
 
         self._is_changing = True
 
         self.__log.debug(
-            "target_state=%a,change_start_time=%s,change_duration=%s",
-            self.target_state,
+            "start_time=%s,duration=%s",
             self._change_start_time,
             self._change_duration,
         )
 
     def set_gaze(self, x: float) -> None:
+        """Set gaze."""
         self.target_gaze_x = x
+
+    @property
+    def change_start_time(self):
+        """Start time."""
+        return self._change_start_time
+
+    @property
+    def change_duration(self):
+        """Duration."""
+        return self._change_duration
+
+    @property
+    def change_end_time(self):
+        """End time."""
+        return self._change_start_time + self._change_duration
+
+    @property
+    def elapsed_time(self):
+        """Elapsed time."""
+        if self._is_changing:
+            now = time.time()
+            return now - self.change_start_time
 
     @property
     def is_changing(self) -> bool:
@@ -715,9 +742,9 @@ class FaceRenderer:
         return round(max(1, int(width * self.scale)))
 
     def _draw_bezier_curve(self, draw, p0, p1, p2, color, width, steps=5):
-        self.__log.debug(
-            "p0,p1,p2=%s,%s,%s, color=%s, width=%s", p0, p1, p2, color, width
-        )
+        # self.__log.debug(
+        #     "p0,p1,p2=%s,%s,%s, color=%s, width=%s", p0, p1, p2, color, width
+        # )
 
         points = []
         for i in range(steps + 1):
@@ -858,7 +885,8 @@ class FaceRenderer:
         draw: ImageDraw.ImageDraw,
         face_state: FaceState,
     ) -> None:
-        self.__log.debug("face_state=%s", face_state)
+        # self.__log.debug("face_state=%s", face_state)
+
         mouth_cx = 50
         mouth_cy = self._layout_config["mouth_cy"]
 
@@ -949,12 +977,12 @@ class RobotFace:
     def update(self) -> None:
         self.animator.update()
 
-    def set_target_state(
+    def start_change(
         self,
         state: FaceState,
         duration: float | None = None,
     ) -> None:
-        self.animator.set_target_state(state, duration)
+        self.animator.start_change(state, duration)
 
     def set_gaze(self, x: float) -> None:
         self.animator.set_gaze(x)
@@ -969,7 +997,23 @@ class RobotFace:
         )
 
     @property
+    def change_start_time(self):
+        """Change start time."""
+        return self.animator.change_start_time
+
+    @property
+    def change_duration(self):
+        """Change duration time."""
+        return self.animator.change_duration
+
+    @property
+    def elapsed_time(self):
+        """get elapsed_time"""
+        return self.animator.elapsed_time
+
+    @property
     def is_changing(self) -> bool:
+        """flag: is changing."""
         return self.animator.is_changing
 
 
@@ -978,7 +1022,7 @@ class RobotFaceApp:
 
     def __init__(
         self,
-        output: DisplayOutput,
+        disp_dev: DisplayBase,
         bg_color: str,
         random_mode_enabled: bool = False,
         faces: list[str] | None = None,
@@ -987,9 +1031,9 @@ class RobotFaceApp:
     ) -> None:
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
-        self.__log.debug("face_sequence=%s", faces)
+        self.__log.debug("faces=%s", faces)
 
-        self.output = output
+        self.disp_dev = disp_dev
         self.bg_color = bg_color
         self.faces = faces
 
@@ -1000,7 +1044,7 @@ class RobotFaceApp:
         )
 
         try:
-            face_size = min(self.output.width, self.output.height)
+            face_size = min(self.disp_dev.width, self.disp_dev.height)
             initial_face_state = self.parser.parse_face_string(
                 face_config.mood_words["neutral"]
             )
@@ -1016,7 +1060,7 @@ class RobotFaceApp:
             self.current_mode: FaceMode
             if random_mode_enabled:
                 self.current_mode = RandomMode(
-                    self.output,
+                    self.disp_dev,
                     self.bg_color,
                     robot_face=self.face,
                     parser=self.parser,
@@ -1026,17 +1070,17 @@ class RobotFaceApp:
                 )
             elif self.faces:
                 self.current_mode = SequenceMode(
-                    self.output,
+                    self.disp_dev,
                     self.bg_color,
                     robot_face=self.face,
                     parser=self.parser,
                     animation_config=face_config.animation_config,
-                    face_sequence=list(self.faces),
+                    face_str_sequent=list(self.faces),
                     debug=debug,
                 )
             else:
                 self.current_mode = InteractiveMode(
-                    self.output,
+                    self.disp_dev,
                     self.bg_color,
                     robot_face=self.face,
                     parser=self.parser,
@@ -1049,7 +1093,7 @@ class RobotFaceApp:
             raise
 
     def end(self) -> None:
-        self.output.close()
+        self.disp_dev.close()
 
     def main(self) -> None:
         self.current_mode.run()
@@ -1101,12 +1145,10 @@ def main(ctx, faces, random, bg_color, screen_width, screen_height, debug):
     faces = list(faces) if faces else None
     app = None
     try:
-        output_device = create_output_device(
-            screen_width, screen_height, debug=debug
-        )
+        disp_dev = get_disp_dev(screen_width, screen_height, debug=debug)
 
         app = RobotFaceApp(
-            output=output_device,
+            disp_dev=disp_dev,
             bg_color=bg_color,
             random_mode_enabled=random,
             faces=faces,
@@ -1117,8 +1159,14 @@ def main(ctx, faces, random, bg_color, screen_width, screen_height, debug):
 
     except KeyboardInterrupt:
         print("\nEnd.")
+
     except Exception as e:
         _log.error(errmsg(e))
+
+        import traceback
+
+        traceback.print_exc()
+
     finally:
         if app:
             app.end()
