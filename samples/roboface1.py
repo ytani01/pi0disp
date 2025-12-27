@@ -148,19 +148,35 @@ def get_disp_dev(width, height, debug=False) -> DisplayBase:
     raise RuntimeError("No suitable display display device found.")
 
 
+# ===========================================================================
+# 顔の状態
+# ===========================================================================
+
+
+@dataclass
+class BrowState:
+    tilt: float = 0.0
+
+
+@dataclass
+class EyeState:
+    open: float = 1.0  # 0.0 ～ 1.0
+    size: float = 8.0
+    curve: float = 0.0
+
+
+@dataclass
+class MouthState:
+    curve: float = 0.0  # +20(笑顔) ～ -20(への字)
+    open: float = 0.0  # 0.0 ～ 1.0
+
+
 @dataclass
 class FaceState:
-    """Face status."""
-
-    brow_tilt: float = 0  # 眉毛の角度: +20(下げ) ～ -20(上げ)
-    left_eye_openness: float = 1.0
-    left_eye_size: float = 8.0
-    left_eye_curve: float = 0.0
-    right_eye_openness: float = 1.0
-    right_eye_size: float = 8.0
-    right_eye_curve: float = 0.0
-    mouth_curve: float = 0  # 口の曲がり具合: +20(笑顔) ～ -20(への字)
-    mouth_open: float = 0  # 口の開き具合: 0(線) ～ 1(丸)
+    brow: BrowState = field(default_factory=BrowState)
+    left_eye: EyeState = field(default_factory=EyeState)
+    right_eye: EyeState = field(default_factory=EyeState)
+    mouth: MouthState = field(default_factory=MouthState)
 
     def copy(self) -> "FaceState":
         """Create a copy of this FaceState."""
@@ -173,21 +189,21 @@ class FaceState:
 
 BROW_MAP: dict[str, int] = {"v": 25, "_": 0, "^": -10}
 EYE_MAP: dict[str, dict[str, float]] = {
-    "O": {"size": 8.0, "openness": 1.0, "curve": 0.0},
-    "o": {"size": 6.0, "openness": 1.0, "curve": 0.0},
-    "_": {"openness": 0.0, "curve": 0.0},
-    "^": {"openness": 0.0, "curve": 1.0},
-    "v": {"openness": 0.0, "curve": -1.0},
+    "O": {"size": 9.0, "open": 1.0, "curve": 0.0},
+    "o": {"size": 6.0, "open": 1.0, "curve": 0.0},
+    "_": {"size": 0.0, "open": 0.0, "curve": 0.0},
+    "^": {"size": 0.0, "open": 0.0, "curve": 1.0},
+    "v": {"size": 0.0, "open": 0.0, "curve": -1.0},
 }
 MOUTH_MAP: dict[str, dict[str, float]] = {
-    "v": {"curve": 10},
-    "_": {"curve": 0},
-    "^": {"curve": -10},
-    "O": {"open": 1.1},
-    "o": {"open": 0.85},
+    "v": {"open": 0.0, "curve": 10},
+    "_": {"open": 0.0, "curve": 0},
+    "^": {"open": 0.0, "curve": -10},
+    "O": {"open": 1.1, "curve": 0},
+    "o": {"open": 0.85, "curve": 0},
 }
 
-MOOD_WORDS = {
+FACE_WORDS = {
     "neutral": "_OO_",
     "zen": "____",
     "happy": "_OOv",
@@ -196,21 +212,21 @@ MOOD_WORDS = {
     "angry": "voo^",
     "wink-r": "_O^v",
     "wink-l": "_^Ov",
-    "sleepy": "_vv_",
+    "sleepy": "_vvv",
     "surprised": "_ooO",
-    "kiss": "_vov",
+    "kiss": "_vvo",
 }
 
 # レイアウト定数 (顔のパーツの相対座標)
 LAYOUT = {
     # 眉
-    "brow_offset_y": -12,  # 目のY座標からのオフセット
-    "brow_offset_x": 9,
+    "brow_offset_y": -15,  # 目のY座標からのオフセット
+    "brow_offset_x": 10,
     "brow_offset_y_factor": 10,
     # 目
     "eye_offset": 27,
     "eye_y": 45,
-    "eye_line_offset_x": 8,
+    "eye_line_offset_x": 10,
     "eye_bezier_offset_y": 6,
     # 口
     "mouth_cy": 70,
@@ -241,16 +257,12 @@ COLORS: dict[str, str | tuple[int, int, int]] = {
     "eye_fill": "white",  # 開いている目の塗りつぶし
 }
 
-# ===========================================================================
-# ヘルパー関数
-# ===========================================================================
-
 
 @dataclass
 class FaceConfig:
     """顔の表示設定をまとめたデータクラス."""
 
-    mood_words: dict[str, str] = field(default_factory=lambda: MOOD_WORDS)
+    face_words: dict[str, str] = field(default_factory=lambda: FACE_WORDS)
     brow_map: dict[str, int] = field(default_factory=lambda: BROW_MAP)
     eye_map: dict[str, dict[str, float]] = field(
         default_factory=lambda: EYE_MAP
@@ -260,7 +272,11 @@ class FaceConfig:
     )
     layout_config: dict = field(default_factory=lambda: LAYOUT)
     color_config: dict = field(default_factory=lambda: COLORS)
-    animation_config: dict = field(default_factory=lambda: ANIMATION)
+
+
+# ===========================================================================
+# ヘルパー関数
+# ===========================================================================
 
 
 def lerp(a: float, b: float, t: float) -> float:
@@ -273,18 +289,23 @@ def lerp(a: float, b: float, t: float) -> float:
 # ===========================================================================
 
 
-class FaceStateParser:
+class FaceStrParser:
     def __init__(
         self,
-        brow_map: dict[str, int],
-        eye_map: dict[str, dict[str, float]],
-        mouth_map: dict[str, dict[str, float]],
+        debug: bool = False,
     ) -> None:
-        self._brow_map = brow_map
-        self._eye_map = eye_map
-        self._mouth_map = mouth_map
+        self.__debug = debug
+        self.__log = get_logger(self.__class__.__name__, self.__debug)
+        self.__log.debug("")
 
-    def parse_face_string(self, face_str: str) -> FaceState:
+    def parse(self, face_str: str) -> FaceState:
+        """parse face string."""
+        self.__log.info("face_str=%a", face_str)
+
+        if face_str in FACE_WORDS:
+            face_str = FACE_WORDS[face_str]
+            self.__log.info(" ==>  face_str=%a", face_str)
+
         if len(face_str) != 4:
             raise ValueError(
                 f"{face_str}: Face string must be 4 characters long"
@@ -295,39 +316,37 @@ class FaceStateParser:
         right_eye_char = face_str[2]
         mouth_char = face_str[3]
 
-        params: dict[str, float] = {}
+        face = FaceState()
 
         # Brow
-        if brow_char in self._brow_map:
-            params["brow_tilt"] = float(self._brow_map[brow_char])
+        if brow_char in BROW_MAP:
+            face.brow.tilt = float(BROW_MAP[brow_char])
 
         # Left Eye
-        if left_eye_char in self._eye_map:
-            for key, value in self._eye_map[left_eye_char].items():
-                params[f"left_eye_{key}"] = value
+        if left_eye_char in EYE_MAP:
+            face.left_eye.open = EYE_MAP[left_eye_char]["open"]
+            face.left_eye.curve = EYE_MAP[left_eye_char]["curve"]
+            face.left_eye.size = EYE_MAP[left_eye_char]["size"]
 
         # Right Eye
-        if right_eye_char in self._eye_map:
-            for key, value in self._eye_map[right_eye_char].items():
-                params[f"right_eye_{key}"] = value
+        if right_eye_char in EYE_MAP:
+            face.right_eye.open = EYE_MAP[right_eye_char]["open"]
+            face.right_eye.curve = EYE_MAP[right_eye_char]["curve"]
+            face.right_eye.size = EYE_MAP[right_eye_char]["size"]
 
         # Mouth
-        if mouth_char in self._mouth_map:
-            if "curve" in self._mouth_map[mouth_char]:
-                params["mouth_curve"] = self._mouth_map[mouth_char]["curve"]
-                params["mouth_open"] = 0
-            if "open" in self._mouth_map[mouth_char]:
-                params["mouth_open"] = self._mouth_map[mouth_char]["open"]
-                params["mouth_curve"] = 0
+        if mouth_char in MOUTH_MAP:
+            face.mouth.curve = MOUTH_MAP[mouth_char]["curve"]
+            face.mouth.open = MOUTH_MAP[mouth_char]["open"]
 
-        return FaceState(**params)
+        return face
 
 
 class AppMode(ABC):
-    """顔のアニメーションモードの抽象基底クラス。"""
+    """Base class of application mode."""
 
-    MOOD_INTERVAL_MIN = 3.0
-    MOOD_INTERVAL_MAX = 6.0
+    FACE_INTERVAL_MIN = 3.0
+    FACE_INTERVAL_MAX = 6.0
 
     GAZE_INTERVAL_MIN = 0.5
     GAZE_INTERVAL_MAX = 2.0
@@ -348,14 +367,55 @@ class AppMode(ABC):
         self._bg_color = bg_color
 
         self.face_config = FaceConfig()
-        self.parser = FaceStateParser(
-            self.face_config.brow_map,
-            self.face_config.eye_map,
-            self.face_config.mouth_map,
+        self.parser = FaceStrParser()
+
+        initial_face = self.parser.parse(FACE_WORDS["neutral"])
+        self._robot_face = RobotFace(initial_face)
+
+        now = time.time()
+        self._next_face_time = now + self.FACE_INTERVAL_MIN
+        self._next_gaze_time = now + ANIMATION["gaze_loop_duration"]
+
+    def _new_face(self, now: float, face: str = ""):
+        """New face.
+
+        Args:
+            now (float): start time in seconds
+            face (str): face string.
+                "": random
+        """
+        self._log.info("face=%a", face)
+
+        if not face:
+            face = random.choice(list(FACE_WORDS.keys()))
+            self._log.info(" random ==> face=%s", face)
+
+        try:
+            target_face = self.parser.parse(face)
+            self._log.debug("target_face=%s", target_face)
+        except Exception as e:
+            self._log.error(errmsg(e))
+            return
+
+        duration = ANIMATION["face_change_duration"]
+        self._robot_face.start_change(target_face, duration=duration)
+
+        self._next_face_time = now + random.uniform(
+            self.FACE_INTERVAL_MIN, self.FACE_INTERVAL_MAX
         )
 
-        initial_face = self.parser.parse_face_string(MOOD_WORDS["neutral"])
-        self._robot_face = RobotFace(initial_face)
+    def _new_gaze(self, now: float) -> None:
+        """New gaze."""
+        gaze = random.uniform(self.GAZE_X_MIN, self.GAZE_X_MAX)
+        self._robot_face.set_gaze(gaze)
+
+        # duration = ANIMATION["gaze_loop_duration"]
+        duration = random.uniform(
+            self.GAZE_INTERVAL_MIN, self.GAZE_INTERVAL_MAX
+        )
+
+        self._log.info("gaze=%.2f, duration=%.2f", gaze, duration)
+        self._next_gaze_time = now + duration
 
     @abstractmethod
     def run(self) -> None:
@@ -386,49 +446,18 @@ class RandomMode(AppMode):
             bg_color,
             debug=debug,
         )
-        now = time.time()
 
-        self._next_mood_time = now + self.MOOD_INTERVAL_MIN
-        self._next_gaze_time = now + ANIMATION["gaze_loop_duration"]
-
-        self._robot_face = RobotFace(
-            self.parser.parse_face_string(MOOD_WORDS["neutral"])
-        )
-
-    def _new_random_mood(self, now: float):
-        """New random mood."""
-        new_mood_key = random.choice(list(MOOD_WORDS.keys()))
-        new_mood = MOOD_WORDS[new_mood_key]
-        print(f"{new_mood} {new_mood_key}")
-
-        target_face = self.parser.parse_face_string(new_mood)
-        duration = ANIMATION["face_change_duration"]
-        self._robot_face.start_change(target_face, duration=duration)
-
-        self._next_mood_time = now + random.uniform(
-            self.MOOD_INTERVAL_MIN, self.MOOD_INTERVAL_MAX
-        )
-
-    def _new_gaze(self, now: float) -> None:
-        """New gaze."""
-        gaze = random.uniform(self.GAZE_X_MIN, self.GAZE_X_MAX)
-        self._robot_face.set_gaze(gaze)
-
-        # duration = ANIMATION["gaze_loop_duration"]
-        duration = random.uniform(
-            self.GAZE_INTERVAL_MIN, self.GAZE_INTERVAL_MAX
-        )
-
-        self._log.info("gaze=%.2f, duration=%.2f", gaze, duration)
-        self._next_gaze_time = now + duration
+        # self._robot_face = RobotFace(
+        #     self.parser.parse(FACE_WORDS["neutral"])
+        # )
 
     def run(self) -> None:
         interval = ANIMATION["frame_interval"]
 
         while True:
             now = time.time()
-            if now > self._next_mood_time:
-                self._new_random_mood(now)
+            if now > self._next_face_time:
+                self._new_face(now)
 
             if now > self._next_gaze_time:
                 self._new_gaze(now)
@@ -441,160 +470,131 @@ class RandomMode(AppMode):
 class InteractiveMode(AppMode):
     """ユーザーからの入力に基づいて表情を表示するインタラクティブモード。"""
 
-    def __init__(
-        self,
-        disp_dev,
-        bg_color,
-        debug: bool = False,
-    ):
-        super().__init__(
-            disp_dev,
-            bg_color,
-            debug=debug,
-        )
-
-    def play_interactive_face(self, target_face_str: str) -> None:
-        self._log.debug("target_face_str=%s", target_face_str)
-
-        target_face = self.parser.parse_face_string(target_face_str)
-        duration = ANIMATION["face_change_duration"]
-
-        interval = ANIMATION["frame_interval"]
-
-        # 表情変更開始
-        self._robot_face.start_change(target_face, duration=duration)
-        while self._robot_face.is_changing:
-            self.update_face_and_show()
-            time.sleep(interval)
-
-        gaze_duration = ANIMATION["gaze_loop_duration"]
-        gaze_loop_end_time = time.time() + gaze_duration
-        self._log.debug(
-            "Interactive gaze loop started. duration=%s, end_time=%s",
-            gaze_duration,
-            gaze_loop_end_time,
-        )
-
-        gaze = random.uniform(RandomMode.GAZE_X_MIN, RandomMode.GAZE_X_MAX)
-        self._robot_face.set_gaze(gaze)
-        while time.time() < gaze_loop_end_time:
-            self.update_face_and_show()
-            time.sleep(interval)
+    def __init__(self, disp_dev, bg_color, debug: bool = False):
+        super().__init__(disp_dev, bg_color, debug=debug)
 
     def run(self) -> None:
-        self.play_interactive_face("_OO_")
+        """Run."""
+        self._new_face(time.time(), "_OO_")
+        while self._robot_face.is_changing:
+            self.update_face_and_show()
+            time.sleep(ANIMATION["face_change_duration"])
 
         while True:
-            user_input = input("顔の記号 (例: _OO_, qで終了): ").strip()
+            try:
+                user_input = input("顔の記号 (例: _OO_, qで終了): ").strip()
+            except EOFError:
+                print("\nEOF")
+                break
+
             if user_input.lower() == "q" or not user_input:
                 break
 
-            try:
-                self.play_interactive_face(user_input)
-            except ValueError as e:
-                self._log.error(errmsg(e))
-            except Exception as e:
-                self._log.error(f"予期せぬエラー: {e}")
+            time_start = time.time()
+            print(time_start)
+            self._new_face(time_start, user_input)
+            self._new_gaze(time_start)
+
+            now = time.time()
+            while now - time_start < 3.0:
+                self.update_face_and_show()
+                if now > self._next_gaze_time:
+                    self._new_gaze(now)
+
+                time.sleep(ANIMATION["frame_interval"])
+                now = time.time()
 
 
-class FaceAnimator:
+class FaceUpdater:
     """顔の状態の時間的変化を管理するクラス。"""
-
-    _start_face: FaceState
-    _start_time: float
-    _duration: float
-    _is_changing: bool
 
     def __init__(
         self,
-        initial_face: FaceState,
-        animation_config: dict,
+        face: FaceState,
         debug: bool = False,
     ) -> None:
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
-        self.__log.debug(
-            "initial_face=%s, animation_config=%s",
-            initial_face,
-            animation_config,
-        )
+        self.__log.debug("face=%s", face)
 
         self._change_duration = ANIMATION["face_change_duration"]
-        self._start_time = time.time()
+        self._change_start_time = 0.0
 
         self._is_changing = False
 
-        self.current_face = initial_face.copy()
-        self.target_face = initial_face.copy()
+        self.start_face = face.copy()
+        self.current_face = face.copy()
+        self.target_face = face.copy()
 
         self.current_gaze_x: float = 0.0
         self.target_gaze_x: float = 0.0
 
     def start_change(
-        self,
-        target_face: FaceState,
-        duration: float | None = None,
+        self, target_face: FaceState, duration: float | None = None
     ) -> None:
-        """次に変化する顔を指定."""
-        self.__log.debug("duration=%s, target_face=%s", duration, target_face)
+        """変形開始."""
+        self.__log.debug(
+            "duration=%.2f,target_face=%s", duration, target_face
+        )
 
         if not duration:
             duration = ANIMATION["face_change_duration"]
-            self.__log.debug("duration=%s", duration)
+            self.__log.debug(" ==> duration=%s", duration)
 
         self._chnage_duration = duration  # 表情変化にかかる時間
         self.target_face = target_face.copy()  # ターゲットの表情
-
-        self._start_face = self.current_face.copy()  # 変化前の顔を保存
+        self.start_face = self.current_face.copy()  # 変化前の顔を保存
         self._change_start_time = time.time()  # 変化開始時間
         self._is_changing = True
 
         self.__log.debug(
-            "start_time=%s,duration=%s",
+            "start_time=%.2f,duration=%.2f",
             self._change_start_time,
             self._change_duration,
         )
 
-    def _update_brow(self, t_factor):
-        self.current_face.brow_tilt = lerp(
-            self._start_face.brow_tilt, self.target_face.brow_tilt, t_factor
+    def _update_brow(self, progress_rate):
+        self.current_face.brow.tilt = lerp(
+            self.start_face.brow.tilt,
+            self.target_face.brow.tilt,
+            progress_rate,
         )
 
-    def _update_mouth(self, t_factor):
-        self.current_face.mouth_curve = lerp(
-            self._start_face.mouth_curve,
-            self.target_face.mouth_curve,
-            t_factor,
+    def _update_mouth(self, progress_rate):
+        self.current_face.mouth.curve = lerp(
+            self.start_face.mouth.curve,
+            self.target_face.mouth.curve,
+            progress_rate,
         )
-        self.current_face.mouth_open = lerp(
-            self._start_face.mouth_open,
-            self.target_face.mouth_open,
-            t_factor,
+        self.current_face.mouth.open = lerp(
+            self.start_face.mouth.open,
+            self.target_face.mouth.open,
+            progress_rate,
         )
 
-    def _update_eyes(self, t_factor):
+    def _update_eyes(self, progress_rate):
         cur = self.current_face
-        start = self._start_face
+        start = self.start_face
         target = self.target_face
 
-        cur.left_eye_openness = lerp(
-            start.left_eye_openness, target.left_eye_openness, t_factor
+        cur.left_eye.open = lerp(
+            start.left_eye.open, target.left_eye.open, progress_rate
         )
-        cur.left_eye_size = lerp(
-            start.left_eye_size, target.left_eye_size, t_factor
+        cur.left_eye.size = lerp(
+            start.left_eye.size, target.left_eye.size, progress_rate
         )
-        cur.left_eye_curve = lerp(
-            start.left_eye_curve, target.left_eye_curve, t_factor
+        cur.left_eye.curve = lerp(
+            start.left_eye.curve, target.left_eye.curve, progress_rate
         )
 
-        cur.right_eye_openness = lerp(
-            start.right_eye_openness, target.right_eye_openness, t_factor
+        cur.right_eye.open = lerp(
+            start.right_eye.open, target.right_eye.open, progress_rate
         )
-        cur.right_eye_size = lerp(
-            start.right_eye_size, target.right_eye_size, t_factor
+        cur.right_eye.size = lerp(
+            start.right_eye.size, target.right_eye.size, progress_rate
         )
-        cur.right_eye_curve = lerp(
-            start.right_eye_curve, target.right_eye_curve, t_factor
+        cur.right_eye.curve = lerp(
+            start.right_eye.curve, target.right_eye.curve, progress_rate
         )
 
     def update(self) -> None:
@@ -614,22 +614,24 @@ class FaceAnimator:
             # 表情変化がない場合は、ここでリターン
             return
 
-        # update face
-        t_factor = min(
-            1.0, max(0.0, self.elapsed_time / self._change_duration)
-        )
-        self.__log.debug(
-            "elapsed time:%.2f, t_factor=%.2f", self.elapsed_time, t_factor
+        #
+        # Update Face
+        #
+        p_rate = self.progress_rate()
+        self.__log.info(
+            "elapsed time:%.2f,progress_rate=%.2f",
+            self.elapsed_time(),
+            p_rate,
         )
 
-        self._update_brow(t_factor)
-        self._update_mouth(t_factor)
-        self._update_eyes(t_factor)
+        self._update_brow(p_rate)
+        self._update_eyes(p_rate)
+        self._update_mouth(p_rate)
 
-        if t_factor >= 1.0:
+        if p_rate >= 1.0:
             self._is_changing = False
             self.current_face = self.target_face.copy()
-            self.__log.info("Face change completed: %a", self.current_face)
+            self.__log.debug("Face change completed: %a", self.current_face)
 
     def set_gaze(self, x: float) -> None:
         """Set gaze."""
@@ -651,26 +653,25 @@ class FaceAnimator:
         return self._change_start_time + self._change_duration
 
     @property
-    def elapsed_time(self):
-        """Elapsed time."""
-        if self._is_changing:
-            now = time.time()
-            return now - self.change_start_time
-
-    @property
     def is_changing(self) -> bool:
         return self._is_changing
 
+    def elapsed_time(self):
+        """Elapsed time."""
+        if self._is_changing:
+            return time.time() - self.change_start_time
 
-class FaceRenderer:
+    def progress_rate(self) -> float:
+        """Prograss rate."""
+        return min(1.0, max(0.0, self.elapsed_time() / self.change_duration))
+
+
+class DrawFace:
     """顔のパーツを描画するクラス。"""
 
     def __init__(
         self,
-        size: int,
-        layout_config: dict,
-        color_config: dict,
-        animation_config: dict,
+        size: int,  # 正方形一片の長さ
         debug: bool = False,
     ) -> None:
         self.__debug = debug
@@ -678,9 +679,6 @@ class FaceRenderer:
         self.__log.debug("size=%s", size)
 
         self.size = size
-        self._layout_config = layout_config
-        self._color_config = color_config
-
         self.scale = size / 100.0
 
     def _scale_xy(self, x: float, y: float) -> tuple[int, int]:
@@ -708,8 +706,8 @@ class FaceRenderer:
         draw.rounded_rectangle(
             box,
             radius=20 * self.scale,
-            outline=self._color_config["line"],
-            fill=self._color_config["face_bg"],
+            outline=COLORS["line"],
+            fill=COLORS["face_bg"],
             width=1,
         )
 
@@ -717,13 +715,13 @@ class FaceRenderer:
         if abs(brow_tilt) <= 1:
             return
 
-        offset_x = self._layout_config["brow_offset_x"]
+        offset_x = LAYOUT["brow_offset_x"]
 
-        brow_y = eye_y + self._layout_config["brow_offset_y"]
-        offset_y_factor = self._layout_config["brow_offset_y_factor"]
+        brow_y = eye_y + LAYOUT["brow_offset_y"]
+        offset_y_factor = LAYOUT["brow_offset_y_factor"]
         offset_y = math.tan(math.radians(brow_tilt)) * offset_y_factor
 
-        color = self._color_config["brow"]
+        color = COLORS["brow"]
         width = self._scale_width(5)
 
         p1_l = self._scale_xy(left_cx - offset_x, brow_y - offset_y)
@@ -742,11 +740,11 @@ class FaceRenderer:
         state: list[float],
         pos: list[int],
     ) -> None:
-        [eye_size, eye_openness, eye_curve] = state
+        [eye_size, eye_open, eye_curve] = state
         [eye_x, eye_y, gaze_offset_x] = pos
 
         eye_w = eye_size * self.scale
-        eye_h = eye_w * eye_openness
+        eye_h = eye_w * eye_open
         eye_cx = eye_x + gaze_offset_x
 
         if eye_h >= ANIMATION["eye_open_threshold"]:
@@ -755,17 +753,17 @@ class FaceRenderer:
 
             draw.ellipse(
                 [cx - eye_w, cy - eye_h, cx + eye_w, cy + eye_h],
-                outline=self._color_config["eye_outline"],
-                fill=self._color_config["eye_fill"],
-                width=self._scale_width(9),
+                outline=COLORS["eye_outline"],
+                fill=COLORS["eye_fill"],
+                width=self._scale_width(12),
             )
             return
 
         # 線の目
-        OFFSET_X = self._layout_config["eye_line_offset_x"]
+        OFFSET_X = LAYOUT["eye_line_offset_x"]
         x1 = eye_cx - OFFSET_X
         x2 = eye_cx + OFFSET_X
-        color = self._color_config["line"]
+        color = COLORS["line"]
         width = self._scale_width(4)
 
         if eye_curve == 0:
@@ -778,7 +776,7 @@ class FaceRenderer:
             return
 
         # ベジェ曲線
-        OFFSET_Y = self._layout_config["eye_bezier_offset_y"]
+        OFFSET_Y = LAYOUT["eye_bezier_offset_y"]
         y1 = eye_y + OFFSET_Y * eye_curve / 2
         y2 = eye_y - OFFSET_Y * eye_curve
 
@@ -791,30 +789,30 @@ class FaceRenderer:
     def _draw_eyes(
         self,
         draw,
-        face_face: FaceState,
+        face: FaceState,
         gaze_offset_x: float,
     ):
         self.__log.debug("gaze_offset_x=%s", gaze_offset_x)
 
-        eye_y = self._layout_config["eye_y"]
-        eye_x1 = self._layout_config["eye_offset"]
+        eye_y = LAYOUT["eye_y"]
+        eye_x1 = LAYOUT["eye_offset"]
         eye_x2 = 100 - eye_x1
 
         self._draw_one_eye(
             draw,
             [
-                face_face.left_eye_size,
-                face_face.left_eye_openness,
-                face_face.left_eye_curve,
+                face.left_eye.size,
+                face.left_eye.open,
+                face.left_eye.curve,
             ],
             [eye_x1, eye_y, int(gaze_offset_x)],
         )
         self._draw_one_eye(
             draw,
             [
-                face_face.right_eye_size,
-                face_face.right_eye_openness,
-                face_face.right_eye_curve,
+                face.right_eye.size,
+                face.right_eye.open,
+                face.right_eye.curve,
             ],
             [
                 eye_x2,
@@ -827,25 +825,25 @@ class FaceRenderer:
             eye_x1,
             eye_x2,
             eye_y,
-            face_face.brow_tilt,
+            face.brow.tilt,
         )
 
     def _draw_mouth(
         self,
         draw: ImageDraw.ImageDraw,
-        face_face: FaceState,
+        face: FaceState,
     ) -> None:
-        # self.__log.debug("face_face=%s", face_face)
+        # self.__log.debug("face=%s", face)
 
-        mouth_cx = 50
-        mouth_cy = self._layout_config["mouth_cy"]
+        mouth_cx = 50  # Center
+        mouth_cy = LAYOUT["mouth_cy"]
 
-        cur_open = face_face.mouth_open
+        self.__log.debug("face.mouth=%s", face.mouth)
         open_threshold = ANIMATION["mouth_open_threshold"]
 
-        if cur_open > open_threshold:
-            factor = (cur_open - open_threshold) * 2
-            r_factor = self._layout_config["mouth_open_radius_factor"]
+        if face.mouth.open > open_threshold:
+            factor = (face.mouth.open - open_threshold) * 2
+            r_factor = LAYOUT["mouth_open_radius_factor"]
 
             r = r_factor * self.scale * factor
             self.__log.debug("r=%s", r)
@@ -854,26 +852,26 @@ class FaceRenderer:
                 aspect = ANIMATION["mouth_aspect_ratio"]
                 draw.ellipse(
                     [cx - r, cy - r * aspect, cx + r, cy + r * aspect],
-                    outline=self._color_config["mouth_line"],
-                    fill=self._color_config["mouth_fill"],
+                    outline=COLORS["mouth_line"],
+                    fill=COLORS["mouth_fill"],
                     width=self._scale_width(4),
                 )
                 return
 
-        dx = self._layout_config["mouth_curve_half_width"]
+        dx = LAYOUT["mouth_curve_half_width"]
         p0 = self._scale_xy(mouth_cx - dx, mouth_cy)
         p2 = self._scale_xy(mouth_cx + dx, mouth_cy)
-        p1 = self._scale_xy(mouth_cx, mouth_cy + face_face.mouth_curve)
-        mouth_color = self._color_config["mouth_line"]
+        p1 = self._scale_xy(mouth_cx, mouth_cy + face.mouth.curve)
+        mouth_color = COLORS["mouth_line"]
         mouth_width = self._scale_width(5)
 
         self._draw_bezier_curve(
             draw, p0, p1, p2, color=mouth_color, width=mouth_width
         )
 
-    def render(
+    def draw(
         self,
-        face_face: FaceState,
+        face: FaceState,
         gaze_offset_x: float,
         screen_width: int,
         screen_height: int,
@@ -883,14 +881,14 @@ class FaceRenderer:
         draw = ImageDraw.Draw(img)
 
         self._draw_outline(draw)
-        self._draw_eyes(draw, face_face, gaze_offset_x)
-        self._draw_mouth(draw, face_face)
+        self._draw_eyes(draw, face, gaze_offset_x)
+        self._draw_mouth(draw, face)
 
         final_img = ImageOps.pad(
             img,
             (screen_width, screen_height),
             color=bg_color,
-            centering=(0.1, 0.5),
+            centering=(0.1, 0.5),  # 位置調整
         )
         return final_img
 
@@ -900,71 +898,64 @@ class RobotFace:
 
     def __init__(
         self,
-        initial_face: FaceState,
+        face: FaceState,
         size: int = 240,
-        layout_config: dict = LAYOUT,
-        color_config: dict = COLORS,
-        animation_config: dict = ANIMATION,
         debug: bool = False,
     ) -> None:
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
         self.__log.debug("size=%s", size)
 
-        self.animator = FaceAnimator(
-            initial_face=initial_face,
-            animation_config=animation_config,
+        self.obj_updater = FaceUpdater(
+            face=face,
             debug=debug,
         )
-        self.renderer = FaceRenderer(
+        self.obj_draw_face = DrawFace(
             size=size,
-            layout_config=layout_config,
-            color_config=color_config,
-            animation_config=animation_config,
             debug=debug,
         )
 
-    def update(self) -> None:
-        self.animator.update()
+    @property
+    def change_start_time(self):
+        """Change start time."""
+        return self.obj_updater.change_start_time
+
+    @property
+    def change_duration(self):
+        """Change duration time."""
+        return self.obj_updater.change_duration
+
+    @property
+    def elapsed_time(self):
+        """get elapsed_time"""
+        return self.obj_updater.elapsed_time
+
+    @property
+    def is_changing(self) -> bool:
+        """flag: is changing."""
+        return self.obj_updater.is_changing
 
     def start_change(
         self,
         state: FaceState,
         duration: float | None = None,
     ) -> None:
-        self.animator.start_change(state, duration)
+        self.obj_updater.start_change(state, duration)
 
     def set_gaze(self, x: float) -> None:
-        self.animator.set_gaze(x)
+        self.obj_updater.set_gaze(x)
+
+    def update(self) -> None:
+        self.obj_updater.update()
 
     def draw(self, screen_width: int, screen_height: int, bg_color: tuple):
-        return self.renderer.render(
-            self.animator.current_face,
-            self.animator.current_gaze_x,
+        return self.obj_draw_face.draw(
+            self.obj_updater.current_face,
+            self.obj_updater.current_gaze_x,
             screen_width,
             screen_height,
             bg_color,
         )
-
-    @property
-    def change_start_time(self):
-        """Change start time."""
-        return self.animator.change_start_time
-
-    @property
-    def change_duration(self):
-        """Change duration time."""
-        return self.animator.change_duration
-
-    @property
-    def elapsed_time(self):
-        """get elapsed_time"""
-        return self.animator.elapsed_time
-
-    @property
-    def is_changing(self) -> bool:
-        """flag: is changing."""
-        return self.animator.is_changing
 
 
 class RobotFaceApp:
@@ -979,11 +970,10 @@ class RobotFaceApp:
     ) -> None:
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
-        self.__log.debug("faces=%s", faces)
+        self.__log.debug("bg_color=%s", bg_color)
 
         self.disp_dev = disp_dev
         self.bg_color = bg_color
-        self.faces = faces
 
         try:
             self.current_mode: AppMode
