@@ -103,7 +103,9 @@ class Lcd(DisplayBase):
             return False
 
     def show(self, pil_image):
-        self.lcd.display(pil_image)
+        # self.lcd.display(pil_image)
+        self.lcd.display_region(pil_image, 40, 50, 215, 150)
+        self.lcd.display_region(pil_image, 90, 150, 180, 200)
 
     def close(self):
         self.lcd.close(True)
@@ -237,11 +239,11 @@ LAYOUT = {
 
 # アニメーション定数
 ANIMATION = {
-    "frame_interval": 0.2,
+    "frame_interval": 0.1,
     "eye_open_threshold": 6,
     "mouth_open_threshold": 0.5,
-    "mouth_aspect_ratio": 1.2,
-    "face_change_duration": 0.4,
+    "mouth_aspect_ratio": 1.3,
+    "face_change_duration": 0.9,
     "gaze_loop_duration": 3.0,
     "gaze_lerp_factor": 0.5,
 }
