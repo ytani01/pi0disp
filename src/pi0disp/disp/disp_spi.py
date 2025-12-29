@@ -44,6 +44,25 @@ class DispSpi(DispBase):
         super().__init__(size, rotation, debug=debug)
         self.__debug = debug
 
+        # Add a workaround for unclean shutdowns (e.g., after kill -9).
+        # This stops the existing pigpio connection and creates a new one
+        # to ensure the SPI bus is in a clean state.
+        self._log.debug("Re-initializing pigpio connection for robustness.")
+        self.pi.stop()
+        time.sleep(0.5)
+        self.pi = pigpio.pi()
+        if not self.pi.connected:
+            raise RuntimeError(
+                "Could not reconnect to pigpio daemon during re-initialization."
+            )
+
+        # Force SPI pins to ALT0 mode to recover from a potentially stuck state.
+        self._log.debug("Forcing SPI pins to ALT0 mode.")
+        self.pi.set_mode(9, pigpio.ALT0)  # MISO
+        self.pi.set_mode(10, pigpio.ALT0)  # MOSI
+        self.pi.set_mode(11, pigpio.ALT0)  # SCLK
+        self.pi.set_mode(8, pigpio.ALT0)  # CE0
+
         self._log.debug(
             "bl_at_close=%s, brightness=%s", bl_at_close, brightness
         )
@@ -142,6 +161,7 @@ class DispSpi(DispBase):
     def init_display(self):
         """Initialize Display."""
         self._log.debug("backlight ON")
+        time.sleep(1)  # Added delay to allow pigpiod/SPI bus to settle
 
         self.set_backlight(True)
 
@@ -151,7 +171,7 @@ class DispSpi(DispBase):
         self.pi.write(self.pin.rst, 0)
         time.sleep(0.01)
         self.pi.write(self.pin.rst, 1)
-        time.sleep(0.150)
+        time.sleep(0.5)
 
     def close(self, bl_switch: bool | None = None):
         """Cleans up resources.

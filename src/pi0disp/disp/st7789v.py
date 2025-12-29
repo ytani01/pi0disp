@@ -31,6 +31,7 @@ class ST7789V(DispSpi):
         "SLPIN": 0x10,
         "SLPOUT": 0x11,
         "NORON": 0x13,
+        "INVOFF": 0x20,
         "INVON": 0x21,
         "DISPOFF": 0x28,
         "DISPON": 0x29,
@@ -82,10 +83,10 @@ class ST7789V(DispSpi):
         self.__log.debug("")
 
         # Initialization sequence
-        self._write_command(self.CMD["SWRESET"])
-        time.sleep(0.150)
+        # self._write_command(self.CMD["SWRESET"])
+        # time.sleep(0.150)
         self._write_command(self.CMD["SLPOUT"])
-        time.sleep(0.5)
+        time.sleep(0.120)
         self._write_command(self.CMD["COLMOD"])
         self._write_data(0x55)  # 16 bits per pixel
         self._write_command(self.CMD["INVON"])
@@ -171,9 +172,16 @@ class ST7789V(DispSpi):
         self.set_window(region[0], region[1], region[2] - 1, region[3] - 1)
         self.write_pixels(pixel_bytes)
 
-    # def close(self, bl: bool | None = None):
-    #     """Cleans up resources."""
-    #     super().close(bl)
+    def close(self, bl_switch: bool | None = None):
+        """Cleans up resources and puts the display to sleep."""
+        self.__log.debug("Putting display to sleep and cleaning up.")
+        if hasattr(self, "spi_handle") and self.pi.connected:
+            self._write_command(self.CMD["INVOFF"])
+            self._write_command(self.CMD["DISPOFF"])
+            self._write_command(self.CMD["SLPIN"])
+            time.sleep(0.01)  # Allow time for commands to execute
+
+        super().close(bl_switch)
 
     def dispoff(self):
         """DISPOFF."""

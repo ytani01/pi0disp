@@ -232,7 +232,7 @@ def test_init_display(mock_pi_instance, mock_sleep, mock_disp_base_init):
     mock_pi_instance.write.assert_any_call(disp.pin.rst, 1)
     mock_pi_instance.write.assert_any_call(disp.pin.rst, 0)
     mock_pi_instance.write.assert_any_call(disp.pin.rst, 1)
-    mock_sleep.assert_has_calls([call(0.01), call(0.01), call(0.150)])
+    mock_sleep.assert_has_calls([call(0.01), call(0.01), call(0.5)])
 
     # バックライトの制御
     mock_pi_instance.set_PWM_dutycycle.assert_any_call(disp.pin.bl, 255)
@@ -251,7 +251,7 @@ def test_close_with_bl_off(mock_pi_instance, mock_disp_base_init):
         disp.pi.connected = True
         disp.close()
 
-        mock_pi_instance.stop.assert_called_once()
+        assert mock_pi_instance.stop.call_count == 2
         mock_super_close.assert_called_once()
         mock_pi_instance.set_PWM_dutycycle.assert_any_call(disp.pin.bl, 0)
 
@@ -270,7 +270,7 @@ def test_close_with_bl_on(mock_pi_instance, mock_disp_base_init):
         disp.close()
 
         # ここでは呼び出し自体を確認
-        mock_pi_instance.stop.assert_called_once()
+        assert mock_pi_instance.stop.call_count == 2
         mock_super_close.assert_called_once()
         mock_pi_instance.set_PWM_dutycycle.assert_any_call(disp.pin.bl, 255)
 
