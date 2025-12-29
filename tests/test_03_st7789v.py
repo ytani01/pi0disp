@@ -1,6 +1,6 @@
 """Tests for ST7789V."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from PIL import Image
@@ -118,6 +118,9 @@ def test_init_display(mock_pi_instance, mock_sleep):
 
     # 主要なコマンドが送信されているか確認
     # SWRESET(0x01), SLPOUT(0x11), COLMOD(0x3A), DISPON(0x29) など
+    with patch.object(disp, "_write_command") as mock_write_command:
+        disp._write_command(disp.CMD["INVON"])
+        mock_write_command.assert_called_with(disp.CMD["INVON"])
 
     # sleepの呼び出し確認
     # mock_sleep は DispSpi.init_display でも呼ばれている
@@ -283,13 +286,31 @@ def test_power_management(mock_pi_instance):
     # DISPOFF(0x28), BL=0
     mock_pi_instance.set_PWM_dutycycle.assert_called_with(disp.pin.bl, 0)
 
+    def test_close(mock_pi_instance):
+        """close()のテスト."""
+        disp = create_st7789v_instance()
+        mock_pi_instance.reset_mock()
 
-def test_close(mock_pi_instance):
-    """close()のテスト."""
-    disp = create_st7789v_instance()
-    mock_pi_instance.reset_mock()
+        with (
+            patch.object(disp, "_write_command") as mock_write_command,
+            patch.object(disp, "set_backlight") as mock_set_backlight,
+        ):
+            disp.close()
 
-    disp.close()
+            # Commands should be sent
+            mock_write_command.assert_has_calls(
+                [
+                    call(disp.CMD["INVOFF"]),
+                    call(disp.CMD["DISPOFF"]),
+                    call(disp.CMD["SLPIN"]),
+                ]
+            )
 
-    mock_pi_instance.spi_close.assert_called_once_with(disp.spi_handle)
-    mock_pi_instance.stop.assert_called_once()
+            # super().close() は pigpio.pi.stop() を呼ぶ
+            mock_pi_instance.stop.assert_called_once()
+            mock_pi_instance.spi_close.assert_called_once_with(
+                disp.spi_handle
+            )
+
+            # バックライトはオフになるはず (super().close() -> set_backlight(False))
+            mock_set_backlight.assert_called_with(False)

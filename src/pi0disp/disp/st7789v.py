@@ -51,6 +51,8 @@ class ST7789V(DispSpi):
         speed_hz: int | None = None,
         size: DispSize | None = None,
         rotation: int | None = None,
+        invert: bool = True,
+        bgr: bool = True,
         debug=False,
     ):
         """
@@ -69,13 +71,15 @@ class ST7789V(DispSpi):
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
         self.__log.debug("")
+        self._invert = invert
+        self._bgr = bgr
 
         # Initialize the optimizer pack
         self._optimizers = create_optimizer_pack()
         self._last_window: Optional[Tuple[int, int, int, int]] = None
 
-        self.init_display()
         self.set_rotation(self._rotation)
+        self.init_display()
 
     def init_display(self):
         """Performs the hardware initialization sequence for the ST7789V."""
@@ -89,7 +93,10 @@ class ST7789V(DispSpi):
         time.sleep(0.120)
         self._write_command(self.CMD["COLMOD"])
         self._write_data(0x55)  # 16 bits per pixel
-        self._write_command(self.CMD["INVON"])
+        if self._invert:
+            self._write_command(self.CMD["INVON"])
+        else:
+            self._write_command(self.CMD["INVOFF"])
         self._write_command(self.CMD["NORON"])
         self._write_command(self.CMD["DISPON"])
         time.sleep(0.1)
@@ -104,8 +111,11 @@ class ST7789V(DispSpi):
             raise ValueError("Rotation must be 0, 90, 180, or 270.")
 
         if hasattr(self, "spi_handle"):
+            madctl = madctl_values[rotation]
+            if self._bgr:
+                madctl |= 0x08  # Set BGR bit
             self._write_command(self.CMD["MADCTL"])
-            self._write_data(madctl_values[rotation])
+            self._write_data(madctl)
 
         self._last_window = None  # Invalidate window cache
 
