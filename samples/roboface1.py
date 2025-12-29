@@ -237,7 +237,7 @@ LAYOUT = {
 
 # アニメーション定数
 ANIMATION = {
-    "frame_interval": 0.1,
+    "frame_interval": 0.2,
     "eye_open_threshold": 6,
     "mouth_open_threshold": 0.5,
     "mouth_aspect_ratio": 1.2,
