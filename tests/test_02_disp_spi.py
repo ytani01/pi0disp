@@ -251,7 +251,7 @@ def test_close_with_bl_off(mock_pi_instance, mock_disp_base_init):
         disp.pi.connected = True
         disp.close()
 
-        assert mock_pi_instance.stop.call_count == 2
+        mock_pi_instance.stop.assert_called_once()
         mock_super_close.assert_called_once()
         mock_pi_instance.set_PWM_dutycycle.assert_any_call(disp.pin.bl, 0)
 
@@ -270,7 +270,7 @@ def test_close_with_bl_on(mock_pi_instance, mock_disp_base_init):
         disp.close()
 
         # ここでは呼び出し自体を確認
-        assert mock_pi_instance.stop.call_count == 2
+        mock_pi_instance.stop.assert_called_once()
         mock_super_close.assert_called_once()
         mock_pi_instance.set_PWM_dutycycle.assert_any_call(disp.pin.bl, 255)
 
@@ -306,9 +306,8 @@ def test_close_spi_close_error(
 ):
     """close時にspi_closeが例外を投げても処理が継続することを確認."""
     with patch.object(DispBase, "close") as mock_super_close:
-        mock_pi_instance.spi_close.side_effect = RuntimeError("SPI Error")
-
         disp = create_disp_spi_instance()
+        mock_pi_instance.spi_close.side_effect = RuntimeError("SPI Error")
         disp.pi.connected = True
         disp.spi_handle = 0
 
@@ -325,6 +324,7 @@ def test_close_not_connected(
     """connected=False時のclose動作."""
     with patch.object(DispBase, "close") as mock_super_close:
         disp = create_disp_spi_instance()
+        mock_pi_instance.spi_close.reset_mock()  # Isolate test to close()
         disp.pi.connected = False
 
         disp.close()
@@ -478,6 +478,7 @@ def test_close_invalid_spi_handle(mock_pi_instance, mock_disp_base_init):
     """spi_handle < 0 の場合の close() テスト."""
     with patch.object(DispBase, "close") as mock_super_close:
         disp = create_disp_spi_instance()
+        mock_pi_instance.spi_close.reset_mock()  # Isolate test to close()
         disp.pi.connected = True
         disp.spi_handle = -1  # Invalid handle
 
