@@ -23,7 +23,8 @@ from .disp_spi import DispSpi, SpiPins
 
 class ST7789V(DispSpi):
     """
-    An optimized driver for ST7789V-based SPI displays.
+    ST7789Vコントローラを搭載したSPIディスプレイ用の最適化されたドライバ。
+    高速な描画処理とRaspberry Pi環境への最適化が施されている。
     """
 
     CMD = {
@@ -56,7 +57,21 @@ class ST7789V(DispSpi):
         debug=False,
     ):
         """
-        Initializes the display driver.
+        ST7789Vディスプレイドライバを初期化する。
+
+        パラメータ:
+            bl_at_close (bool): `close()`メソッド呼び出し時にバックライトをオフにするかどうか。
+            pin (SpiPins | None): SPIピン構成 (RST, DC, CS, BLのGPIO番号)。
+                                  指定しない場合、設定ファイルまたはデフォルト値を使用。
+            brightness (int): 初期バックライトの明るさ (0-255)。
+            channel (int): pigpioによって使用されるSPIチャンネル (0または1)。
+            speed_hz (int | None): SPI通信速度 (Hz)。
+                                   指定しない場合、設定ファイルまたはデフォルト値を使用。
+            size (DispSize | None): ディスプレイの物理サイズ (幅, 高さ)。
+            rotation (int | None): ディスプレイの初期回転角度 (0, 90, 180, 270)。
+            invert (bool): ディスプレイの色を反転するかどうか。`True`で反転を有効。
+            bgr (bool): BGRカラー順序を使用するかどうか。`True`でBGR、`False`でRGB。
+            debug (bool): デバッグモードを有効にするか。
         """
         super().__init__(
             bl_at_close=bl_at_close,
@@ -82,17 +97,21 @@ class ST7789V(DispSpi):
         self.init_display()
 
     def init_display(self):
-        """Performs the hardware initialization sequence for the ST7789V."""
+        """
+        ST7789Vのハードウェア初期化シーケンスを実行する。
+
+        ディスプレイの電源投入、カラーモード設定、表示オンなどを行う。
+        """
         super().init_display()
         self.__log.debug("")
 
         # Initialization sequence
-        # self._write_command(self.CMD["SWRESET"])
+        # self._write_command(self.CMD["SWRESET"]) # ソフトウェアリセットは親クラスで実行
         # time.sleep(0.150)
         self._write_command(self.CMD["SLPOUT"])
         time.sleep(0.120)
         self._write_command(self.CMD["COLMOD"])
-        self._write_data(0x55)  # 16 bits per pixel
+        self._write_data(0x55)  # 16 bits per pixel (RGB565)
         if self._invert:
             self._write_command(self.CMD["INVON"])
         else:
@@ -102,7 +121,14 @@ class ST7789V(DispSpi):
         time.sleep(0.1)
 
     def set_rotation(self, rotation: int):
-        """Sets the display rotation."""
+        """
+        ディスプレイの回転を設定する。
+
+        回転角度に応じてMADCTLレジスタを更新し、表示方向とカラー順序を制御する。
+
+        パラメータ:
+            rotation (int): 回転角度 (0, 90, 180, 270)。
+        """
         self.rotation = rotation
         self.__log.debug("%s", self.__class__.__name__)
 
@@ -113,14 +139,24 @@ class ST7789V(DispSpi):
         if hasattr(self, "spi_handle"):
             madctl = madctl_values[rotation]
             if self._bgr:
-                madctl |= 0x08  # Set BGR bit
+                madctl |= 0x08  # Set BGR bit (bit 3)
             self._write_command(self.CMD["MADCTL"])
             self._write_data(madctl)
 
         self._last_window = None  # Invalidate window cache
 
     def set_window(self, x0: int, y0: int, x1: int, y1: int):
-        """Sets the active drawing window on the display."""
+        """
+        ディスプレイ上のアクティブな描画ウィンドウを設定する。
+
+        この範囲内にのみピクセルデータが書き込まれる。
+
+        パラメータ:
+            x0 (int): ウィンドウの左上X座標。
+            y0 (int): ウィンドウの左上Y座標。
+            x1 (int): ウィンドウの右下X座標。
+            y1 (int): ウィンドウの右下Y座標。
+        """
         window = (x0, y0, x1, y1)
         if self._last_window == window:
             return
@@ -134,11 +170,18 @@ class ST7789V(DispSpi):
         self._last_window = window
 
     def write_pixels(self, pixel_bytes: bytes):
-        """Writes a raw buffer of pixel data to the current window."""
+        """
+        現在のウィンドウにピクセルデータの生バッファを書き込む。
+
+        データは `set_window` で設定された領域に書き込まれる。
+
+        パラメータ:
+            pixel_bytes (bytes): 書き込むピクセルデータ (RGB565フォーマット)。
+        """
         chunk_size = self._optimizers["adaptive_chunking"].get_chunk_size()
         data_len = len(pixel_bytes)
 
-        self.pi.write(self.pin.dc, 1)  # Set D/C high for data
+        self.pi.write(self.pin.dc, 1)  # D/CピンをHighに設定（データモード）
 
         if data_len <= chunk_size:
             self.pi.spi_write(self.spi_handle, pixel_bytes)
@@ -149,7 +192,12 @@ class ST7789V(DispSpi):
                 )
 
     def display(self, image: Image.Image):
-        """Displays a full PIL Image on the screen."""
+        """
+        画面全体にPIL Imageオブジェクトを表示する。
+
+        パラメータ:
+            image (Image.Image): 表示するPIL Imageオブジェクト。
+        """
         super().display(image)
         self.__log.debug("%s", self.__class__.__name__)
 
@@ -163,7 +211,16 @@ class ST7789V(DispSpi):
     def display_region(
         self, image: Image.Image, x0: int, y0: int, x1: int, y1: int
     ):
-        """Displays a portion of a PIL image within the specified region."""
+        """
+        指定された領域内にPIL Imageオブジェクトの一部を表示する。
+
+        パラメータ:
+            image (Image.Image): 表示するPIL Imageオブジェクト。
+            x0 (int): 描画領域の左上X座標。
+            y0 (int): 描画領域の左上Y座標。
+            x1 (int): 描画領域の右下X座標。
+            y1 (int): 描画領域の右下Y座標。
+        """
         # Clamp region to be within display boundaries
         region = self._optimizers["region_optimizer"].clamp_region(
             (x0, y0, x1, y1), self.size.width, self.size.height
@@ -183,27 +240,47 @@ class ST7789V(DispSpi):
         self.write_pixels(pixel_bytes)
 
     def close(self, bl_switch: bool | None = None):
-        """Cleans up resources and puts the display to sleep."""
-        self.__log.debug("Putting display to sleep and cleaning up.")
+        """
+        リソースをクリーンアップし、ディスプレイをスリープ状態にする。
+
+        SPI接続を閉じ、DISPOFF/SLPINコマンドを送信する。
+
+        パラメータ:
+            bl_switch (bool | None): バックライトの最終状態を明示的に指定する。
+                                    `None`の場合、オブジェクト生成時の`bl_at_close`設定に従う。
+        """
+        self.__log.debug("ディスプレイをスリープさせ、リソースをクリーンアップします。")
         if hasattr(self, "spi_handle") and self.pi.connected:
             self._write_command(self.CMD["INVOFF"])
             self._write_command(self.CMD["DISPOFF"])
             self._write_command(self.CMD["SLPIN"])
-            time.sleep(0.01)  # Allow time for commands to execute
+            time.sleep(0.01)  # コマンド実行のための時間を与える
 
         super().close(bl_switch)
 
     def dispoff(self):
-        """DISPOFF."""
+        """
+        ディスプレイをオフにする (DISPOFFコマンド)。
+
+        バックライトもオフにする。
+        """
         self._write_command(self.CMD["DISPOFF"])
         self.set_backlight(False)
 
     def sleep(self):
-        """Puts the display into sleep mode."""
+        """
+        ディスプレイをスリープモードにする (SLPINコマンド)。
+
+        バックライトもオフにする。
+        """
         self._write_command(self.CMD["SLPIN"])
         self.set_backlight(False)
 
     def wake(self):
-        """Wakes the display from sleep mode."""
+        """
+        ディスプレイをスリープモードから起動する (SLPOUTコマンド)。
+
+        バックライトもオンにする。
+        """
         self._write_command(self.CMD["SLPOUT"])
         self.set_backlight(True)

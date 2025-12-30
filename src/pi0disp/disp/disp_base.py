@@ -12,14 +12,17 @@ from ..utils.mylogger import get_logger
 
 
 class DispSize(NamedTuple):
-    """Display size class."""
+    """ディスプレイサイズを表すクラス。"""
 
     width: int
     height: int
 
 
 class DispBase(metaclass=ABCMeta):
-    """Display Base."""
+    """
+    ディスプレイの抽象基底クラス。
+    基本的なディスプレイプロパティとpigpioへの接続管理を扱う。
+    """
 
     DEF_SIZE = DispSize(240, 320)
     DEF_ROTATION = 0
@@ -30,7 +33,19 @@ class DispBase(metaclass=ABCMeta):
         rotation: int | None = None,
         debug=False,
     ):
-        """Constractor."""
+        """
+        ディスプレイドライバの基底クラスを初期化する。
+
+        設定ファイルからの値、またはデフォルト値を使用してディスプレイのサイズと回転を設定し、
+        pigpioデーモンへの接続を確立する。
+
+        パラメータ:
+            size (DispSize | None): ディスプレイの物理サイズ (幅, 高さ)。指定しない場合、
+                                    設定ファイルまたはデフォルト値 (DEF_SIZE) を使用。
+            rotation (int | None): ディスプレイの初期回転角度 (0, 90, 180, 270)。
+                                    指定しない場合、設定ファイルまたはデフォルト値 (DEF_ROTATION) を使用。
+            debug (bool): デバッグモードを有効にするか。Trueの場合、詳細なログが出力される。
+        """
         self.__debug = debug
         self._log = get_logger(self.__class__.__name__, self.__debug)
         self._log.debug("size=%s,rotation=%s", size, rotation)
@@ -79,22 +94,26 @@ class DispBase(metaclass=ABCMeta):
 
     @property
     def size(self):
-        """Property: size"""
+        """現在のディスプレイサイズ (幅, 高さ) を返す。"""
         return self._size
 
     @property
     def native_size(self):
-        """Property: native size"""
+        """ディスプレイのネイティブサイズ (回転の影響を受けない物理サイズ) を返す。"""
         return self._native_size
 
     @property
     def rotation(self):
-        """Property: rotation"""
+        """現在のディスプレイ回転角度を返す。"""
         return self._rotation
 
     @rotation.setter
     def rotation(self, rotation: int):
-        """Sets the display rotation."""
+        """
+        ディスプレイの回転角度を設定する。
+
+        回転角度に基づいて、論理的なディスプレイサイズを更新する。
+        """
         # self._log.debug("rotation=%s", rotation)
 
         self._rotation = rotation
@@ -111,32 +130,56 @@ class DispBase(metaclass=ABCMeta):
 
     @property
     def conf(self):
-        """Conf."""
+        """設定オブジェクトを返す。"""
         return self._conf
 
     def init_display(self):
-        """Initialize display."""
-        self._log.warning("Please override this method.")
+        """
+        ディスプレイのハードウェア初期化処理を定義する抽象メソッド。
+
+        継承クラスでオーバーライドされる必要がある。
+        """
+        self._log.warning("このメソッドはオーバーライドしてください。")
 
     def display(self, image: Image.Image):
-        """display."""
+        """
+        画像を表示する抽象メソッド。
+
+        指定されたPIL画像をディスプレイに表示する。
+        継承クラスでオーバーライドされる必要がある。
+
+        パラメータ:
+            image (Image.Image): 表示するPIL Imageオブジェクト。
+        """
         if image.size != self._size:
-            self._log.debug("adjust image size")
+            self._log.debug("画像のサイズをディスプレイに合わせて調整します。")
             image = image.resize(self._size)
 
     def close(self):
-        """Close."""
+        """
+        ディスプレイの接続を閉じ、リソースを解放する。
+
+        pigpioデーモンとの接続を切断する。
+        """
         if self.pi.connected:
-            self._log.debug("close pigpiod connection")
+            self._log.debug("pigpiod接続を閉じます。")
             self.pi.stop()
         else:
-            self._log.warning("self.pi.conencted=%s", self.pi.connected)
+            self._log.warning("pigpiodに接続していません (%s)。", self.pi.connected)
 
 
 def get_display_info(debug=False) -> dict:
-    """Get display info from config file."""
+    """
+    設定ファイルからディスプレイ情報を取得する。
+
+    パラメータ:
+        debug (bool): デバッグモードを有効にするか。
+
+    戻り値:
+        dict: 幅、高さ、回転角度を含む辞書。
+    """
     log = get_logger("get_display_info", debug)
-    log.debug("read config file")
+    log.debug("設定ファイルを読み込みます。")
 
     conf = MyConf(debug=debug)
     width = conf.data.get("width")

@@ -11,7 +11,15 @@ from .disp_base import DispBase, DispSize
 
 
 class SpiPins(NamedTuple):
-    """SPI Pins class."""
+    """
+    SPI通信に使用するピン構成を表すクラス。
+
+    属性:
+        rst (int): リセットピンのGPIO番号。
+        dc (int): データ/コマンド選択ピンのGPIO番号。
+        cs (Optional[int]): チップセレクトピンのGPIO番号。オプション。
+        bl (Optional[int]): バックライト制御ピンのGPIO番号。オプション。
+    """
 
     rst: int
     dc: int
@@ -20,7 +28,10 @@ class SpiPins(NamedTuple):
 
 
 class DispSpi(DispBase):
-    """SPI Display."""
+    """
+    SPI通信を介してディスプレイを制御するクラス。
+    DispBaseを継承し、SPI固有の初期化、データ転送、ピン制御を実装する。
+    """
 
     # DEF_PIN = SpiPins(rst=25, dc=24, bl=23)
     DEF_PIN_DICT = {"rst": 25, "dc": 24, "bl": 23, "cs": 8}
@@ -41,13 +52,31 @@ class DispSpi(DispBase):
         rotation: int | None = None,
         debug=False,
     ):
+        """
+        SPIディスプレイドライバを初期化する。
+
+        SPIバスとGPIOピンを設定し、pigpioへの接続を行う。
+        以前のプロセスによって残された可能性のあるSPIハンドルをクリーンアップするロジックも含む。
+
+        パラメータ:
+            bl_at_close (bool): `close()`メソッドが呼び出されたときにバックライトをオフにするかどうか。
+            pin (SpiPins | None): SPIピン構成 (RST, DC, CS, BLのGPIO番号)。
+                                  指定しない場合、設定ファイルまたはデフォルト値を使用。
+            brightness (int): 初期バックライトの明るさ (0-255)。
+            channel (int): pigpioによって使用されるSPIチャンネル (0または1)。
+            speed_hz (int | None): SPI通信速度 (Hz)。
+                                   指定しない場合、設定ファイルまたはデフォルト値 (8MHz) を使用。
+            size (DispSize | None): ディスプレイの物理サイズ (幅, 高さ)。
+            rotation (int | None): ディスプレイの初期回転角度。
+            debug (bool): デバッグモードを有効にするか。
+        """
         super().__init__(size, rotation, debug=debug)
         self.__debug = debug
 
         # Add a workaround for unclean shutdowns (e.g., after kill -9).
         # This iterates through all possible SPI handles and attempts to close them,
         # cleaning up any stale handles left over from the previous process.
-        self._log.debug("Cleaning up potentially stale SPI handles.")
+        self._log.debug("残存する可能性のあるSPIハンドルをクリーンアップします。")
         for h in range(32):
             try:
                 self.pi.spi_close(h)
@@ -76,10 +105,10 @@ class DispSpi(DispBase):
         if speed_hz is None:
             speed_hz = self.conf.data.spi.get("speed_hz")
             if speed_hz:
-                self._log.debug("speed_hz=%s (conf)", speed_hz)
+                self._log.debug("speed_hz=%s (設定ファイル)", speed_hz)
             else:
                 speed_hz = self.SPEED_HZ["default"]
-                self._log.debug("speed_hz=%s (default)", speed_hz)
+                self._log.debug("speed_hz=%s (デフォルト)", speed_hz)
 
         self._brightness = brightness
         self._backlight_on = False
@@ -95,7 +124,7 @@ class DispSpi(DispBase):
         self.spi_handle = self.pi.spi_open(channel, speed_hz, 0)
         if self.spi_handle < 0:
             raise RuntimeError(
-                f"Failed to open SPI bus: handle={self.spi_handle}"
+                f"SPIバスを開けませんでした: handle={self.spi_handle}"
             )
 
     # def __enter__(self):
@@ -109,22 +138,40 @@ class DispSpi(DispBase):
     #     self.close()
 
     def _write_command(self, command: int):
-        """Sends a command byte to the display."""
-        self.pi.write(self.pin.dc, 0)  # D/C pin low for command
+        """
+        ディスプレイにコマンドバイトを送信する。
+
+        パラメータ:
+            command (int): 送信するコマンドバイト (0x00-0xFF)。
+        """
+        self.pi.write(self.pin.dc, 0)  # D/CピンをLowに設定（コマンドモード）
         self.pi.spi_write(self.spi_handle, [command])
 
     def _write_data(self, data: Union[int, bytes, list]):
-        """Sends a data byte or buffer to the display."""
-        self.pi.write(self.pin.dc, 1)  # D/C pin high for data
+        """
+        ディスプレイにデータバイトまたはバッファを送信する。
+
+        パラメータ:
+            data (Union[int, bytes, list]): 送信するデータ。
+                                            単一のバイト (int) またはバイトのシーケンス (bytes, list)。
+        """
+        self.pi.write(self.pin.dc, 1)  # D/CピンをHighに設定（データモード）
         if isinstance(data, int):
             self.pi.spi_write(self.spi_handle, [data])
         else:
             self.pi.spi_write(self.spi_handle, data)
 
     def set_brightness(self, brightness: int):
-        """Sets the backlight brightness (0-255)."""
+        """
+        バックライトの明るさを設定する (0-255)。
+
+        `set_backlight()`がオンの場合にのみ適用される。
+
+        パラメータ:
+            brightness (int): 明るさの値 (0-255)。
+        """
         if not self.pin.bl:
-            self._log.debug("pin.bl=%s: do nothing", self.pin.bl)
+            self._log.debug("pin.bl=%s: 何もしません。", self.pin.bl)
             return
 
         # self.set_backlightのON/OFFに関わらず、値を保持する。
@@ -134,12 +181,16 @@ class DispSpi(DispBase):
             self.pi.set_PWM_dutycycle(self.pin.bl, self._brightness)
 
     def set_backlight(self, on: bool):
-        """Turns the backlight on or off.
+        """
+        バックライトをオンまたはオフにする。
 
-        self._brightness の値は維持される
+        設定された明るさの値は維持される。
+
+        パラメータ:
+            on (bool): `True`でオン、`False`でオフ。
         """
         if not self.pin.bl:
-            self._log.debug("pin.bl=%s: do nothing", self.pin.bl)
+            self._log.debug("pin.bl=%s: 何もしません。", self.pin.bl)
             return
 
         self._backlight_on = on
@@ -150,8 +201,12 @@ class DispSpi(DispBase):
             self.pi.set_PWM_dutycycle(self.pin.bl, 0)
 
     def init_display(self):
-        """Initialize Display."""
-        self._log.debug("backlight ON")
+        """
+        SPIディスプレイの初期化処理を実行する。
+
+        GPIOピンのリセットとバックライトの制御を行う。
+        """
+        self._log.debug("バックライトON")
 
         self.set_backlight(True)
 
@@ -164,11 +219,12 @@ class DispSpi(DispBase):
         time.sleep(0.5)
 
     def close(self, bl_switch: bool | None = None):
-        """Cleans up resources.
+        """
+        リソースをクリーンアップし、SPI接続とGPIOピンを解放する。
 
-        Args:
-            bl_switch (bool | None): バックライトの状態
-                省略すると、生成時のオプションを使う
+        パラメータ:
+            bl_switch (bool | None): バックライトの最終状態を明示的に指定する。
+                                    `None`の場合、オブジェクト生成時の`bl_at_close`設定に従う。
         """
         self._log.debug("bl_switch=%s", bl_switch)
 
@@ -178,7 +234,7 @@ class DispSpi(DispBase):
                 try:
                     self.pi.spi_close(self.spi_handle)
                     self._log.debug(
-                        "close SPI: spi_handl=%s", self.spi_handle
+                        "SPIをクローズ: spi_handle=%s", self.spi_handle
                     )
                 except Exception as e:
                     self._log.warning(errmsg(e))
@@ -187,9 +243,9 @@ class DispSpi(DispBase):
             if self.pin.bl is not None:
                 if not bl_switch:
                     bl_switch = self.bl_at_close
-                self._log.debug("bl_swtch=%s", bl_switch)
+                self._log.debug("bl_switch=%s", bl_switch)
                 self.set_backlight(bl_switch)
         else:
-            self._log.warning("pi.connected=%s", self.pi.connected)
+            self._log.warning("pigpiodに接続していません (%s)。", self.pi.connected)
 
         super().close()  # self.pi の終了処理(stop)は、親クラスに任せる

@@ -11,12 +11,24 @@ from ..utils.mylogger import errmsg, get_logger  # type: ignore
 
 
 class DispConf:
-    """Display Configuration."""
+    """
+    ディスプレイ設定を管理するクラス。
+    設定ファイルを読み込み、アクセスを提供する。
+    """
 
     SETTINGS_PATH = ["/etc", "~", "."]
     SETTINGS_EXT = "toml"
 
     def __init__(self, conf_filename: str | None = None, debug: bool = False):
+        """
+        ディスプレイ設定のコンストラクタ。
+        設定ファイルのパスを構築し、読み込みを試みる。
+
+        パラメータ:
+            conf_filename (str | None): 読み込む設定ファイル名 (拡張子を除く)。
+                                        指定しない場合、パッケージ名を使用。
+            debug (bool): デバッグモードを有効にするか。Trueの場合、詳細なログが出力される。
+        """
         self.__debug: bool = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
 
@@ -45,17 +57,17 @@ class DispConf:
 
     @property
     def pkg_name(self):
-        """package name"""
+        """パッケージ名を返す。"""
         return self._pkg_name
 
     @property
     def conf_filename(self):
-        """Config filename"""
+        """読み込む設定ファイル名を返す。"""
         return self._conf_filename
 
     @property
     def data(self):
-        """configuration data."""
+        """読み込まれた設定データ (Dynaconfオブジェクト) を返す。"""
         return self._data
 
     def load(
@@ -63,7 +75,17 @@ class DispConf:
         settings_files: list[str] | None = None,
         pkg_name: str | None = None,
     ) -> Optional[Dynaconf]:
-        """Load configuration."""
+        """
+        指定された設定ファイルからDynaconf設定を読み込む。
+
+        パラメータ:
+            settings_files (list[str] | None): 読み込む設定ファイルのパスリスト。
+                                            指定しない場合、_settings_filesを使用。
+            pkg_name (str | None): 設定を読み込むパッケージ名。指定しない場合、_pkg_nameを使用。
+
+        戻り値:
+            Optional[Dynaconf]: 読み込まれた設定オブジェクト、または読み込みに失敗した場合はNone。
+        """
         if not settings_files:
             settings_files = self._settings_files
 
@@ -78,11 +100,16 @@ class DispConf:
             return Dynaconf(settings_files=settings_files).get(self._pkg_name)
 
         except TOMLDecodeError as e:
-            self.__log.error("%s: configuration is not loaded.", errmsg(e))
+            self.__log.error("%s: 設定がロードできません。", errmsg(e))
             return None
 
     def to_dict(self) -> Optional[Dict[str, Any]]:
-        """To dict."""
+        """
+        設定データを辞書形式で返す。
+
+        戻り値:
+            Optional[Dict[str, Any]]: 設定データの辞書、または設定データがない場合はNone。
+        """
         if self._data:
             return self._data.to_dict()
         return None
