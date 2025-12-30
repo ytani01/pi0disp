@@ -83,7 +83,7 @@ def test_init_display(mock_logger, mock_pi_instance):
     disp_base.init_display()
 
     mock_logger_instance.warning.assert_called_once_with(
-        "Please override this method."
+        "このメソッドはオーバーライドしてください。"
     )
 
 
@@ -171,7 +171,9 @@ def test_display_logs_on_resize(mock_pi_instance, mock_logger):
 
     disp_base.display(mock_image)
 
-    mock_logger_instance.debug.assert_called_with("adjust image size")
+    mock_logger_instance.debug.assert_called_with(
+        "画像のサイズをディスプレイに合わせて調整します。"
+    )
 
 
 def test_display_no_logs_on_no_resize(mock_pi_instance, mock_logger):
@@ -402,7 +404,9 @@ def test_get_display_info_with_debug_true(mock_pi_constructor, mock_logger):
         MockMyConf.assert_called_once_with(debug=True)
         # ロガーが呼び出され、"read config file" がログ出力されたことを確認
         mock_logger.assert_called_once_with("get_display_info", True)
-        mock_logger_instance.debug.assert_any_call("read config file")
+        mock_logger_instance.debug.assert_any_call(
+            "設定ファイルを読み込みます。"
+        )
         # ログメッセージの引数を確認
         mock_logger_instance.debug.assert_any_call(
             "width=%s, height=%s, rotation=%s", None, None, None

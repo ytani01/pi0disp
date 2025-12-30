@@ -334,7 +334,9 @@ def test_close_not_connected(
         mock_pi_instance.set_PWM_dutycycle.assert_not_called()
 
         # 警告ログが出る
-        mock_logger.warning.assert_called_with("pi.connected=%s", False)
+        mock_logger.warning.assert_called_with(
+            "pigpiodに接続していません (%s)。", False
+        )
         mock_super_close.assert_called_once()
 
 

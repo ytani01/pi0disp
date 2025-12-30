@@ -19,6 +19,6 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-## [ ] Track: ST7789V RGB カラー修正
+## [~] Track: ST7789V RGB カラー修正
 *Link: [./conductor/tracks/st7789v_rgb_color_fix_20251230/](./conductor/tracks/st7789v_rgb_color_fix_20251230/)*
 *進捗チェックリスト: [./conductor/tracks/st7789v_rgb_color_fix_20251230/progress.md](./conductor/tracks/st7789v_rgb_color_fix_20251230/progress.md)*
