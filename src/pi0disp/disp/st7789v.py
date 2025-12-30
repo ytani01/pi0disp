@@ -201,8 +201,12 @@ class ST7789V(DispSpi):
         super().display(image)
         self.__log.debug("%s", self.__class__.__name__)
 
+        img_array = np.array(image)
+        if self._bgr:
+            # Swap R and B channels if BGR order is enabled
+            img_array = img_array[:, :, [2, 1, 0]]  # RGB -> BGR
         pixel_bytes = self._optimizers["color_converter"].rgb_to_rgb565_bytes(
-            np.array(image)
+            img_array
         )
 
         self.set_window(0, 0, self.size.width - 1, self.size.height - 1)
@@ -231,8 +235,12 @@ class ST7789V(DispSpi):
 
         # Crop the image to the specified region and convert to pixel data
         region_img = image.crop(region)
+        img_array = np.array(region_img)
+        if self._bgr:
+            # Swap R and B channels if BGR order is enabled
+            img_array = img_array[:, :, [2, 1, 0]]  # RGB -> BGR
         pixel_bytes = self._optimizers["color_converter"].rgb_to_rgb565_bytes(
-            np.array(region_img)
+            img_array
         )
 
         # Set window and write data
