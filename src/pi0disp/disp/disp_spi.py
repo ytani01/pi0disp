@@ -76,7 +76,9 @@ class DispSpi(DispBase):
         # Add a workaround for unclean shutdowns (e.g., after kill -9).
         # This iterates through all possible SPI handles and attempts to close them,
         # cleaning up any stale handles left over from the previous process.
-        self._log.debug("残存する可能性のあるSPIハンドルをクリーンアップします。")
+        self._log.debug(
+            "残存する可能性のあるSPIハンドルをクリーンアップします。"
+        )
         for h in range(32):
             try:
                 self.pi.spi_close(h)
@@ -246,6 +248,8 @@ class DispSpi(DispBase):
                 self._log.debug("bl_switch=%s", bl_switch)
                 self.set_backlight(bl_switch)
         else:
-            self._log.warning("pigpiodに接続していません (%s)。", self.pi.connected)
+            self._log.warning(
+                "pigpiodに接続していません (%s)。", self.pi.connected
+            )
 
         super().close()  # self.pi の終了処理(stop)は、親クラスに任せる

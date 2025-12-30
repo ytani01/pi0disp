@@ -249,7 +249,9 @@ class ST7789V(DispSpi):
             bl_switch (bool | None): バックライトの最終状態を明示的に指定する。
                                     `None`の場合、オブジェクト生成時の`bl_at_close`設定に従う。
         """
-        self.__log.debug("ディスプレイをスリープさせ、リソースをクリーンアップします。")
+        self.__log.debug(
+            "ディスプレイをスリープさせ、リソースをクリーンアップします。"
+        )
         if hasattr(self, "spi_handle") and self.pi.connected:
             self._write_command(self.CMD["INVOFF"])
             self._write_command(self.CMD["DISPOFF"])

@@ -152,7 +152,9 @@ class DispBase(metaclass=ABCMeta):
             image (Image.Image): 表示するPIL Imageオブジェクト。
         """
         if image.size != self._size:
-            self._log.debug("画像のサイズをディスプレイに合わせて調整します。")
+            self._log.debug(
+                "画像のサイズをディスプレイに合わせて調整します。"
+            )
             image = image.resize(self._size)
 
     def close(self):
@@ -165,7 +167,9 @@ class DispBase(metaclass=ABCMeta):
             self._log.debug("pigpiod接続を閉じます。")
             self.pi.stop()
         else:
-            self._log.warning("pigpiodに接続していません (%s)。", self.pi.connected)
+            self._log.warning(
+                "pigpiodに接続していません (%s)。", self.pi.connected
+            )
 
 
 def get_display_info(debug=False) -> dict:
