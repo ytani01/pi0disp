@@ -2,23 +2,9 @@
 
 This file tracks all major tracks for the project. Each track has its own detailed plan in its respective folder.
 
----
-
-## [x] Track: サンプルプログラムの作成
-*Link: [./conductor/tracks/samples_20251224/](./conductor/tracks/samples_20251224/)*
 
 ---
 
-## [x] Track: ST7789V ドライバ実装の妥当性確認と修正
-*Link: [./conductor/tracks/st7789v_driver_check_20251230/](./conductor/tracks/st7789v_driver_check_20251230/)*
+## [ ] Track: 画面下部更新不具合修正
+*Link: [./conductor/tracks/fix_screen_bottom_update_20251230/](./conductor/tracks/fix_screen_bottom_update_20251230/)*
 
----
-
-## [x] Track: ST7789Vドライバ マニュアル作成
-*Link: [./conductor/tracks/create_st7789v_manual_20251230/](./conductor/tracks/create_st7789v_manual_20251230/)*
-
----
-
-## [~] Track: ST7789V RGB カラー修正
-*Link: [./conductor/tracks/st7789v_rgb_color_fix_20251230/](./conductor/tracks/st7789v_rgb_color_fix_20251230/)*
-*進捗チェックリスト: [./conductor/tracks/st7789v_rgb_color_fix_20251230/progress.md](./conductor/tracks/st7789v_rgb_color_fix_20251230/progress.md)*
