@@ -55,7 +55,7 @@ class ST7789V(DispSpi):
         x_offset: int | None = None,
         y_offset: int | None = None,
         invert: bool = True,
-        bgr: bool = True,
+        bgr: bool = False,
         debug=False,
     ):
         """
@@ -143,7 +143,12 @@ class ST7789V(DispSpi):
         パラメータ:
             rotation (int): 回転角度 (0, 90, 180, 270)。
         """
-        madctl_values = {self.NORTH: 0x00, self.EAST: 0x60, self.SOUTH: 0xC0, self.WEST: 0xA0}
+        madctl_values = {
+            self.NORTH: 0x00,
+            self.EAST: 0x60,
+            self.SOUTH: 0xC0,
+            self.WEST: 0xA0,
+        }
         if rotation not in madctl_values:
             raise ValueError("Rotation must be 0, 90, 180, or 270.")
 
@@ -307,4 +312,3 @@ class ST7789V(DispSpi):
             time.sleep(0.01)  # コマンド実行のための時間を与える
 
         super().close(bl_switch)
-

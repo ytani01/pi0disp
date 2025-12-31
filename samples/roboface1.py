@@ -92,7 +92,9 @@ class Lcd(DisplayBase):
             raise RuntimeError(msg)
 
         try:
-            self.lcd = ST7789V(rotation=270, debug=debug)
+            self.lcd = ST7789V(
+                rotation=270, bgr=False, invert=True, debug=debug
+            )
             # self.lcd.set_rotation(270)
         except Exception as e:
             self.__log.error(errmsg(e))
@@ -454,7 +456,7 @@ class AppMode(ABC):
         self._robot_face.update()
 
         img = self._robot_face.draw_face_parts(
-            self._disp_dev.width, self._disp_dev.height, self._bg_color
+            self._disp_dev.width, self._disp_dev.height, COLORS["face_bg"]
         )
         self._disp_dev.show_face_parts(img)
 
@@ -480,10 +482,8 @@ class RandomMode(AppMode):
         # )
 
     def run(self) -> None:
-        super().run()
+        self.show_face_outline()
 
-        time.sleep(5)
-        
         interval = ANIMATION["frame_interval"]
 
         # face outline
@@ -510,7 +510,7 @@ class InteractiveMode(AppMode):
 
     def run(self) -> None:
         """Run."""
-        super().run()
+        self.show_face_outline()
 
         self._new_face(time.time(), "_OO_")
         while self._robot_face.is_changing:
@@ -655,7 +655,7 @@ class FaceUpdater:
         # Update Face
         #
         p_rate = self.progress_rate()
-        self.__log.info(
+        self.__log.debug(
             "elapsed time:%.2f,progress_rate=%.2f",
             self.elapsed_time(),
             p_rate,
@@ -745,7 +745,10 @@ class DrawFace:
         bg_color: str | tuple,
     ):
         self.__log.debug(
-            "screen: %sx%s, bg_color=%s", screen_width, screen_height, bg_color
+            "screen: %sx%s, bg_color=%s",
+            screen_width,
+            screen_height,
+            bg_color,
         )
         img = Image.new("RGB", (self.size, self.size), bg_color)
         draw = ImageDraw.Draw(img)
@@ -933,6 +936,12 @@ class DrawFace:
         screen_height: int,
         bg_color: str | tuple,
     ):
+        self.__log.debug(
+            "screen: %sx%s, bg_color=%s",
+            screen_width,
+            screen_height,
+            bg_color,
+        )
         img = Image.new("RGB", (self.size, self.size), bg_color)
         draw = ImageDraw.Draw(img)
 
@@ -1012,7 +1021,7 @@ class RobotFace:
         )
 
     def draw_face_parts(
-        self, screen_width: int, screen_height: int, bg_color: tuple
+        self, screen_width: int, screen_height: int, bg_color: tuple | str
     ):
         return self.obj_draw_face.draw_face_parts(
             self.obj_updater.current_face,
