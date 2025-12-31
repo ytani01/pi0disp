@@ -63,7 +63,12 @@ class DisplayBase(ABC):
         return self._height
 
     @abstractmethod
-    def show(self, pil_image):
+    def show_face_parts(self, pil_image):
+        """顔のパーツを描画"""
+        pass
+
+    @abstractmethod
+    def show_face_outline(self, pil_image):
         """画像をデバイスに転送"""
         pass
 
@@ -88,6 +93,7 @@ class Lcd(DisplayBase):
 
         try:
             self.lcd = ST7789V(rotation=270, debug=debug)
+            # self.lcd.set_rotation(270)
         except Exception as e:
             self.__log.error(errmsg(e))
             raise RuntimeError(errmsg(e))
@@ -102,10 +108,16 @@ class Lcd(DisplayBase):
         except OSError:
             return False
 
-    def show(self, pil_image):
-        # self.lcd.display(pil_image)
-        self.lcd.display_region(pil_image, 40, 50, 215, 150)
-        self.lcd.display_region(pil_image, 90, 150, 180, 200)
+    def show_face_outline(self, pil_image):
+        """Show all."""
+        self.__log.debug("")
+        self.lcd.display(pil_image)
+
+    def show_face_parts(self, pil_image):
+        """Show face parts."""
+        self.lcd.display_region(pil_image, 41, 50, 105, 138)
+        self.lcd.display_region(pil_image, 150, 50, 215, 138)
+        self.lcd.display_region(pil_image, 89, 135, 170, 200)
 
     def close(self):
         self.lcd.close(True)
@@ -120,13 +132,20 @@ class CV2Disp(DisplayBase):
         self.__log = get_logger(self.__class__.__name__, self.__debug)
         self.__log.debug("initialized CV2Disp")
 
-    def show(self, pil_image):
+    def _show(self, pil_image):
         frame = np.array(pil_image)
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         cv2.imshow("Robot Face", frame)
         key = cv2.waitKey(1) & 0xFF
         if key == 27:  # ESC
             raise KeyboardInterrupt("ESC pressed")
+
+    def show_face_outline(self, pil_image):
+        self._show(pil_image)
+
+    def show_face_parts(self, pil_image):
+        """Show face parts."""
+        self._show(pil_image)
 
     def close(self):
         cv2.destroyAllWindows()
@@ -145,7 +164,6 @@ def get_disp_dev(width, height, debug=False) -> DisplayBase:
     if HAS_OPENCV:
         _log.warning("Found OpenCV, returning CV2Disp.")
         return CV2Disp(width, height, debug=debug)
-
     _log.warning("警告: 表示可能なデバイスがありません (コンソール実行のみ)")
     raise RuntimeError("No suitable display display device found.")
 
@@ -424,13 +442,21 @@ class AppMode(ABC):
         """モードのメインループを実行する"""
         pass
 
+    def show_face_outline(self) -> None:
+        """Show face outline."""
+        self._log.debug("")
+        img = self._robot_face.draw_face_outline(
+            self._disp_dev.width, self._disp_dev.height, self._bg_color
+        )
+        self._disp_dev.show_face_outline(img)
+
     def update_face_and_show(self) -> None:
         self._robot_face.update()
 
-        img = self._robot_face.draw(
+        img = self._robot_face.draw_face_parts(
             self._disp_dev.width, self._disp_dev.height, self._bg_color
         )
-        self._disp_dev.show(img)
+        self._disp_dev.show_face_parts(img)
 
 
 class RandomMode(AppMode):
@@ -454,8 +480,15 @@ class RandomMode(AppMode):
         # )
 
     def run(self) -> None:
+        super().run()
+
+        time.sleep(5)
+        
         interval = ANIMATION["frame_interval"]
 
+        # face outline
+
+        # change face parts
         while True:
             now = time.time()
             if now > self._next_face_time:
@@ -477,6 +510,8 @@ class InteractiveMode(AppMode):
 
     def run(self) -> None:
         """Run."""
+        super().run()
+
         self._new_face(time.time(), "_OO_")
         while self._robot_face.is_changing:
             self.update_face_and_show()
@@ -703,7 +738,18 @@ class DrawFace:
 
         draw.line(points, fill=color, width=width, joint="curve")
 
-    def _draw_outline(self, draw):
+    def draw_face_outline(
+        self,
+        screen_width: int,
+        screen_height: int,
+        bg_color: str | tuple,
+    ):
+        self.__log.debug(
+            "screen: %sx%s, bg_color=%s", screen_width, screen_height, bg_color
+        )
+        img = Image.new("RGB", (self.size, self.size), bg_color)
+        draw = ImageDraw.Draw(img)
+
         box = [*self._scale_xy(0, 0), *self._scale_xy(100, 100)]
         draw.rounded_rectangle(
             box,
@@ -712,6 +758,14 @@ class DrawFace:
             fill=COLORS["face_bg"],
             width=1,
         )
+
+        final_img = ImageOps.pad(
+            img,
+            (screen_width, screen_height),
+            color=bg_color,
+            centering=(0.1, 0.5),  # 位置調整
+        )
+        return final_img
 
     def _draw_brows(self, draw, left_cx, right_cx, eye_y, brow_tilt):
         if abs(brow_tilt) <= 1:
@@ -871,7 +925,7 @@ class DrawFace:
             draw, p0, p1, p2, color=mouth_color, width=mouth_width
         )
 
-    def draw(
+    def draw_face_parts(
         self,
         face: FaceState,
         gaze_offset_x: float,
@@ -882,7 +936,7 @@ class DrawFace:
         img = Image.new("RGB", (self.size, self.size), bg_color)
         draw = ImageDraw.Draw(img)
 
-        self._draw_outline(draw)
+        # self._draw_outline(draw)
         self._draw_eyes(draw, face, gaze_offset_x)
         self._draw_mouth(draw, face)
 
@@ -950,8 +1004,17 @@ class RobotFace:
     def update(self) -> None:
         self.obj_updater.update()
 
-    def draw(self, screen_width: int, screen_height: int, bg_color: tuple):
-        return self.obj_draw_face.draw(
+    def draw_face_outline(
+        self, screen_width: int, screen_height: int, bg_color: tuple
+    ):
+        return self.obj_draw_face.draw_face_outline(
+            screen_width, screen_height, bg_color
+        )
+
+    def draw_face_parts(
+        self, screen_width: int, screen_height: int, bg_color: tuple
+    ):
+        return self.obj_draw_face.draw_face_parts(
             self.obj_updater.current_face,
             self.obj_updater.current_gaze_x,
             screen_width,
@@ -1001,6 +1064,7 @@ class RobotFaceApp:
         self.disp_dev.close()
 
     def main(self) -> None:
+        self.current_mode.show_face_outline()
         self.current_mode.run()
 
 

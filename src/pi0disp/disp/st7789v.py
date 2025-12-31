@@ -27,7 +27,7 @@ class ST7789V(DispSpi):
     高速な描画処理とRaspberry Pi環境への最適化が施されている。
     """
 
-    CMD = {
+    _CMD = {
         "SWRESET": 0x01,
         "SLPIN": 0x10,
         "SLPOUT": 0x11,
@@ -106,8 +106,8 @@ class ST7789V(DispSpi):
         self._optimizers = create_optimizer_pack()
         self._last_window: Optional[Tuple[int, int, int, int]] = None
 
-        self.set_rotation(self._rotation)
         self.init_display()
+        self.set_rotation(self._rotation)
 
     def init_display(self):
         """
@@ -119,18 +119,18 @@ class ST7789V(DispSpi):
         self.__log.debug("")
 
         # Initialization sequence
-        # self._write_command(self.CMD["SWRESET"]) # ソフトウェアリセットは親クラスで実行
+        # self._write_command(self._CMD["SWRESET"]) # ソフトウェアリセットは親クラスで実行
         # time.sleep(0.150)
-        self._write_command(self.CMD["SLPOUT"])
+        self._write_command(self._CMD["SLPOUT"])
         time.sleep(0.120)
-        self._write_command(self.CMD["COLMOD"])
+        self._write_command(self._CMD["COLMOD"])
         self._write_data(0x55)  # 16 bits per pixel (RGB565)
         if self._invert:
-            self._write_command(self.CMD["INVON"])
+            self._write_command(self._CMD["INVON"])
         else:
-            self._write_command(self.CMD["INVOFF"])
-        self._write_command(self.CMD["NORON"])
-        self._write_command(self.CMD["DISPON"])
+            self._write_command(self._CMD["INVOFF"])
+        self._write_command(self._CMD["NORON"])
+        self._write_command(self._CMD["DISPON"])
         time.sleep(0.1)
 
     def set_rotation(self, rotation: int):
@@ -143,7 +143,7 @@ class ST7789V(DispSpi):
         パラメータ:
             rotation (int): 回転角度 (0, 90, 180, 270)。
         """
-        madctl_values = {0: 0x00, 90: 0x60, 180: 0xC0, 270: 0xA0}
+        madctl_values = {self.NORTH: 0x00, self.EAST: 0x60, self.SOUTH: 0xC0, self.WEST: 0xA0}
         if rotation not in madctl_values:
             raise ValueError("Rotation must be 0, 90, 180, or 270.")
 
@@ -152,7 +152,7 @@ class ST7789V(DispSpi):
 
         # Update logical size based on rotation
         # Original physical size is assumed to be 240x320 (width x height)
-        if rotation in [90, 270]:
+        if rotation in [self.EAST, self.WEST]:
             self._size = DispSize(320, 240)
         else:
             self._size = DispSize(240, 320)
@@ -162,7 +162,7 @@ class ST7789V(DispSpi):
             self._mv = (madctl >> 5) & 0x01
             if self._bgr:
                 madctl |= 0x08  # Set BGR bit (bit 3)
-            self._write_command(self.CMD["MADCTL"])
+            self._write_command(self._CMD["MADCTL"])
             self._write_data(madctl)
 
         self._last_window = None  # Invalidate window cache
@@ -194,9 +194,9 @@ class ST7789V(DispSpi):
             ty0 = y0 + self._x_offset
             ty1 = y1 + self._x_offset
 
-            self._write_command(self.CMD["CASET"])
+            self._write_command(self._CMD["CASET"])
             self._write_data([tx0 >> 8, tx0 & 0xFF, tx1 >> 8, tx1 & 0xFF])
-            self._write_command(self.CMD["RASET"])
+            self._write_command(self._CMD["RASET"])
             self._write_data([ty0 >> 8, ty0 & 0xFF, ty1 >> 8, ty1 & 0xFF])
         else:
             # Portrait (MV=0):
@@ -207,11 +207,11 @@ class ST7789V(DispSpi):
             ty0 = y0 + self._y_offset
             ty1 = y1 + self._y_offset
 
-            self._write_command(self.CMD["CASET"])
+            self._write_command(self._CMD["CASET"])
             self._write_data([tx0 >> 8, tx0 & 0xFF, tx1 >> 8, tx1 & 0xFF])
-            self._write_command(self.CMD["RASET"])
+            self._write_command(self._CMD["RASET"])
             self._write_data([ty0 >> 8, ty0 & 0xFF, ty1 >> 8, ty1 & 0xFF])
-        self._write_command(self.CMD["RAMWR"])
+        self._write_command(self._CMD["RAMWR"])
 
         self._last_window = window
 
@@ -301,36 +301,10 @@ class ST7789V(DispSpi):
             "ディスプレイをスリープさせ、リソースをクリーンアップします。"
         )
         if hasattr(self, "spi_handle") and self.pi.connected:
-            self._write_command(self.CMD["INVOFF"])
-            self._write_command(self.CMD["DISPOFF"])
-            self._write_command(self.CMD["SLPIN"])
+            self._write_command(self._CMD["INVOFF"])
+            self._write_command(self._CMD["DISPOFF"])
+            self._write_command(self._CMD["SLPIN"])
             time.sleep(0.01)  # コマンド実行のための時間を与える
 
         super().close(bl_switch)
 
-    def dispoff(self):
-        """
-        ディスプレイをオフにする (DISPOFFコマンド)。
-
-        バックライトもオフにする。
-        """
-        self._write_command(self.CMD["DISPOFF"])
-        self.set_backlight(False)
-
-    def sleep(self):
-        """
-        ディスプレイをスリープモードにする (SLPINコマンド)。
-
-        バックライトもオフにする。
-        """
-        self._write_command(self.CMD["SLPIN"])
-        self.set_backlight(False)
-
-    def wake(self):
-        """
-        ディスプレイをスリープモードから起動する (SLPOUTコマンド)。
-
-        バックライトもオンにする。
-        """
-        self._write_command(self.CMD["SLPOUT"])
-        self.set_backlight(True)

@@ -19,6 +19,11 @@ class DispSize(NamedTuple):
 
 
 class DispBase(metaclass=ABCMeta):
+    # Rotation constants
+    NORTH = 0
+    EAST = 90
+    SOUTH = 180
+    WEST = 270
     """
     ディスプレイの抽象基底クラス。
     基本的なディスプレイプロパティとpigpioへの接続管理を扱う。
