@@ -183,19 +183,30 @@ class ST7789V(DispSpi):
         if self._last_window == window:
             return
 
-        tx0 = x0 + self._x_offset
-        tx1 = x1 + self._x_offset
-        ty0 = y0 + self._y_offset
-        ty1 = y1 + self._y_offset
-
         if self._mv:
-            # When MV=1 (90 or 270 degrees), Column and Row are exchanged.
-            # CASET (0x2A) handles Y-axis, RASET (0x2B) handles X-axis.
+            # Landscape (MV=1):
+            # The physical Row-drivers (320) are now addressed by CASET (Fast axis).
+            # The physical Column-drivers (240) are now addressed by RASET (Slow axis).
+            # Logical X (0-319) maps to physical Row (320 axis) -> CASET.
+            # Logical Y (0-239) maps to physical Column (240 axis) -> RASET.
+            tx0 = x0 + self._y_offset
+            tx1 = x1 + self._y_offset
+            ty0 = y0 + self._x_offset
+            ty1 = y1 + self._x_offset
+
             self._write_command(self.CMD["CASET"])
-            self._write_data([ty0 >> 8, ty0 & 0xFF, ty1 >> 8, ty1 & 0xFF])
-            self._write_command(self.CMD["RASET"])
             self._write_data([tx0 >> 8, tx0 & 0xFF, tx1 >> 8, tx1 & 0xFF])
+            self._write_command(self.CMD["RASET"])
+            self._write_data([ty0 >> 8, ty0 & 0xFF, ty1 >> 8, ty1 & 0xFF])
         else:
+            # Portrait (MV=0):
+            # Logical X (0-239) -> CASET (240 axis).
+            # Logical Y (0-319) -> RASET (320 axis).
+            tx0 = x0 + self._x_offset
+            tx1 = x1 + self._x_offset
+            ty0 = y0 + self._y_offset
+            ty1 = y1 + self._y_offset
+
             self._write_command(self.CMD["CASET"])
             self._write_data([tx0 >> 8, tx0 & 0xFF, tx1 >> 8, tx1 & 0xFF])
             self._write_command(self.CMD["RASET"])
