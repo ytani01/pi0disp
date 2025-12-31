@@ -138,16 +138,24 @@ class ST7789V(DispSpi):
         ディスプレイの回転を設定する。
 
         回転角度に応じてMADCTLレジスタを更新し、表示方向とカラー順序を制御する。
+        90/270度の時は横型(320x240)、0/180度の時は縦型(240x320)としてサイズを更新する。
 
         パラメータ:
             rotation (int): 回転角度 (0, 90, 180, 270)。
         """
-        self.rotation = rotation
-        self.__log.debug("%s", self.__class__.__name__)
-
         madctl_values = {0: 0x00, 90: 0x60, 180: 0xC0, 270: 0xA0}
         if rotation not in madctl_values:
             raise ValueError("Rotation must be 0, 90, 180, or 270.")
+
+        self.rotation = rotation
+        self.__log.debug("rotation=%d", rotation)
+
+        # Update logical size based on rotation
+        # Original physical size is assumed to be 240x320 (width x height)
+        if rotation in [90, 270]:
+            self._size = DispSize(320, 240)
+        else:
+            self._size = DispSize(240, 320)
 
         if hasattr(self, "spi_handle"):
             madctl = madctl_values[rotation]
