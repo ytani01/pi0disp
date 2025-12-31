@@ -17,6 +17,7 @@ from pi0disp.disp.st7789v import ST7789V
 
 def main():
     # 1. ディスプレイの初期化 (横向き)
+    # pi0disp.toml の設定が自動適用されます。
     disp = ST7789V(rotation=90)
     width, height = disp.size.width, disp.size.height
 

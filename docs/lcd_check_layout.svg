@@ -1,0 +1,20 @@
+<svg width="320" height="240" viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="320" height="240" fill="black" />
+  
+  <!-- Color Bands (bh = 30px) -->
+  <rect width="320" height="30" y="0" fill="#ff0000" />
+  <rect width="320" height="30" y="30" fill="#00ff00" />
+  <rect width="320" height="30" y="60" fill="#0000ff" />
+  
+  <!-- Info Text (x=15, y=bh*3+15=105, 135) -->
+  <text x="15" y="115" fill="white" font-family="sans-serif" font-size="20" font-weight="bold">TEST 1/4</text>
+  <text x="15" y="145" fill="cyan" font-family="sans-serif" font-size="20" font-weight="bold">inv=True, bgr=False</text>
+  
+  <!-- Guide Text (x=15, y=h-55=185, 205) -->
+  <text x="15" y="195" fill="gray" font-family="sans-serif" font-size="16">If R/G/B &amp; Black look OK,</text>
+  <text x="15" y="215" fill="yellow" font-family="sans-serif" font-size="16">Use these values in TOML.</text>
+  
+  <!-- Border -->
+  <rect width="320" height="240" fill="none" stroke="#555" stroke-width="2" />
+</svg>

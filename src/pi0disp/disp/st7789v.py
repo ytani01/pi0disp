@@ -3,10 +3,6 @@
 #
 """
 ST7789V Display Driver for Raspberry Pi.
-
-This module provides a high-performance driver for ST7789V-based displays,
-optimized for Raspberry Pi environments. It leverages the `performance_core`
-module to achieve high frame rates with low CPU usage.
 """
 
 import time
@@ -24,7 +20,6 @@ from .disp_spi import DispSpi, SpiPins
 class ST7789V(DispSpi):
     """
     ST7789Vコントローラを搭載したSPIディスプレイ用の最適化されたドライバ。
-    高速な描画処理とRaspberry Pi環境への最適化が施されている。
     """
 
     _CMD = {
@@ -45,7 +40,6 @@ class ST7789V(DispSpi):
 
     def __init__(
         self,
-        bl_at_close: bool = False,
         pin: SpiPins | None = None,
         brightness: int = 255,
         channel: int = 0,
@@ -60,27 +54,8 @@ class ST7789V(DispSpi):
     ):
         """
         ST7789Vディスプレイドライバを初期化する。
-
-        パラメータ:
-            bl_at_close (bool): `close()`メソッド呼び出し時にバックライトをオフにするかどうか。
-            pin (SpiPins | None): SPIピン構成 (RST, DC, CS, BLのGPIO番号)。
-                                  指定しない場合、設定ファイルまたはデフォルト値を使用。
-            brightness (int): 初期バックライトの明るさ (0-255)。
-            channel (int): pigpioによって使用されるSPIチャンネル (0または1)。
-            speed_hz (int | None): SPI通信速度 (Hz)。
-                                   指定しない場合、設定ファイルまたはデフォルト値を使用。
-            size (DispSize | None): ディスプレイの物理サイズ (幅, 高さ)。
-            rotation (int | None): ディスプレイの初期回転角度 (0, 90, 180, 270)。
-            x_offset (int | None): カラムアドレスのオフセット。
-            y_offset (int | None): 行アドレスのオフセット。
-            invert (bool | None): ディスプレイの色を反転するかどうか。
-                                  Noneの場合、設定ファイルまたはデフォルト(True)を使用。
-            bgr (bool | None): BGRカラー順序を使用するかどうか。
-                               Noneの場合、設定ファイルまたはデフォルト(False)を使用。
-            debug (bool): デバッグモードを有効にするか。
         """
         super().__init__(
-            bl_at_close=bl_at_close,
             pin=pin,
             brightness=brightness,
             channel=channel,
@@ -91,16 +66,14 @@ class ST7789V(DispSpi):
         )
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
-        self.__log.debug("")
 
-        # invert configuration (prioritize: argument > toml > default)
+        # invert configuration
         if invert is None:
             invert = self._conf.data.get("invert", True)
         self._invert = invert
 
-        # bgr configuration (prioritize: argument > toml > default)
+        # bgr configuration
         if bgr is None:
-            # Check for 'bgr' or 'rgb' in config
             if "bgr" in self._conf.data:
                 bgr = self._conf.data["bgr"]
             elif "rgb" in self._conf.data:
@@ -126,21 +99,12 @@ class ST7789V(DispSpi):
         self.set_rotation(self._rotation)
 
     def init_display(self):
-        """
-        ST7789Vのハードウェア初期化シーケンスを実行する。
-
-        ディスプレイの電源投入、カラーモード設定、表示オンなどを行う。
-        """
+        """ハードウェア初期化シーケンス"""
         super().init_display()
-        self.__log.debug("")
-
-        # Initialization sequence
-        # self._write_command(self._CMD["SWRESET"]) # ソフトウェアリセットは親クラスで実行
-        # time.sleep(0.150)
         self._write_command(self._CMD["SLPOUT"])
         time.sleep(0.120)
         self._write_command(self._CMD["COLMOD"])
-        self._write_data(0x55)  # 16 bits per pixel (RGB565)
+        self._write_data(0x55)
         if self._invert:
             self._write_command(self._CMD["INVON"])
         else:
@@ -150,15 +114,7 @@ class ST7789V(DispSpi):
         time.sleep(0.1)
 
     def set_rotation(self, rotation: int):
-        """
-        ディスプレイの回転を設定する。
-
-        回転角度に応じてMADCTLレジスタを更新し、表示方向とカラー順序を制御する。
-        90/270度の時は横型(320x240)、0/180度の時は縦型(240x320)としてサイズを更新する。
-
-        パラメータ:
-            rotation (int): 回転角度 (0, 90, 180, 270)。
-        """
+        """ディスプレイの回転を設定する"""
         madctl_values = {
             self.NORTH: 0x00,
             self.EAST: 0x60,
@@ -169,10 +125,6 @@ class ST7789V(DispSpi):
             raise ValueError("Rotation must be 0, 90, 180, or 270.")
 
         self.rotation = rotation
-        self.__log.debug("rotation=%d", rotation)
-
-        # Update logical size based on rotation
-        # Original physical size is assumed to be 240x320 (width x height)
         if rotation in [self.EAST, self.WEST]:
             self._size = DispSize(320, 240)
         else:
@@ -182,74 +134,36 @@ class ST7789V(DispSpi):
             madctl = madctl_values[rotation]
             self._mv = (madctl >> 5) & 0x01
             if self._bgr:
-                madctl |= 0x08  # Set BGR bit (bit 3)
+                madctl |= 0x08
             self._write_command(self._CMD["MADCTL"])
             self._write_data(madctl)
-
-        self._last_window = None  # Invalidate window cache
+        self._last_window = None
 
     def set_window(self, x0: int, y0: int, x1: int, y1: int):
-        """
-        ディスプレイ上のアクティブな描画ウィンドウを設定する。
-
-        この範囲内にのみピクセルデータが書き込まれる。
-
-        パラメータ:
-            x0 (int): ウィンドウの左上X座標。
-            y0 (int): ウィンドウの左上Y座標。
-            x1 (int): ウィンドウの右下X座標。
-            y1 (int): ウィンドウの右下Y座標。
-        """
+        """描画ウィンドウを設定する"""
         window = (x0, y0, x1, y1)
         if self._last_window == window:
             return
 
         if self._mv:
-            # Landscape (MV=1):
-            # The physical Row-drivers (320) are now addressed by CASET (Fast axis).
-            # The physical Column-drivers (240) are now addressed by RASET (Slow axis).
-            # Logical X (0-319) maps to physical Row (320 axis) -> CASET.
-            # Logical Y (0-239) maps to physical Column (240 axis) -> RASET.
-            tx0 = x0 + self._y_offset
-            tx1 = x1 + self._y_offset
-            ty0 = y0 + self._x_offset
-            ty1 = y1 + self._x_offset
-
-            self._write_command(self._CMD["CASET"])
-            self._write_data([tx0 >> 8, tx0 & 0xFF, tx1 >> 8, tx1 & 0xFF])
-            self._write_command(self._CMD["RASET"])
-            self._write_data([ty0 >> 8, ty0 & 0xFF, ty1 >> 8, ty1 & 0xFF])
+            tx0, tx1 = x0 + self._y_offset, x1 + self._y_offset
+            ty0, ty1 = y0 + self._x_offset, y1 + self._x_offset
         else:
-            # Portrait (MV=0):
-            # Logical X (0-239) -> CASET (240 axis).
-            # Logical Y (0-319) -> RASET (320 axis).
-            tx0 = x0 + self._x_offset
-            tx1 = x1 + self._x_offset
-            ty0 = y0 + self._y_offset
-            ty1 = y1 + self._y_offset
+            tx0, tx1 = x0 + self._x_offset, x1 + self._x_offset
+            ty0, ty1 = y0 + self._y_offset, y1 + self._y_offset
 
-            self._write_command(self._CMD["CASET"])
-            self._write_data([tx0 >> 8, tx0 & 0xFF, tx1 >> 8, tx1 & 0xFF])
-            self._write_command(self._CMD["RASET"])
-            self._write_data([ty0 >> 8, ty0 & 0xFF, ty1 >> 8, ty1 & 0xFF])
+        self._write_command(self._CMD["CASET"])
+        self._write_data([tx0 >> 8, tx0 & 0xFF, tx1 >> 8, tx1 & 0xFF])
+        self._write_command(self._CMD["RASET"])
+        self._write_data([ty0 >> 8, ty0 & 0xFF, ty1 >> 8, ty1 & 0xFF])
         self._write_command(self._CMD["RAMWR"])
-
         self._last_window = window
 
     def write_pixels(self, pixel_bytes: bytes):
-        """
-        現在のウィンドウにピクセルデータの生バッファを書き込む。
-
-        データは `set_window` で設定された領域に書き込まれる。
-
-        パラメータ:
-            pixel_bytes (bytes): 書き込むピクセルデータ (RGB565フォーマット)。
-        """
+        """ピクセルデータを書き込む"""
         chunk_size = self._optimizers["adaptive_chunking"].get_chunk_size()
         data_len = len(pixel_bytes)
-
-        self.pi.write(self.pin.dc, 1)  # D/CピンをHighに設定（データモード）
-
+        self.pi.write(self.pin.dc, 1)
         if data_len <= chunk_size:
             self.pi.spi_write(self.spi_handle, pixel_bytes)
         else:
@@ -259,72 +173,37 @@ class ST7789V(DispSpi):
                 )
 
     def display(self, image: Image.Image):
-        """
-        画面全体にPIL Imageオブジェクトを表示する。
-
-        パラメータ:
-            image (Image.Image): 表示するPIL Imageオブジェクト。
-        """
+        """全画面表示"""
         super().display(image)
-        self.__log.debug("%s", self.__class__.__name__)
-
         img_array = np.array(image)
         pixel_bytes = self._optimizers["color_converter"].rgb_to_rgb565_bytes(
             img_array
         )
-
         self.set_window(0, 0, self.size.width - 1, self.size.height - 1)
         self.write_pixels(pixel_bytes)
 
     def display_region(
         self, image: Image.Image, x0: int, y0: int, x1: int, y1: int
     ):
-        """
-        指定された領域内にPIL Imageオブジェクトの一部を表示する。
-
-        パラメータ:
-            image (Image.Image): 表示するPIL Imageオブジェクト。
-            x0 (int): 描画領域の左上X座標。
-            y0 (int): 描画領域の左上Y座標。
-            x1 (int): 描画領域の右下X座標。
-            y1 (int): 描画領域の右下Y座標。
-        """
-        # Clamp region to be within display boundaries
+        """部分更新"""
         region = self._optimizers["region_optimizer"].clamp_region(
             (x0, y0, x1, y1), self.size.width, self.size.height
         )
-
         if region[2] <= region[0] or region[3] <= region[1]:
-            return  # Skip zero- or negative-sized regions
-
-        # Crop the image to the specified region and convert to pixel data
+            return
         region_img = image.crop(region)
         img_array = np.array(region_img)
         pixel_bytes = self._optimizers["color_converter"].rgb_to_rgb565_bytes(
             img_array
         )
-
-        # Set window and write data
         self.set_window(region[0], region[1], region[2] - 1, region[3] - 1)
         self.write_pixels(pixel_bytes)
 
-    def close(self, bl_switch: bool | None = None):
-        """
-        リソースをクリーンアップし、ディスプレイをスリープ状態にする。
-
-        SPI接続を閉じ、DISPOFF/SLPINコマンドを送信する。
-
-        パラメータ:
-            bl_switch (bool | None): バックライトの最終状態を明示的に指定する。
-                                    `None`の場合、オブジェクト生成時の`bl_at_close`設定に従う。
-        """
-        self.__log.debug(
-            "ディスプレイをスリープさせ、リソースをクリーンアップします。"
-        )
+    def close(self):
+        """スリープさせて終了"""
         if hasattr(self, "spi_handle") and self.pi.connected:
             self._write_command(self._CMD["INVOFF"])
             self._write_command(self._CMD["DISPOFF"])
             self._write_command(self._CMD["SLPIN"])
-            time.sleep(0.01)  # コマンド実行のための時間を与える
-
-        super().close(bl_switch)
+            time.sleep(0.01)
+        super().close()

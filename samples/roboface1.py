@@ -122,7 +122,7 @@ class Lcd(DisplayBase):
         self.lcd.display_region(pil_image, 89, 135, 170, 200)
 
     def close(self):
-        self.lcd.close(True)
+        self.lcd.close()
 
 
 class CV2Disp(DisplayBase):
@@ -404,7 +404,7 @@ class AppMode(ABC):
         Args:
             now (float): start time in seconds
             face (str): face string.
-                "": random
+                ": random
         """
         self._log.info("face=%a", face)
 
@@ -567,7 +567,9 @@ class FaceUpdater:
         self.target_gaze_x: float = 0.0
 
     def start_change(
-        self, target_face: FaceState, duration: float | None = None
+        self,
+        target_face: FaceState,
+        duration: float | None = None,
     ) -> None:
         """変形開始."""
         self.__log.debug(

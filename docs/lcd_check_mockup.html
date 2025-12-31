@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>lcd_check.py Mockup</title>
+    <style>
+        body {
+            background-color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: sans-serif;
+        }
+        /* 320x240 のディスプレイ本体 */
+        .lcd-screen {
+            width: 320px;
+            height: 240px;
+            background-color: black;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            border: 2px solid #555;
+        }
+        /* カラーバンド (高さ 240/8 = 30px) */
+        .band {
+            width: 320px;
+            height: 30px;
+            position: absolute;
+            left: 0;
+        }
+        .red { background-color: #ff0000; top: 0px; }
+        .green { background-color: #00ff00; top: 30px; }
+        .blue { background-color: #0000ff; top: 60px; }
+
+        /* テキスト共通設定 */
+        .text {
+            position: absolute;
+            left: 15px;
+            white-space: nowrap;
+        }
+
+        /* TEST X/4 (y = bh*3 + 15 = 105px) */
+        .test-index {
+            top: 105px;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        /* inv=..., bgr=... (y = bh*3 + 45 = 135px) */
+        .params {
+            top: 135px;
+            color: #00ffff;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        /* ガイド1 (y = h - 55 = 185px) */
+        .guide-1 {
+            top: 185px;
+            color: #888888;
+            font-size: 16px;
+        }
+
+        /* ガイド2 (y = h - 35 = 205px) */
+        .guide-2 {
+            top: 205px;
+            color: #ffff00;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="lcd-screen">
+    <!-- カラーバンド -->
+    <div class="band red"></div>
+    <div class="band green"></div>
+    <div class="band blue"></div>
+
+    <!-- 情報テキスト -->
+    <div class="text test-index">TEST 1/4</div>
+    <div class="text params">inv=True, bgr=False</div>
+
+    <!-- ガイドテキスト -->
+    <div class="text guide-1">If R/G/B &amp; Black look OK,</div>
+    <div class="text guide-2">Use these values in TOML.</div>
+</div>
+
+</body>
+</html>
