@@ -35,20 +35,6 @@ def __init__(
 )
 ```
 
-**パラメータ:**
-
-*   `bl_at_close` (bool): `close()` 時にバックライトを消灯するか。 (デフォルト: `False`)
-*   `pin` (SpiPins | None): SPIピン構成。省略時は `pi0disp.toml` の設定を使用。
-*   `brightness` (int): バックライト輝度 (0-255)。 (デフォルト: `255`)
-*   `channel` (int): SPI チャンネル (0 または 1)。 (デフォルト: `0`)
-*   `speed_hz` (int | None): SPI 通信速度。 (デフォルト: `40,000,000`)
-*   `size` (DispSize | None): 物理サイズ。 (デフォルト: `240x320`)
-*   `rotation` (int | None): 回転角度 (0, 90, 180, 270)。 (デフォルト: `0`)
-*   `x_offset`, `y_offset` (int | None): カラム/行の表示オフセット。 (デフォルト: `0`)
-*   `invert` (bool | None): 色反転設定。省略時は設定ファイルまたは `True`。
-*   `bgr` (bool | None): BGRカラー順序を使用するか。省略時は設定ファイルまたは `False`。
-*   `debug` (bool): デバッグログを出力するか。
-
 ---
 
 ## 設定ファイル: `pi0disp.toml`
@@ -67,9 +53,6 @@ def __init__(
 | `invert` | 色反転の有効(`true`)/無効(`false`) | `true` |
 | `rgb` | `true`でRGB、`false`でBGR順序を使用 | `true` |
 
-*   **オフセットについて**: 画面の端が欠けたり、ノイズが出る場合は、`x_offset` や `y_offset` を調整してください。
-*   **色設定について**: `invert` と `rgb` の正しい組み合わせは、後述の `lcd_check.py` で確認できます。
-
 ### `[pi0disp.spi]` セクション (ハードウェア接続設定)
 
 | 項目名 | 説明 | デフォルト値 |
@@ -78,7 +61,7 @@ def __init__(
 | `rst` | Reset ピン (GPIO番号) | 25 |
 | `dc` | Data/Command ピン (GPIO番号) | 24 |
 | `bl` | バックライト制御ピン (GPIO番号) | 23 |
-| `channel` | SPI チャンネル (0: /dev/spidev0.0, 1: /dev/spidev0.1) | 0 |
+| `channel` | SPI チャンネル (0 または 1) | 0 |
 | `speed_hz` | SPI 通信クロック周波数 (Hz) | 40000000 |
 
 ---
@@ -91,14 +74,45 @@ def __init__(
 uv run samples/lcd_check.py
 ```
 
-画面に「TEST 1/4」〜「TEST 4/4」が順に表示されます。
-1.  **背景が漆黒**（グレーや白っぽくない）
-2.  **カラーバーが上から「赤・緑・青」**の順
-になっている画面を探し、そこに表示されている `inv` と `bgr` の値をメモしてください。
+画面の指示に従って、背景が漆黒になり、色が正しく見える設定を `pi0disp.toml` に記入してください。
 
-メモした値に基づき、`pi0disp.toml` を以下のように設定してください。
-*   `invert` = (画面の `inv` の値)
-*   `rgb` = (画面の `bgr` が `False` なら `true`、`True` なら `false`)
+---
+
+## クイックスタート (図形とテキストの描画)
+
+以下のサンプルは、ディスプレイを初期化し、図形やテキストを描画して5秒間表示する最もシンプルなプログラムです。
+
+```python
+import time
+from PIL import Image, ImageDraw, ImageFont
+from pi0disp.disp.st7789v import ST7789V
+
+# 1. 初期化 (pi0disp.toml の設定が自動適用されます)
+disp = ST7789V(rotation=90)
+
+# 2. キャンバスの作成
+img = Image.new("RGB", (disp.size.width, disp.size.height), "black")
+draw = ImageDraw.Draw(img)
+
+# 3. 図形の描画 (四角、円、線)
+draw.rectangle([20, 20, 120, 120], outline="yellow", width=3)
+draw.ellipse([180, 30, 280, 130], fill="red")
+draw.line([0, disp.size.height-1, disp.size.width-1, 0], fill="green")
+
+# 4. テキストの描画 (大きなフォント)
+try:
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 40)
+except:
+    font = ImageFont.load_default()
+draw.text((80, 150), "pi0disp", fill="cyan", font=font)
+
+# 5. 表示と待機
+disp.display(img)
+time.sleep(5)  # 5秒間表示を維持
+
+# 6. 終了処理
+disp.close()
+```
 
 ---
 
@@ -111,38 +125,10 @@ uv run samples/lcd_check.py
 指定した矩形領域のみを更新します。アニメーションや部分更新に有効です。
 
 #### `set_rotation(rotation: int)`
-表示方向を変更します。
-*   `ST7789V.NORTH` (0): 縦向き (240x320)
-*   `ST7789V.EAST` (90): 横向き (320x240)
-*   `ST7789V.SOUTH` (180): 縦向き・逆 (240x320)
-*   `ST7789V.WEST` (270): 横向き・逆 (320x240)
+表示方向を変更します (0, 90, 180, 270)。
 
 #### `set_brightness(brightness: int)`
 バックライトの明るさを 0-255 で変更します。
 
 #### `close()`
 ディスプレイをスリープさせ、リソースを解放します。
-
----
-
-## クイックスタート (Hello World)
-
-```python
-from PIL import Image, ImageDraw
-from pi0disp.disp.st7789v import ST7789V
-
-# 初期化 (pi0disp.toml の設定が自動適用されます)
-disp = ST7789V(rotation=90)
-
-# 画像の作成
-img = Image.new("RGB", (disp.size.width, disp.size.height), "black")
-draw = ImageDraw.Draw(img)
-draw.text((20, 20), "Hello ST7789V!", fill="white")
-
-# 表示
-disp.display(img)
-
-# 終了処理
-input("Press Enter to exit...")
-disp.close()
-```
