@@ -3,6 +3,10 @@ name = "2.4 inch IPS LCD 240x320 SPI ST7789 full-color"
 width = 240
 height = 320
 rotation = 270
+x_offset = 0
+y_offset = 0
+# y_offset = 20 # 画面下部が更新されない場合に試してください
+# y_offset = 34 # モジュールによって異なる場合があります
 
 [pi0disp.spi]
 cs = 8

@@ -52,6 +52,8 @@ class ST7789V(DispSpi):
         speed_hz: int | None = None,
         size: DispSize | None = None,
         rotation: int | None = None,
+        x_offset: int | None = None,
+        y_offset: int | None = None,
         invert: bool = True,
         bgr: bool = True,
         debug=False,
@@ -69,6 +71,8 @@ class ST7789V(DispSpi):
                                    指定しない場合、設定ファイルまたはデフォルト値を使用。
             size (DispSize | None): ディスプレイの物理サイズ (幅, 高さ)。
             rotation (int | None): ディスプレイの初期回転角度 (0, 90, 180, 270)。
+            x_offset (int | None): カラムアドレスのオフセット。
+            y_offset (int | None): 行アドレスのオフセット。
             invert (bool): ディスプレイの色を反転するかどうか。`True`で反転を有効。
             bgr (bool): BGRカラー順序を使用するかどうか。`True`でBGR、`False`でRGB。
             debug (bool): デバッグモードを有効にするか。
@@ -88,6 +92,15 @@ class ST7789V(DispSpi):
         self.__log.debug("")
         self._invert = invert
         self._bgr = bgr
+
+        # Offsets
+        if x_offset is None:
+            x_offset = self._conf.data.get("x_offset", 0)
+        if y_offset is None:
+            y_offset = self._conf.data.get("y_offset", 0)
+        self._x_offset = x_offset
+        self._y_offset = y_offset
+        self._mv = 0
 
         # Initialize the optimizer pack
         self._optimizers = create_optimizer_pack()
@@ -138,6 +151,7 @@ class ST7789V(DispSpi):
 
         if hasattr(self, "spi_handle"):
             madctl = madctl_values[rotation]
+            self._mv = (madctl >> 5) & 0x01
             if self._bgr:
                 madctl |= 0x08  # Set BGR bit (bit 3)
             self._write_command(self.CMD["MADCTL"])
@@ -161,10 +175,23 @@ class ST7789V(DispSpi):
         if self._last_window == window:
             return
 
-        self._write_command(self.CMD["CASET"])
-        self._write_data([x0 >> 8, x0 & 0xFF, x1 >> 8, x1 & 0xFF])
-        self._write_command(self.CMD["RASET"])
-        self._write_data([y0 >> 8, y0 & 0xFF, y1 >> 8, y1 & 0xFF])
+        tx0 = x0 + self._x_offset
+        tx1 = x1 + self._x_offset
+        ty0 = y0 + self._y_offset
+        ty1 = y1 + self._y_offset
+
+        if self._mv:
+            # When MV=1 (90 or 270 degrees), Column and Row are exchanged.
+            # CASET (0x2A) handles Y-axis, RASET (0x2B) handles X-axis.
+            self._write_command(self.CMD["CASET"])
+            self._write_data([ty0 >> 8, ty0 & 0xFF, ty1 >> 8, ty1 & 0xFF])
+            self._write_command(self.CMD["RASET"])
+            self._write_data([tx0 >> 8, tx0 & 0xFF, tx1 >> 8, tx1 & 0xFF])
+        else:
+            self._write_command(self.CMD["CASET"])
+            self._write_data([tx0 >> 8, tx0 & 0xFF, tx1 >> 8, tx1 & 0xFF])
+            self._write_command(self.CMD["RASET"])
+            self._write_data([ty0 >> 8, ty0 & 0xFF, ty1 >> 8, ty1 & 0xFF])
         self._write_command(self.CMD["RAMWR"])
 
         self._last_window = window

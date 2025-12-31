@@ -20,6 +20,8 @@ __init__(
     speed_hz: int | None = None,
     size: DispSize | None = None,
     rotation: int | None = None,
+    x_offset: int | None = None,
+    y_offset: int | None = None,
     invert: bool = True,
     bgr: bool = True,
     debug=False,
@@ -35,6 +37,8 @@ __init__(
 - `speed_hz` (`int | None`): SPI通信速度 (Hz)。指定しない場合、設定ファイルまたはデフォルト値を使用します。
 - `size` (`DispSize | None`): ディスプレイの物理サイズ (幅, 高さ)。
 - `rotation` (`int | None`): ディスプレイの初期回転角度 (0, 90, 180, 270)。
+- `x_offset` (`int | None`): カラムアドレスのオフセット。画面端にゴミが出る場合や更新されない場合に設定します。
+- `y_offset` (`int | None`): 行アドレスのオフセット。
 - `invert` (`bool`): ディスプレイの色を反転するかどうか。`True`で反転を有効にします。
 - `bgr` (`bool`): BGRカラー順序を使用するかどうか。`True`でBGR、`False`でRGB。
 - `debug` (`bool`): デバッグモードを有効にするか。
