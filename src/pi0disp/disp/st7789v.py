@@ -54,8 +54,8 @@ class ST7789V(DispSpi):
         rotation: int | None = None,
         x_offset: int | None = None,
         y_offset: int | None = None,
-        invert: bool = True,
-        bgr: bool = False,
+        invert: bool | None = None,
+        bgr: bool | None = None,
         debug=False,
     ):
         """
@@ -73,8 +73,10 @@ class ST7789V(DispSpi):
             rotation (int | None): ディスプレイの初期回転角度 (0, 90, 180, 270)。
             x_offset (int | None): カラムアドレスのオフセット。
             y_offset (int | None): 行アドレスのオフセット。
-            invert (bool): ディスプレイの色を反転するかどうか。`True`で反転を有効。
-            bgr (bool): BGRカラー順序を使用するかどうか。`True`でBGR、`False`でRGB。
+            invert (bool | None): ディスプレイの色を反転するかどうか。
+                                  Noneの場合、設定ファイルまたはデフォルト(True)を使用。
+            bgr (bool | None): BGRカラー順序を使用するかどうか。
+                               Noneの場合、設定ファイルまたはデフォルト(False)を使用。
             debug (bool): デバッグモードを有効にするか。
         """
         super().__init__(
@@ -90,7 +92,21 @@ class ST7789V(DispSpi):
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
         self.__log.debug("")
+
+        # invert configuration (prioritize: argument > toml > default)
+        if invert is None:
+            invert = self._conf.data.get("invert", True)
         self._invert = invert
+
+        # bgr configuration (prioritize: argument > toml > default)
+        if bgr is None:
+            # Check for 'bgr' or 'rgb' in config
+            if "bgr" in self._conf.data:
+                bgr = self._conf.data["bgr"]
+            elif "rgb" in self._conf.data:
+                bgr = not self._conf.data["rgb"]
+            else:
+                bgr = False
         self._bgr = bgr
 
         # Offsets

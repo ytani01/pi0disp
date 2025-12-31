@@ -2,6 +2,8 @@
 
 `pi0disp` ライブラリに含まれる `ST7789V` クラスは、Raspberry Pi 用に最適化された高速なディスプレイドライバです。
 
+---
+
 ## クラス: `ST7789V`
 
 `DispSpi` を継承し、ST7789V コントローラ特有の初期化と描画最適化を提供します。
@@ -27,8 +29,8 @@ def __init__(
     rotation: int | None = None,
     x_offset: int | None = None,
     y_offset: int | None = None,
-    invert: bool = True,
-    bgr: bool = False,
+    invert: bool | None = None,
+    bgr: bool | None = None,
     debug=False,
 )
 ```
@@ -43,13 +45,64 @@ def __init__(
 *   `size` (DispSize | None): 物理サイズ。 (デフォルト: `240x320`)
 *   `rotation` (int | None): 回転角度 (0, 90, 180, 270)。 (デフォルト: `0`)
 *   `x_offset`, `y_offset` (int | None): カラム/行の表示オフセット。 (デフォルト: `0`)
-*   `invert` (bool): 色反転設定。通常、黒背景パネルでは `True`。 (デフォルト: `True`)
-*   `bgr` (bool): BGRカラー順序を使用するか。 `False` で標準の RGB。 (デフォルト: `False`)
+*   `invert` (bool | None): 色反転設定。省略時は設定ファイルまたは `True`。
+*   `bgr` (bool | None): BGRカラー順序を使用するか。省略時は設定ファイルまたは `False`。
 *   `debug` (bool): デバッグログを出力するか。
 
 ---
 
-### 主要メソッド
+## 設定ファイル: `pi0disp.toml`
+
+プロジェクトのルートディレクトリに `pi0disp.toml` を配置することで、動作を詳細にカスタマイズできます。
+
+### `[pi0disp]` セクション (ディスプレイ基本設定)
+
+| 項目名 | 説明 | デフォルト値 |
+| :--- | :--- | :--- |
+| `width` | ディスプレイの物理的な幅 (ピクセル) | 240 |
+| `height` | ディスプレイの物理的な高さ (ピクセル) | 320 |
+| `rotation` | 初回の回転角度 (0, 90, 180, 270) | 0 |
+| `x_offset` | 描画開始位置のXオフセット | 0 |
+| `y_offset` | 描画開始位置のYオフセット | 0 |
+| `invert` | 色反転の有効(`true`)/無効(`false`) | `true` |
+| `rgb` | `true`でRGB、`false`でBGR順序を使用 | `true` |
+
+*   **オフセットについて**: 画面の端が欠けたり、ノイズが出る場合は、`x_offset` や `y_offset` を調整してください。
+*   **色設定について**: `invert` と `rgb` の正しい組み合わせは、後述の `lcd_check.py` で確認できます。
+
+### `[pi0disp.spi]` セクション (ハードウェア接続設定)
+
+| 項目名 | 説明 | デフォルト値 |
+| :--- | :--- | :--- |
+| `cs` | SPI Chip Select ピン (GPIO番号) | 8 |
+| `rst` | Reset ピン (GPIO番号) | 25 |
+| `dc` | Data/Command ピン (GPIO番号) | 24 |
+| `bl` | バックライト制御ピン (GPIO番号) | 23 |
+| `channel` | SPI チャンネル (0: /dev/spidev0.0, 1: /dev/spidev0.1) | 0 |
+| `speed_hz` | SPI 通信クロック周波数 (Hz) | 40000000 |
+
+---
+
+## 最適な設定の確認 (`lcd_check.py`)
+
+使用しているパネルに最適な `invert` と `rgb` 設定を一目で確認するためのツールです。
+
+```bash
+uv run samples/lcd_check.py
+```
+
+画面に「TEST 1/4」〜「TEST 4/4」が順に表示されます。
+1.  **背景が漆黒**（グレーや白っぽくない）
+2.  **カラーバーが上から「赤・緑・青」**の順
+になっている画面を探し、そこに表示されている `inv` と `bgr` の値をメモしてください。
+
+メモした値に基づき、`pi0disp.toml` を以下のように設定してください。
+*   `invert` = (画面の `inv` の値)
+*   `rgb` = (画面の `bgr` が `False` なら `true`、`True` なら `false`)
+
+---
+
+## 主要メソッド
 
 #### `display(image: Image.Image)`
 画面全体に PIL Image を表示します。内部で RGB565 への高速変換が行われます。
@@ -78,13 +131,13 @@ def __init__(
 from PIL import Image, ImageDraw
 from pi0disp.disp.st7789v import ST7789V
 
-# 初期化 (標準設定)
+# 初期化 (pi0disp.toml の設定が自動適用されます)
 disp = ST7789V(rotation=90)
 
-# 画像の作成 (320x240)
-img = Image.new("RGB", (disp.size.width, disp.size.height), "blue")
+# 画像の作成
+img = Image.new("RGB", (disp.size.width, disp.size.height), "black")
 draw = ImageDraw.Draw(img)
-draw.text((10, 10), "Hello World!", fill="white")
+draw.text((20, 20), "Hello ST7789V!", fill="white")
 
 # 表示
 disp.display(img)
@@ -93,9 +146,3 @@ disp.display(img)
 input("Press Enter to exit...")
 disp.close()
 ```
-
-## トラブルシューティング
-
-*   **色が正しくない (赤と青が逆):** `bgr` パラメータを反転させてください。
-*   **色が反転している (黒が白に見える):** `invert` パラメータを変更してください。
-*   **表示位置がずれている:** `x_offset` や `y_offset` を調整してください。

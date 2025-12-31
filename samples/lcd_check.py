@@ -1,124 +1,94 @@
-import time
-from typing import Union
-
+#!/usr/bin/env python3
+#
+# (c) 2025 Yoichi Tanibayashi
+#
+"""
+LCD Check Program (Optimized for 320x240)
+最小限の表示で正しい設定を特定するためのプログラム。
+"""
+import os
 from PIL import Image, ImageDraw, ImageFont
+from pi0disp.disp.st7789v import ST7789V
 
-from pi0disp import ST7789V
+def get_font(size):
+    """ システムからフォントを探して返す """
+    font_paths = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeMonoBold.ttf",
+    ]
+    for path in font_paths:
+        if os.path.exists(path):
+            try:
+                return ImageFont.truetype(path, size)
+            except Exception:
+                continue
+    return ImageFont.load_default()
 
-# 1. ディスプレイの初期化
-# デフォルト設定 (invert=True, bgr=True) で初期化
-# 実際のピン番号に合わせてSpiPinsを設定してください
-# 例: pin = SpiPins(rst=25, dc=24, bl=23)
-# size = DispSize(width=240, height=320)
-try:
-    with ST7789V(
-        # pin=SpiPins(rst=25, dc=24, bl=23), # 必要に応じてコメントを外して設定
-        # size=DispSize(width=240, height=320), # 必要に応じてコメントを外して設定
-        invert=True,
-        bgr=True,
-        debug=False,
-    ) as lcd:
-        print("ディスプレイ初期化完了")
+def draw_test_pattern(draw, w, h, invert, bgr, index):
+    """ テストパターンを描画する """
+    # 背景
+    draw.rectangle([0, 0, w, h], fill="black")
+    
+    # 色帯 (高さを少し抑える)
+    bh = h // 8
+    draw.rectangle([0, 0,    w, bh],   fill="red")
+    draw.rectangle([0, bh,   w, bh*2], fill="green")
+    draw.rectangle([0, bh*2, w, bh*3], fill="blue")
+    
+    # テキスト設定
+    f_mid = get_font(20)
+    f_sm  = get_font(16)
+        
+    # 中央付近に設定を表示
+    draw.text((15, bh*3 + 15), f"TEST {index}/4", fill="white", font=f_mid)
+    
+    conf_text = f"inv={invert}, bgr={bgr}"
+    draw.text((15, bh*3 + 45), conf_text, fill="cyan", font=f_mid)
+    
+    # 下部にガイド
+    draw.text((15, h - 55), "If R/G/B & Black look OK,", fill="gray", font=f_sm)
+    draw.text((15, h - 35), "Use these values in TOML.", fill="yellow", font=f_sm)
 
-        # 2. 赤い画面を表示
-        print("赤い画面を表示します (5秒間)")
-        red_image = Image.new("RGB", lcd.size, "red")
-        lcd.display(red_image)
-        time.sleep(5)
+def main():
+    disp = ST7789V(rotation=90)
+    width, height = disp.size.width, disp.size.height
+    
+    tests = [
+        {"invert": True,  "bgr": False},
+        {"invert": True,  "bgr": True},
+        {"invert": False, "bgr": False},
+        {"invert": False, "bgr": True},
+    ]
+    
+    print("\n--- LCD Check (320x240) ---")
+    print("各設定を順に表示します。")
+    print("『背景が黒』『上から赤・緑・青』に見えるものを探してください。")
+    
+    try:
+        for i, t in enumerate(tests):
+            idx = i + 1
+            print(f"[{idx}/4] inv={t['invert']}, bgr={t['bgr']}")
+            
+            # ディスプレイ更新
+            disp._invert = t["invert"]
+            disp._bgr = t["bgr"]
+            disp.init_display()
+            disp.set_rotation(disp.rotation)
+            
+            # 画像作成
+            img = Image.new("RGB", (width, height), "black")
+            d = ImageDraw.Draw(img)
+            draw_test_pattern(d, width, height, t["invert"], t["bgr"], idx)
+            
+            disp.display(img)
+            
+            if i < len(tests) - 1:
+                input("Next (Enter)...")
+            else:
+                input("Finish (Enter).")
 
-        # --- 回転の視認性改善 ---
-        # 3. 回転テスト
-        print("回転テストを開始します。checkerboardパターンとTOP表示")
+    finally:
+        disp.close()
 
-        # 回転テスト用の画像を作成
-        # checkerboardパターン
-        check_size = 20
-        check_color1 = (255, 0, 0)  # 赤
-        check_color2 = (0, 0, 255)  # 青
-        base_image = Image.new(
-            "RGB", (lcd.native_size.width, lcd.native_size.height), "white"
-        )
-        draw = ImageDraw.Draw(base_image)
-        for y in range(0, lcd.native_size.height, check_size):
-            for x in range(0, lcd.native_size.width, check_size):
-                if (x // check_size + y // check_size) % 2 == 0:
-                    draw.rectangle(
-                        [x, y, x + check_size, y + check_size],
-                        fill=check_color1,
-                    )
-                else:
-                    draw.rectangle(
-                        [x, y, x + check_size, y + check_size],
-                        fill=check_color2,
-                    )
-
-        # "TOP"ラベルを追加
-        font: Union[ImageFont.FreeTypeFont, ImageFont.ImageFont]
-        try:
-            # Load a font (adjust path as needed, or use a default pillow font)
-            font_size = 30
-            font = ImageFont.truetype("DejaVuSans-Bold.ttf", font_size)
-        except IOError:
-            # Fallback to a simpler font if DejavuSans-Bold.ttf is not found
-            font = ImageFont.load_default()
-            font_size = 15  # Smaller font size for default font
-
-        text = "TOP"
-        text_bbox = draw.textbbox((0, 0), text, font=font)
-        text_width = text_bbox[2] - text_bbox[0]
-        text_height = text_bbox[3] - text_bbox[1]
-        text_x = (lcd.native_size.width - text_width) // 2
-        text_y = (lcd.native_size.height - text_height) // 2
-        draw.text(
-            (text_x, text_y), text, fill=(255, 255, 255), font=font
-        )  # 白文字
-
-        rotations = [0, 90, 180, 270]
-        for rot in rotations:
-            print(f"回転: {rot}度 (5秒間)")
-            lcd.set_rotation(rot)
-            lcd.display(base_image)  # 同じ画像を再表示
-            time.sleep(5)
-
-        # 回転テスト後、一度バックライトを元に戻すためにデフォルト設定で再表示
-        print("回転テスト終了。デフォルト設定に戻します。")
-        lcd.set_rotation(0)  # 0度に戻す
-        lcd.display(
-            Image.new("RGB", lcd.size, "green")
-        )  # 緑の画面に戻す (元の3.の動作)
-        time.sleep(2)
-        # --- 回転の視認性改善 終了 ---
-
-        # 4. 青い画面を表示し、バックライトを制御
-        print("青い画面を表示し、バックライトを50%に設定します (5秒間)")
-        blue_image = Image.new("RGB", lcd.size, "blue")
-        lcd.set_rotation(0)  # 回転を元に戻す
-        lcd.set_brightness(128)  # バックライトを50%の明るさに
-        lcd.display(blue_image)
-        time.sleep(5)
-        lcd.set_brightness(255)  # バックライトを元の明るさに戻す
-
-        # 5. invert=False (反転なし) でテスト
-        # 一旦閉じて、新しい設定で再初期化
-        lcd.close()  # 既存のLCDインスタンスを閉じる
-        with ST7789V(invert=False, bgr=True) as lcd_no_invert:
-            print("反転なしで赤い画面を表示します (5秒間)")
-            red_image_no_invert = Image.new("RGB", lcd_no_invert.size, "red")
-            lcd_no_invert.display(red_image_no_invert)
-            time.sleep(5)
-
-        # 6. bgr=False (RGB順) でテスト
-        # 一旦閉じて、新しい設定で再初期化
-        # lcd_no_invert.close() # 既に閉じてるので不要
-        with ST7789V(invert=True, bgr=False) as lcd_rgb_order:
-            print("RGB順で赤い画面を表示します (5秒間)")
-            red_image_rgb_order = Image.new("RGB", lcd_rgb_order.size, "red")
-            lcd_rgb_order.display(red_image_rgb_order)
-            time.sleep(5)
-
-        print("テスト終了。")
-
-except RuntimeError as e:
-    print(f"エラー: {e}")
-except KeyboardInterrupt:
-    print("スクリプトがユーザーによって中断されました。")
+if __name__ == "__main__":
+    main()
