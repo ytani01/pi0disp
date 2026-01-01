@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 sys.path.append("samples")
 
 
-@patch("pi0disp.disp.st7789v.ST7789V")
+@patch("pi0disp.ST7789V")
 @patch("time.sleep")  # sleep をモックしてテスト時間を短縮
 @patch("PIL.ImageDraw.Draw")
 @patch("PIL.ImageFont.truetype")
@@ -20,6 +20,8 @@ def test_simple_drawing_execution(
 
     # モックの設定
     mock_disp = MagicMock()
+    mock_disp.width = 320
+    mock_disp.height = 240
     mock_disp.size.width = 320
     mock_disp.size.height = 240
     mock_disp.rotation = 90

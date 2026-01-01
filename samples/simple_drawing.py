@@ -1,60 +1,65 @@
-#!/usr/bin/env python3
-#
-# (c) 2025 Yoichi Tanibayashi
-#
 """
-Simple Drawing Sample for ST7789V
 図形、テキスト、複数の色を使用した基本的な描画サンプル。
 """
 
-import os
 import time
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw  # 描画用ライブラリ
+from PIL.ImageFont import FreeTypeFont, ImageFont, load_default, truetype
 
-from pi0disp.disp.st7789v import ST7789V
+from pi0disp import ST7789V  # ST7789Vドライバー
+
+FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
 
-def main():
+def main() -> None:
+    #
     # 1. ディスプレイの初期化 (横向き)
+    #
     # pi0disp.toml の設定が自動適用されます。
-    disp = ST7789V(rotation=90)
-    width, height = disp.size.width, disp.size.height
+    #
+    disp = ST7789V(rotation=ST7789V.EAST)
 
-    # 2. 描画用キャンバスの作成 (黒背景)
-    img = Image.new("RGB", (width, height), "black")
+    #
+    # 2. 描画用キャンバスの作成
+    #
+    img = Image.new("RGB", (disp.width, disp.height), "black")
     draw = ImageDraw.Draw(img)
 
+    #
     # 3. 図形の描画
-    # 四角形 (黄色い枠)
-    draw.rectangle([20, 20, 120, 120], outline="yellow", width=3)
+    #
+    # 直線
+    draw.line([0, 0, disp.width - 1, disp.height - 1], fill="cyan", width=15)
+    # 四角形
+    draw.rectangle([20, 20, 120, 120], fill="blue", outline="yellow", width=5)
+    # 円
+    draw.ellipse([80, 80, 200, 200], fill="red", outline="white", width=5)
 
-    # 円 (赤い塗りつぶし)
-    draw.ellipse([180, 30, 280, 130], fill="red", outline="white")
-
-    # 直線 (緑)
-    draw.line([0, height - 1, width - 1, 0], fill="green", width=2)
-
+    #
     # 4. テキストの描画
-    # フォントの読み込み (システムフォントを優先)
-    font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    if os.path.exists(font_path):
-        font = ImageFont.truetype(font_path, 40)
-    else:
-        font = ImageFont.load_default()
+    #
+    font: FreeTypeFont | ImageFont | None = None
+    try:
+        font = truetype(FONT_PATH, 40)
+    except OSError:
+        # フォントがない場合は、デフォルトの小さなフォント
+        font = load_default()
 
-    # 中央付近に文字を表示
     text = "pi0disp"
-    draw.text((80, 150), text, fill="cyan", font=font)
+    draw.text((40, disp.height / 2), text, fill="green", font=font, width=2)
 
+    #
     # 5. ディスプレイに表示
+    #
     disp.display(img)
 
-    # 6. 5秒間表示を維持 (キー入力待ちの代わりに sleep を使用)
     print("Displaying for 5 seconds...")
     time.sleep(5)
 
-    # 7. 終了処理
+    #
+    # 6. 終了処理
+    #
     disp.close()
 
 

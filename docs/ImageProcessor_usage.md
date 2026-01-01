@@ -73,8 +73,7 @@ with ST7789V() as lcd:
     contained_image = processor.resize_with_aspect_ratio(
         source_image,
         lcd.width,
-
-lcd.height,
+        lcd.height,
         fit_mode="contain"
     )
     lcd.display(contained_image)
@@ -115,12 +114,4 @@ bright_image = processor.apply_gamma(contained_image, gamma=0.8)
 
 lcd.display(bright_image)
 ```
-
-## 総合的なサンプルコード
-
-デジタルフォトフレームのように、画像を読み込んで画面に最適化して表示する一連の流れです。
-
-完全なサンプルコードは、以下のファイルを参照してください。
-
-[samples/image_processor_example.py](../samples/image_processor_example.py)
 

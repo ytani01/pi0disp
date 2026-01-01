@@ -103,6 +103,16 @@ class DispBase(metaclass=ABCMeta):
         return self._size
 
     @property
+    def width(self):
+        """Width."""
+        return self._size.width
+
+    @property
+    def height(self):
+        """Height."""
+        return self._size.height
+
+    @property
     def native_size(self):
         """ディスプレイのネイティブサイズ (回転の影響を受けない物理サイズ) を返す。"""
         return self._native_size
