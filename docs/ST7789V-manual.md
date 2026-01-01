@@ -69,7 +69,7 @@ pip install git+https://github.com/ytani01/pi0disp.git
 | `dc` | Data/Command ピン (GPIO番号) | 24 |
 | `bl` | バックライト制御ピン (GPIO番号) | 23 |
 | `channel` | SPI チャンネル (0 または 1) | 0 |
-| `speed_hz` | SPI 通信クロック周波数 (Hz) | 40000000 |
+| `speed_hz` | SPI 通信クロック周波数 (Hz) | 8000000 |
 
 ---
 
@@ -141,7 +141,7 @@ disp = ST7789V(
 - **`pin`** (SpiPins): `cs`, `rst`, `dc`, `bl` ピンの番号をまとめたオブジェクト。通常は `pi0disp.toml` で指定します。
 - **`brightness`** (int): 初期輝度 (0-255)。
 - **`channel`** (int): SPIチャンネル (0 または 1)。
-- **`speed_hz`** (int): SPI通信速度。指定しない場合は 40MHz がデフォルトです。
+- **`speed_hz`** (int): SPI通信速度。指定しない場合は 8MHz がデフォルトです。パネルの特性に合わせて 40MHz (40000000) 程度まで上げることができます。
 - **`size`** (DispSize): `width` と `height` を持つサイズオブジェクト。
 - **`rotation`** (int): 初期回転角度 (`0`, `90`, `180`, `270`)。
 - **`x_offset`, `y_offset`** (int): パネルの特性に合わせた表示オフセット。

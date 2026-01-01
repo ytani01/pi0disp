@@ -174,7 +174,8 @@ class ST7789V(DispSpi):
 
     def display(self, image: Image.Image):
         """全画面表示"""
-        super().display(image)
+        if image.size != self._size:
+            image = image.resize(self._size)
         img_array = np.array(image)
         pixel_bytes = self._optimizers["color_converter"].rgb_to_rgb565_bytes(
             img_array
