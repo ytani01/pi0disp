@@ -48,6 +48,30 @@ pip install git+https://github.com/ytani01/pi0disp.git
 
 プロジェクトのルートディレクトリに `pi0disp.toml` を配置することで、動作を詳細にカスタマイズできます。ここに設定を記述しておけば、プログラム側での引数指定を最小限に抑えられます。
 
+```toml
+[pi0disp]
+name = "2.4 inch IPS LCD 240x320 SPI ST7789 full-color"
+width = 240
+height = 320
+rotation = 270
+x_offset = 0
+y_offset = 0
+
+# 色設定 (色が正しくない場合に調整してください)
+invert = true   # 背景を黒にする場合は true
+rgb = true      # 赤と青が逆の場合は false (bgr=true) に設定
+
+[pi0disp.spi]
+cs = 8
+rst = 25
+dc = 24
+bl = 23
+# bl = 0  # backlightピンがない場合
+channel = 0
+speed_hz = 4_000_000
+```
+
+
 ### `[pi0disp]` セクション (ディスプレイ基本設定)
 
 | 項目名 | 説明 | デフォルト値 |
@@ -138,40 +162,59 @@ disp = ST7789V(
 )
 ```
 
-- **`pin`** (SpiPins): `cs`, `rst`, `dc`, `bl` ピンの番号をまとめたオブジェクト。通常は `pi0disp.toml` で指定します。
-- **`brightness`** (int): 初期輝度 (0-255)。
-- **`channel`** (int): SPIチャンネル (0 または 1)。
-- **`speed_hz`** (int): SPI通信速度。指定しない場合は 8MHz がデフォルトです。パネルの特性に合わせて 40MHz (40000000) 程度まで上げることができます。
-- **`size`** (DispSize): `width` と `height` を持つサイズオブジェクト。
-- **`rotation`** (int): 初期回転角度 (`0`, `90`, `180`, `270`)。
-- **`x_offset`, `y_offset`** (int): パネルの特性に合わせた表示オフセット。
-- **`invert`** (bool): `True` で色反転を有効にします。
-- **`bgr`** (bool): `True` で BGR、`False` で RGB カラー順序を使用します。
-- **`debug`** (bool): `True` にすると詳細なログを出力します。
+> - **`pin`** (SpiPins):
+    `cs`, `rst`, `dc`, `bl` ピンの番号をまとめたオブジェクト。
+    通常は `pi0disp.toml` で指定します。
+> - **`brightness`** (int):
+    初期輝度 (0-255)。
+> - **`channel`** (int):
+    SPIチャンネル (0 または 1)。
+> - **`speed_hz`** (int):
+    SPI通信速度。指定しない場合は 8MHz がデフォルトです。
+    パネルの特性に合わせて 40MHz (40000000) 程度まで上げることができます。
+> - **`size`** (DispSize):
+    `width` と `height` を持つサイズオブジェクト。
+> - **`rotation`** (int):
+    初期回転角度 (`0`, `90`, `180`, `270`)。
+> - **`x_offset`, `y_offset`** (int):
+    パネルの特性に合わせた表示オフセット。
+> - **`invert`** (bool):
+    `True` で色反転を有効にします。
+> - **`bgr`** (bool):
+    `True` で BGR、`False` で RGB カラー順序を使用します。
+> - **`debug`** (bool):
+    `True` にすると詳細なログを出力します。
 
 ---
 
 ### メソッド
 
-#### `display(image: Image.Image)`
-画面全体に画像を表示します。画像は自動的にディスプレイサイズに合わせてリサイズ・回転処理されます。
+**`display(image: Image.Image)`**
 
-#### `display_region(image: Image.Image, x0, y0, x1, y1)`
-指定した矩形領域（左上 `x0, y0` から右下 `x1, y1`）のみを更新します。
+> 画面全体に画像を表示します。画像は自動的にディスプレイサイズに合わせてリサイズ・回転処理されます。
 
-#### `set_rotation(rotation: int)`
-表示方向を変更します。以下の定数を使用できます。
-- `ST7789V.NORTH` (0)
-- `ST7789V.EAST` (90)
-- `ST7789V.SOUTH` (180)
-- `ST7789V.WEST` (270)
+**`display_region(image: Image.Image, x0, y0, x1, y1)`**
 
-#### `set_brightness(brightness: int)`
-バックライトの輝度を `0`（消灯）〜 `255`（最大）の間で変更します。
+> 指定した矩形領域（左上 `x0, y0` から右下 `x1, y1`）のみを更新します。
 
-#### `set_backlight(on: bool)`
-バックライトを点灯 (`True`) または消灯 (`False`) します。
+**`set_rotation(rotation: int)`**
 
-#### `close()`
-ディスプレイをスリープさせ、リソースを解放します。`with` 構文を使用した場合は自動的に呼び出されます。
-この際、バックライトも自動的に消灯します。
+> 表示方向を変更します。以下の定数を使用できます。
+> - `ST7789V.NORTH` (0)
+> - `ST7789V.EAST` (90)
+> - `ST7789V.SOUTH` (180)
+> - `ST7789V.WEST` (270)
+
+**`set_brightness(brightness: int)`**
+
+> バックライトの輝度を `0`（消灯）〜 `255`（最大）の間で変更します。
+
+**`set_backlight(on: bool)`**
+
+> バックライトを点灯 (`True`) または消灯 (`False`) します。
+
+**`close()`**
+
+> ディスプレイをスリープさせ、リソースを解放します。
+   `with` 構文を使用した場合は自動的に呼び出されます。
+    この際、バックライトも自動的に消灯します。
