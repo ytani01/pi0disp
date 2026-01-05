@@ -22,6 +22,7 @@ servo.json
 
 #
 *:Zone.Identifier
+*.temp
 
 .env
 .pypirc
