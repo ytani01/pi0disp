@@ -19,6 +19,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "basedpyright>=1.36.2",
     "flake8>=7.3.0",
     "isort>=6.0.1",
     "mypy>=1.17.1",
@@ -51,8 +52,6 @@ check_untyped_defs = false
 # install_types = true # スタブのインストール
 # non_interactive = true # スタブのインストールを許可する
 
-
-
 [[tool.mypy.overrides]]
 module = [
     "pi0disp",
@@ -75,3 +74,10 @@ addopts = "-v -n auto --cov=pi0disp --cov-report=term-missing --cov-branch"
 members = [
     "app1",
 ]
+
+[tool.basedpyright]
+typeCheckingMode = "standard"
+reportMissingSuperCall = false
+reportMissingImports = "none"
+reportPossiblyUnboundVariable = "none"
+reportOptionalCall = "none"

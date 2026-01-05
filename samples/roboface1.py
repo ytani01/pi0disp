@@ -15,6 +15,7 @@ import socket
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, replace
+from logging import Logger
 
 # from typing import Callable
 import click
@@ -23,6 +24,7 @@ from PIL import Image, ImageDraw, ImageOps
 from pi0disp import __version__, click_common_opts, errmsg, get_logger
 
 # ディスプレイ制御用
+HAS_LCD = False
 try:
     from pi0disp import ST7789V
 
@@ -1111,10 +1113,18 @@ class RobotFaceApp:
     help="Screen Height",
 )
 @click_common_opts(__version__, use_h=False)
-def main(ctx, random, bg_color, screen_width, screen_height, debug):
-    _log = get_logger(__name__, debug)
+def main(
+    ctx,  #  # pyright: ignore[reportUnusedParameter]
+    random,
+    bg_color,
+    screen_width,
+    screen_height,
+    debug,
+):
+    _log: Logger = get_logger(__name__, debug)
     _log.info(
-        "random=%s,bg_color=%a,screen=%s",
+        "%s> random=%s,bg_color=%a,screen=%s",
+        ctx.command.name,
         random,
         bg_color,
         (screen_width, screen_height),
