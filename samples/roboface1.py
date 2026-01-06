@@ -172,11 +172,9 @@ def get_disp_dev(width, height, debug=False) -> DisplayBase:
     raise RuntimeError("No suitable display display device found.")
 
 
-# ===========================================================================
+# ====================================================================
 # 顔の状態
-# ===========================================================================
-
-
+# ====================================================================
 @dataclass
 class BrowState:
     tilt: float = 0.0
@@ -207,9 +205,9 @@ class FaceState:
         return replace(self)
 
 
-# ===========================================================================
+# ====================================================================
 # 設定セクション
-# ===========================================================================
+# ====================================================================
 
 BROW_MAP: dict[str, int] = {"v": 25, "_": 0, "^": -10}
 EYE_MAP: dict[str, dict[str, float]] = {
@@ -298,21 +296,17 @@ class FaceConfig:
     color_config: dict = field(default_factory=lambda: COLORS)
 
 
-# ===========================================================================
+# ====================================================================
 # ヘルパー関数
-# ===========================================================================
-
-
+# ====================================================================
 def lerp(a: float, b: float, t: float) -> float:
     """線形補間 (Linear Interpolation)."""
     return a + (b - a) * t
 
 
-# ===========================================================================
+# ====================================================================
 # クラス定義
-# ===========================================================================
-
-
+# ====================================================================
 class FaceStrParser:
     def __init__(
         self,
@@ -364,184 +358,6 @@ class FaceStrParser:
             face.mouth.open = MOUTH_MAP[mouth_char]["open"]
 
         return face
-
-
-class AppMode(ABC):
-    """Base class of application mode."""
-
-    FACE_INTERVAL_MIN = 3.0
-    FACE_INTERVAL_MAX = 6.0
-
-    GAZE_INTERVAL_MIN = 0.5
-    GAZE_INTERVAL_MAX = 2.0
-
-    GAZE_X_MIN = -5.0
-    GAZE_X_MAX = +5.0
-
-    def __init__(
-        self,
-        disp_dev,
-        bg_color,
-        debug: bool = False,
-    ):
-        self._debug = debug
-        self._log = get_logger(self.__class__.__name__, self._debug)
-
-        self._disp_dev = disp_dev
-        self._bg_color = bg_color
-
-        self.face_config = FaceConfig()
-        self.parser = FaceStrParser()
-
-        initial_face = self.parser.parse(FACE_WORDS["neutral"])
-        self._robot_face = RobotFace(initial_face)
-
-        now = time.time()
-        self._next_face_time = now + self.FACE_INTERVAL_MIN
-        self._next_gaze_time = now + ANIMATION["gaze_loop_duration"]
-
-    def _new_face(self, now: float, face: str = ""):
-        """New face.
-
-        Args:
-            now (float): start time in seconds
-            face (str): face string.
-                ": random
-        """
-        self._log.info("face=%a", face)
-
-        if not face:
-            face = random.choice(list(FACE_WORDS.keys()))
-            self._log.info(" random ==> face=%s", face)
-
-        try:
-            target_face = self.parser.parse(face)
-            self._log.debug("target_face=%s", target_face)
-        except Exception as e:
-            self._log.error(errmsg(e))
-            return
-
-        duration = ANIMATION["face_change_duration"]
-        self._robot_face.start_change(target_face, duration=duration)
-
-        self._next_face_time = now + random.uniform(
-            self.FACE_INTERVAL_MIN, self.FACE_INTERVAL_MAX
-        )
-
-    def _new_gaze(self, now: float) -> None:
-        """New gaze."""
-        gaze = random.uniform(self.GAZE_X_MIN, self.GAZE_X_MAX)
-        self._robot_face.set_gaze(gaze)
-
-        # duration = ANIMATION["gaze_loop_duration"]
-        duration = random.uniform(
-            self.GAZE_INTERVAL_MIN, self.GAZE_INTERVAL_MAX
-        )
-
-        self._log.info("gaze=%.2f, duration=%.2f", gaze, duration)
-        self._next_gaze_time = now + duration
-
-    @abstractmethod
-    def run(self) -> None:
-        """モードのメインループを実行する"""
-        pass
-
-    def show_face_outline(self) -> None:
-        """Show face outline."""
-        self._log.debug("")
-        img = self._robot_face.draw_face_outline(
-            self._disp_dev.width, self._disp_dev.height, self._bg_color
-        )
-        self._disp_dev.show_face_outline(img)
-
-    def update_face_and_show(self) -> None:
-        self._robot_face.update()
-
-        img = self._robot_face.draw_face_parts(
-            self._disp_dev.width, self._disp_dev.height, COLORS["face_bg"]
-        )
-        self._disp_dev.show_face_parts(img)
-
-
-class RandomMode(AppMode):
-    """ランダムな表情と視線を自動生成して表示するモード。"""
-
-    def __init__(
-        self,
-        disp_dev,
-        bg_color,
-        debug: bool = False,
-    ):
-        """Constractor."""
-        super().__init__(
-            disp_dev,
-            bg_color,
-            debug=debug,
-        )
-
-        # self._robot_face = RobotFace(
-        #     self.parser.parse(FACE_WORDS["neutral"])
-        # )
-
-    def run(self) -> None:
-        self.show_face_outline()
-
-        interval = ANIMATION["frame_interval"]
-
-        # face outline
-
-        # change face parts
-        while True:
-            now = time.time()
-            if now > self._next_face_time:
-                self._new_face(now)
-
-            if now > self._next_gaze_time:
-                self._new_gaze(now)
-
-            self.update_face_and_show()
-
-            time.sleep(interval)
-
-
-class InteractiveMode(AppMode):
-    """ユーザーからの入力に基づいて表情を表示するインタラクティブモード。"""
-
-    def __init__(self, disp_dev, bg_color, debug: bool = False):
-        super().__init__(disp_dev, bg_color, debug=debug)
-
-    def run(self) -> None:
-        """Run."""
-        self.show_face_outline()
-
-        self._new_face(time.time(), "_OO_")
-        while self._robot_face.is_changing:
-            self.update_face_and_show()
-            time.sleep(ANIMATION["face_change_duration"])
-
-        while True:
-            try:
-                user_input = input("顔の記号 (例: _OO_, qで終了): ").strip()
-            except EOFError:
-                print("\nEOF")
-                break
-
-            if user_input.lower() == "q" or not user_input:
-                break
-
-            time_start = time.time()
-            print(time_start)
-            self._new_face(time_start, user_input)
-            self._new_gaze(time_start)
-
-            now = time.time()
-            while now - time_start < 3.0:
-                self.update_face_and_show()
-                if now > self._next_gaze_time:
-                    self._new_gaze(now)
-
-                time.sleep(ANIMATION["frame_interval"])
-                now = time.time()
 
 
 class FaceUpdater:
@@ -1034,6 +850,188 @@ class RobotFace:
             screen_height,
             bg_color,
         )
+
+
+# ====================================================================
+# App modes
+# ====================================================================
+class AppMode(ABC):
+    """Base class of application mode."""
+
+    FACE_INTERVAL_MIN = 3.0
+    FACE_INTERVAL_MAX = 6.0
+
+    GAZE_INTERVAL_MIN = 0.5
+    GAZE_INTERVAL_MAX = 2.0
+
+    GAZE_X_MIN = -5.0
+    GAZE_X_MAX = +5.0
+
+    def __init__(
+        self,
+        disp_dev,
+        bg_color,
+        debug: bool = False,
+    ):
+        self._debug = debug
+        self._log = get_logger(self.__class__.__name__, self._debug)
+
+        self._disp_dev = disp_dev
+        self._bg_color = bg_color
+
+        self.face_config = FaceConfig()
+        self.parser = FaceStrParser()
+
+        initial_face = self.parser.parse(FACE_WORDS["neutral"])
+        self._robot_face = RobotFace(initial_face)
+
+        now = time.time()
+        self._next_face_time = now + self.FACE_INTERVAL_MIN
+        self._next_gaze_time = now + ANIMATION["gaze_loop_duration"]
+
+    def _new_face(self, now: float, face: str = ""):
+        """New face.
+
+        Args:
+            now (float): start time in seconds
+            face (str): face string.
+                ": random
+        """
+        self._log.info("face=%a", face)
+
+        if not face:
+            face = random.choice(list(FACE_WORDS.keys()))
+            self._log.info(" random ==> face=%s", face)
+
+        try:
+            target_face = self.parser.parse(face)
+            self._log.debug("target_face=%s", target_face)
+        except Exception as e:
+            self._log.error(errmsg(e))
+            return
+
+        duration = ANIMATION["face_change_duration"]
+        self._robot_face.start_change(target_face, duration=duration)
+
+        self._next_face_time = now + random.uniform(
+            self.FACE_INTERVAL_MIN, self.FACE_INTERVAL_MAX
+        )
+
+    def _new_gaze(self, now: float) -> None:
+        """New gaze."""
+        gaze = random.uniform(self.GAZE_X_MIN, self.GAZE_X_MAX)
+        self._robot_face.set_gaze(gaze)
+
+        # duration = ANIMATION["gaze_loop_duration"]
+        duration = random.uniform(
+            self.GAZE_INTERVAL_MIN, self.GAZE_INTERVAL_MAX
+        )
+
+        self._log.info("gaze=%.2f, duration=%.2f", gaze, duration)
+        self._next_gaze_time = now + duration
+
+    @abstractmethod
+    def run(self) -> None:
+        """モードのメインループを実行する"""
+        pass
+
+    def show_face_outline(self) -> None:
+        """Show face outline."""
+        self._log.debug("")
+        img = self._robot_face.draw_face_outline(
+            self._disp_dev.width, self._disp_dev.height, self._bg_color
+        )
+        self._disp_dev.show_face_outline(img)
+
+    def update_face_and_show(self) -> None:
+        "顔の状態をアップデートし、imgを生成して、ディスプレイに表示."
+        self._robot_face.update()
+
+        img = self._robot_face.draw_face_parts(
+            self._disp_dev.width, self._disp_dev.height, COLORS["face_bg"]
+        )
+        self._disp_dev.show_face_parts(img)
+
+
+class RandomMode(AppMode):
+    """ランダムな表情と視線を自動生成して表示するモード。"""
+
+    def __init__(
+        self,
+        disp_dev,
+        bg_color,
+        debug: bool = False,
+    ):
+        """Constractor."""
+        super().__init__(
+            disp_dev,
+            bg_color,
+            debug=debug,
+        )
+
+        # self._robot_face = RobotFace(
+        #     self.parser.parse(FACE_WORDS["neutral"])
+        # )
+
+    def run(self) -> None:
+        self.show_face_outline()
+
+        interval = ANIMATION["frame_interval"]
+
+        # face outline
+
+        # change face parts
+        while True:
+            now = time.time()
+            if now > self._next_face_time:
+                self._new_face(now)
+
+            if now > self._next_gaze_time:
+                self._new_gaze(now)
+
+            self.update_face_and_show()
+
+            time.sleep(interval)
+
+
+class InteractiveMode(AppMode):
+    """ユーザーからの入力に基づいて表情を表示するインタラクティブモード。"""
+
+    def __init__(self, disp_dev, bg_color, debug: bool = False):
+        super().__init__(disp_dev, bg_color, debug=debug)
+
+    def run(self) -> None:
+        """Run."""
+        self.show_face_outline()
+
+        self._new_face(time.time(), "_OO_")
+        while self._robot_face.is_changing:
+            self.update_face_and_show()
+            time.sleep(ANIMATION["face_change_duration"])
+
+        while True:
+            try:
+                user_input = input("顔の記号 (例: _OO_, qで終了): ").strip()
+            except EOFError:
+                print("\nEOF")
+                break
+
+            if user_input.lower() == "q" or not user_input:
+                break
+
+            time_start = time.time()
+            print(time_start)
+            self._new_face(time_start, user_input)
+            self._new_gaze(time_start)
+
+            now = time.time()
+            while now - time_start < 3.0:
+                self.update_face_and_show()
+                if now > self._next_gaze_time:
+                    self._new_gaze(now)
+
+                time.sleep(ANIMATION["frame_interval"])
+                now = time.time()
 
 
 class RobotFaceApp:
