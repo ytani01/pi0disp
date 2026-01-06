@@ -6,8 +6,7 @@
 ## 概要
 
 `pi0disp`は、
-Raspberry Pi
-(特にRaspberry Pi Zero 2Wのようなリソースに制約のあるモデル)で
+Raspberry Pi(特にRaspberry Pi Zero 2Wのようなリソースに制約のあるモデル)で
 ST7789V搭載ディスプレイを効率的に駆動するために設計された、
 Python製の**高速ディスプレイドライバライブラリ**です。
 
