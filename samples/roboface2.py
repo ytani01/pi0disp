@@ -14,9 +14,9 @@ import socket
 # import sys
 import time
 from abc import ABC, abstractmethod
-from typing import ClassVar
 from dataclasses import dataclass, field, replace
 from logging import Logger
+from typing import ClassVar
 
 # from typing import Callable
 import click
@@ -46,37 +46,41 @@ except ImportError:
 class DisplayBase(ABC):
     """ディスプレイ出力を抽象化するクラス"""
 
-    def __init__(self, width, heigtht, debug=False):
+    def __init__(self, width: int, height: int, debug: bool = False):
         """Constructor."""
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
         self.__log.debug("(abstract)")
 
         self._width = width
-        self._height = heigtht
+        self._height = height
 
     @property
-    def width(self):
+    def width(self) -> int:
         """Property: width."""
         return self._width
 
     @property
-    def height(self):
+    def height(self) -> int:
         """Property: height."""
         return self._height
 
     @abstractmethod
-    def update_partial(self, pil_image):
-        """顔のパーツ（部分領域）を更新"""
+    def display(self, pil_image: Image.Image) -> None:
+        """画面全体を表示"""
         pass
 
     @abstractmethod
-    def update_full(self, pil_image):
-        """画面全体（またはアウトライン）を更新"""
+    def display_regions(
+        self,
+        pil_image: Image.Image,
+        regions: list[tuple[int, int, int, int]],
+    ) -> None:
+        """指定された複数の領域を更新"""
         pass
 
     @abstractmethod
-    def close(self):
+    def close(self) -> None:
         """リソース解放"""
         pass
 
@@ -84,7 +88,7 @@ class DisplayBase(ABC):
 class Lcd(DisplayBase):
     """LCD Display (ST7789V)."""
 
-    def __init__(self, width, height, debug=False):
+    def __init__(self, width: int, height: int, debug: bool = False):
         super().__init__(width, height, debug=debug)
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
@@ -98,7 +102,6 @@ class Lcd(DisplayBase):
             self.lcd = ST7789V(
                 rotation=270, bgr=False, invert=True, debug=debug
             )
-            # self.lcd.set_rotation(270)
         except Exception as e:
             self.__log.error(errmsg(e))
             raise RuntimeError(errmsg(e))
@@ -113,31 +116,34 @@ class Lcd(DisplayBase):
         except OSError:
             return False
 
-    def update_full(self, pil_image):
+    def display(self, pil_image: Image.Image) -> None:
         """Show all."""
         self.__log.debug("")
         self.lcd.display(pil_image)
 
-    def update_partial(self, pil_image):
-        """Show face parts."""
-        self.lcd.display_region(pil_image, 41, 50, 105, 138)
-        self.lcd.display_region(pil_image, 150, 50, 215, 138)
-        self.lcd.display_region(pil_image, 89, 135, 170, 200)
+    def display_regions(
+        self,
+        pil_image: Image.Image,
+        regions: list[tuple[int, int, int, int]],
+    ) -> None:
+        """Show multiple regions."""
+        for region in regions:
+            self.lcd.display_region(pil_image, *region)
 
-    def close(self):
+    def close(self) -> None:
         self.lcd.close()
 
 
 class CV2Disp(DisplayBase):
     """OpenCV."""
 
-    def __init__(self, width, height, debug=False):
+    def __init__(self, width: int, height: int, debug: bool = False):
         super().__init__(width, height, debug)
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
         self.__log.debug("initialized CV2Disp")
 
-    def _show(self, pil_image):
+    def _show(self, pil_image: Image.Image) -> None:
         frame = np.array(pil_image)
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         cv2.imshow("Robot Face", frame)
@@ -145,18 +151,22 @@ class CV2Disp(DisplayBase):
         if key == 27:  # ESC
             raise KeyboardInterrupt("ESC pressed")
 
-    def update_full(self, pil_image):
+    def display(self, pil_image: Image.Image) -> None:
         self._show(pil_image)
 
-    def update_partial(self, pil_image):
-        """Show face parts."""
+    def display_regions(
+        self,
+        pil_image: Image.Image,
+        regions: list[tuple[int, int, int, int]],
+    ) -> None:
+        """Show multiple regions (Just show full image in CV2)."""
         self._show(pil_image)
 
-    def close(self):
+    def close(self) -> None:
         cv2.destroyAllWindows()
 
 
-def get_disp_dev(width, height, debug=False) -> DisplayBase:
+def get_disp_dev(width: int, height: int, debug: bool = False) -> DisplayBase:
     """Create display device."""
     _log = get_logger("()", debug)
 
@@ -253,6 +263,13 @@ class RfConfig:
         "mouth_fill": (128, 0, 0),  # 開いている口の塗りつぶし
         "eye_fill": "white",  # 開いている目の塗りつぶし
     }
+
+    # 部分更新領域 (x1, y1, x2, y2)
+    PART_REGIONS: ClassVar[list[tuple[int, int, int, int]]] = [
+        (41, 50, 105, 138),  # 左目
+        (150, 50, 215, 138),  # 右目
+        (89, 135, 170, 200),  # 口
+    ]
 
     # インスタンス変数 (必要に応じてオーバーライド可能)
     face_words: dict[str, str] = field(
@@ -521,13 +538,16 @@ class RfUpdater:
     def is_changing(self) -> bool:
         return self._is_changing
 
-    def elapsed_time(self):
+    def elapsed_time(self) -> float:
         """Elapsed time."""
         if self._is_changing:
             return time.time() - self.change_start_time
+        return 0.0
 
     def progress_rate(self) -> float:
         """Prograss rate."""
+        if not self._is_changing:
+            return 1.0
         return min(1.0, max(0.0, self.elapsed_time() / self.change_duration))
 
 
@@ -852,11 +872,26 @@ class RobotFace:
     def update(self) -> None:
         self.updater.update()
 
+    def draw(
+        self,
+        disp: DisplayBase,
+        bg_color: tuple | str,
+        full: bool = False,
+    ) -> None:
+        """現在の顔の状態をディスプレイに描画・出力する。"""
+        self.__log.debug("full=%s, bg_color=%s", full, bg_color)
+        if full:
+            img = self.get_outline_image(disp.width, disp.height, bg_color)
+            disp.display(img)
+        else:
+            img = self.get_parts_image(disp.width, disp.height, bg_color)
+            disp.display_regions(img, RfConfig.PART_REGIONS)
+
     def get_outline_image(
         self,
         screen_width: int,
         screen_height: int,
-        bg_color: tuple,
+        bg_color: tuple | str,
     ):
         return self.renderer.render_outline(
             screen_width, screen_height, bg_color
@@ -965,21 +1000,12 @@ class AppMode(ABC):
     def show_face_outline(self) -> None:
         """Show face outline."""
         self._log.debug("")
-        img = self._robot_face.get_outline_image(
-            self._disp_dev.width, self._disp_dev.height, self._bg_color
-        )
-        self._disp_dev.update_full(img)
+        self._robot_face.draw(self._disp_dev, self._bg_color, full=True)
 
     def update_face_and_show(self) -> None:
         """顔の状態をアップデートし、imgを生成して、ディスプレイに表示."""
         self._robot_face.update()
-
-        img = self._robot_face.get_parts_image(
-            self._disp_dev.width,
-            self._disp_dev.height,
-            self._bg_color,
-        )
-        self._disp_dev.update_partial(img)
+        self._robot_face.draw(self._disp_dev, self._bg_color, full=False)
 
 
 class RandomMode(AppMode):
@@ -1175,6 +1201,7 @@ def main(
     except Exception as e:
         _log.error(errmsg(e))
         import traceback
+
         traceback.print_exc()
 
 
