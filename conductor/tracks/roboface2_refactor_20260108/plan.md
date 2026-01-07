@@ -19,13 +19,13 @@
     - 文字列から `RfState` への変換ロジックを独立させる。
 - [x] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md) (2c8b068)
 
-## Phase 3: アプリケーション層の適合と統合テスト
-- [ ] `AppMode` およびその派生クラス (`RandomMode`, `InteractiveMode`) の修正
+## Phase 3: アプリケーション層の適合と統合テスト [checkpoint: 6e92f95]
+- [x] `AppMode` およびその派生クラス (`RandomMode`, `InteractiveMode`) の修正 (6e92f95)
     - 新しい `RobotFace` のインターフェースを使用するように書き換える。
-- [ ] エントリポイント (`main`) の整理
+- [x] エントリポイント (`main`) の整理 (6e92f95)
     - `RobotFaceApp` と CLI ロジックの分離を明確にする。
-- [ ] 動作確認
+- [x] 動作確認 (6e92f95)
     - `samples/roboface2.py` を実行し、ランダムモード・対話モードが正しく動作することを確認。
-- [ ] リンティングと型チェックの実行
+- [x] リンティングと型チェックの実行 (6e92f95)
     - `mise run lint` および `mypy` による検証。
-- [ ] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md) (6e92f95)
