@@ -10,13 +10,14 @@ from __future__ import annotations
 import math
 import random
 import socket
+import threading
 
 # import sys
 import time
 from abc import ABC, abstractmethod
+from typing import ClassVar
 from dataclasses import dataclass, field, replace
 from logging import Logger
-from typing import ClassVar
 
 # from typing import Callable
 import click
@@ -250,7 +251,11 @@ class RfConfig:
         "mouth_aspect_ratio": 1.3,
         "face_change_duration": 0.9,
         "gaze_loop_duration": 3.0,
-        "gaze_lerp_factor": 0.5,
+        "gaze_lerp_factor": 0.1,  # スレッド更新に合わせて少し緩やかにする
+        "gaze_update_interval": 0.05,  # 20fps
+        "gaze_move_interval_min": 1.0,
+        "gaze_move_interval_max": 4.0,
+        "gaze_x_range": 5.0,
     }
 
     # カラー定数
@@ -267,8 +272,8 @@ class RfConfig:
     # 部分更新領域 (x1, y1, x2, y2)
     PART_REGIONS: ClassVar[list[tuple[int, int, int, int]]] = [
         (41, 50, 105, 138),  # 左目
-        (150, 50, 215, 138),  # 右目
-        (89, 135, 170, 200),  # 口
+        (150, 50, 215, 138), # 右目
+        (89, 135, 170, 200), # 口
     ]
 
     # インスタンス変数 (必要に応じてオーバーライド可能)
@@ -332,6 +337,57 @@ def lerp(a: float, b: float, t: float) -> float:
 # ====================================================================
 # クラス定義
 # ====================================================================
+class RfGazeManager(threading.Thread):
+    """視線の移動をサブスレッドで自律的に制御するクラス。"""
+
+    def __init__(self, debug: bool = False) -> None:
+        super().__init__(name=self.__class__.__name__, daemon=True)
+        self.__debug = debug
+        self.__log = get_logger(self.__class__.__name__, self.__debug)
+
+        self.current_x: float = 0.0
+        self.target_x: float = 0.0
+        self._running = False
+        self._next_move_time = 0.0
+
+    def stop(self) -> None:
+        """スレッドの停止フラグを立てる"""
+        self._running = False
+
+    def run(self) -> None:
+        """スレッドのメインループ"""
+        self._running = True
+        self.__log.debug("Gaze thread started.")
+
+        interval = RfConfig.ANIMATION["gaze_update_interval"]
+        lerp_factor = RfConfig.ANIMATION["gaze_lerp_factor"]
+
+        while self._running:
+            now = time.time()
+
+            # ランダムに目標値を更新
+            if now > self._next_move_time:
+                limit = RfConfig.ANIMATION["gaze_x_range"]
+                self.target_x = random.uniform(-limit, limit)
+                duration = random.uniform(
+                    RfConfig.ANIMATION["gaze_move_interval_min"],
+                    RfConfig.ANIMATION["gaze_move_interval_max"],
+                )
+                self._next_move_time = now + duration
+                self.__log.debug(
+                    "New target_x: %.2f (next move in %.2f s)",
+                    self.target_x,
+                    duration,
+                )
+
+            # 線形補間
+            self.current_x = lerp(self.current_x, self.target_x, lerp_factor)
+
+            time.sleep(interval)
+
+        self.__log.debug("Gaze thread stopped.")
+
+
 class RfParser:
     def __init__(
         self,
@@ -406,9 +462,6 @@ class RfUpdater:
         self.current_face = face.copy()
         self.target_face = face.copy()
 
-        self.current_gaze_x: float = 0.0
-        self.target_gaze_x: float = 0.0
-
     def start_change(
         self,
         target_face: RfState,
@@ -423,7 +476,7 @@ class RfUpdater:
             duration = RfConfig.ANIMATION["face_change_duration"]
             self.__log.debug(" ==> duration=%s", duration)
 
-        self._chnage_duration = duration  # 表情変化にかかる時間
+        self._change_duration = duration  # 表情変化にかかる時間
         self.target_face = target_face.copy()  # ターゲットの表情
         self.start_face = self.current_face.copy()  # 変化前の顔を保存
         self._change_start_time = time.time()  # 変化開始時間
@@ -480,18 +533,6 @@ class RfUpdater:
         )
 
     def update(self) -> None:
-        # update gaze
-        self.current_gaze_x = lerp(
-            self.current_gaze_x,
-            self.target_gaze_x,
-            RfConfig.ANIMATION["gaze_lerp_factor"],
-        )
-        self.__log.debug(
-            "current_gaze_x=%.2f, target_gaze_x=%.2f",
-            self.current_gaze_x,
-            self.target_gaze_x,
-        )
-
         if not self._is_changing:
             # 表情変化がない場合は、ここでリターン
             return
@@ -834,10 +875,21 @@ class RobotFace:
             face=face,
             debug=debug,
         )
+        self.gaze_manager = RfGazeManager(debug=debug)
         self.renderer = RfRenderer(
             size=size,
             debug=debug,
         )
+
+    def start(self) -> None:
+        """スレッドを開始する。"""
+        self.__log.debug("Starting gaze manager thread...")
+        self.gaze_manager.start()
+
+    def stop(self) -> None:
+        """スレッドを停止する。"""
+        self.__log.debug("Stopping gaze manager thread...")
+        self.gaze_manager.stop()
 
     @property
     def change_start_time(self):
@@ -867,7 +919,8 @@ class RobotFace:
         self.updater.start_change(state, duration)
 
     def set_gaze(self, x: float) -> None:
-        self.updater.set_gaze(x)
+        """視線の目標値を手動で設定する（スレッドに反映）。"""
+        self.gaze_manager.target_x = x
 
     def update(self) -> None:
         self.updater.update()
@@ -905,7 +958,7 @@ class RobotFace:
     ):
         return self.renderer.render_parts(
             self.updater.current_face,
-            self.updater.current_gaze_x,
+            self.gaze_manager.current_x,
             screen_width,
             screen_height,
             bg_color,
@@ -1024,16 +1077,10 @@ class RandomMode(AppMode):
             debug=debug,
         )
 
-        # self._robot_face = RobotFace(
-        #     self.parser.parse(FACE_WORDS["neutral"])
-        # )
-
     def run(self) -> None:
         self.show_face_outline()
 
         interval = RfConfig.ANIMATION["frame_interval"]
-
-        # face outline
 
         # change face parts
         while True:
@@ -1041,9 +1088,7 @@ class RandomMode(AppMode):
             if now > self._next_face_time:
                 self._new_face(now)
 
-            if now > self._next_gaze_time:
-                self._new_gaze(now)
-
+            # 視線はスレッド(RfGazeManager)が自律的に更新するため、ここでは表情のみ更新
             self.update_face_and_show()
 
             time.sleep(interval)
@@ -1054,39 +1099,42 @@ class InteractiveMode(AppMode):
 
     def __init__(self, disp_dev, bg_color, debug: bool = False):
         super().__init__(disp_dev, bg_color, debug=debug)
+        self._running = False
+
+    def _draw_loop(self):
+        """描画を継続的に行うサブスレッド用ループ"""
+        interval = RfConfig.ANIMATION["frame_interval"]
+        while self._running:
+            self.update_face_and_show()
+            time.sleep(interval)
 
     def run(self) -> None:
         """Run."""
         self.show_face_outline()
+        self._running = True
 
+        # 描画スレッドを開始
+        draw_thread = threading.Thread(target=self._draw_loop, daemon=True)
+        draw_thread.start()
+
+        # 初期表情
         self._new_face(time.time(), "_OO_")
-        while self._robot_face.is_changing:
-            self.update_face_and_show()
-            time.sleep(RfConfig.ANIMATION["face_change_duration"])
 
+        print("Interactive Mode: 入力待ちの間も目が動きます。")
         while True:
             try:
                 user_input = input("顔の記号 (例: _OO_, qで終了): ").strip()
             except EOFError:
-                print("\nEOF")
                 break
 
             if user_input.lower() == "q" or not user_input:
                 break
 
-            time_start = time.time()
-            print(time_start)
-            self._new_face(time_start, user_input)
-            self._new_gaze(time_start)
+            # 表情のみ更新。視線は RfGazeManager が自動で行う。
+            self._new_face(time.time(), user_input)
 
-            now = time.time()
-            while now - time_start < 3.0:
-                self.update_face_and_show()
-                if now > self._next_gaze_time:
-                    self._new_gaze(now)
-
-                time.sleep(RfConfig.ANIMATION["frame_interval"])
-                now = time.time()
+        self._running = False
+        draw_thread.join(timeout=1.0)
 
 
 class RobotFaceApp:
@@ -1128,8 +1176,10 @@ class RobotFaceApp:
     def run(self) -> None:
         """アプリケーションを実行する"""
         try:
+            self.current_mode._robot_face.start()
             self.current_mode.run()
         finally:
+            self.current_mode._robot_face.stop()
             self.disp_dev.close()
 
 
@@ -1201,7 +1251,6 @@ def main(
     except Exception as e:
         _log.error(errmsg(e))
         import traceback
-
         traceback.print_exc()
 
 
