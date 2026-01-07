@@ -15,3 +15,6 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## [x] Track: 画面下部更新不具合修正 (2025-12-31)
 *Link: [./conductor/archive/fix_screen_bottom_update_20251230/plan.md](./conductor/archive/fix_screen_bottom_update_20251230/plan.md)*
+## [x] Track: samples/roboface2.pyのクラス構造の見直しと整理 (2026-01-08)
+*Link: [./conductor/archive/roboface2_refactor_20260108/plan.md](./conductor/archive/roboface2_refactor_20260108/plan.md)*
+---
