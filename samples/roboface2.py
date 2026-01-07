@@ -927,7 +927,12 @@ class RobotFace:
     def stop(self) -> None:
         """スレッドを停止する。"""
         self.__log.debug("Stopping gaze manager thread...")
+        self.gaze_manager.queue.put("exit")
         self.gaze_manager.stop()
+
+    def enqueue_face(self, face_str: str) -> None:
+        """表情文字列をサブスレッドのキューに投入する。"""
+        self.gaze_manager.queue.put(face_str)
 
     @property
     def change_start_time(self):
@@ -1048,7 +1053,7 @@ class AppMode(ABC):
         Args:
             now (float): start time in seconds
             face (str): face string.
-                ": random
+                "": random
         """
         self._log.info("face=%a", face)
 
@@ -1056,15 +1061,8 @@ class AppMode(ABC):
             face = random.choice(list(RfConfig.FACE_WORDS.keys()))
             self._log.info(" random ==> face=%s", face)
 
-        try:
-            target_face = self.parser.parse(face)
-            self._log.debug("target_face=%s", target_face)
-        except Exception as e:
-            self._log.error(errmsg(e))
-            return
-
-        duration = RfConfig.ANIMATION["face_change_duration"]
-        self._robot_face.start_change(target_face, duration=duration)
+        # サブスレッドのキューに投入
+        self._robot_face.enqueue_face(face)
 
         self._next_face_time = now + random.uniform(
             self.FACE_INTERVAL_MIN, self.FACE_INTERVAL_MAX
@@ -1117,19 +1115,23 @@ class RandomMode(AppMode):
 
     def run(self) -> None:
         self.show_face_outline()
+        self._robot_face.start()
 
         interval = RfConfig.ANIMATION["frame_interval"]
 
-        # change face parts
-        while True:
-            now = time.time()
-            if now > self._next_face_time:
-                self._new_face(now)
+        try:
+            # change face parts
+            while True:
+                now = time.time()
+                if now > self._next_face_time:
+                    self._new_face(now)
 
-            # 視線はスレッド(RfGazeManager)が自律的に更新するため、ここでは表情のみ更新
-            self.update_face_and_show()
+                # 視線はスレッド(RfGazeManager)が自律的に更新するため、ここでは表情のみ更新
+                self.update_face_and_show()
 
-            time.sleep(interval)
+                time.sleep(interval)
+        finally:
+            self._robot_face.stop()
 
 
 class InteractiveMode(AppMode):
@@ -1151,28 +1153,33 @@ class InteractiveMode(AppMode):
         self.show_face_outline()
         self._running = True
 
+        # 視線・表情更新スレッドを開始
+        self._robot_face.start()
+
         # 描画スレッドを開始
         draw_thread = threading.Thread(target=self._draw_loop, daemon=True)
         draw_thread.start()
 
-        # 初期表情
-        self._new_face(time.time(), "_OO_")
+        try:
+            # 初期表情
+            self._new_face(time.time(), "_OO_")
 
-        print("Interactive Mode: 入力待ちの間も目が動きます。")
-        while True:
-            try:
-                user_input = input("顔の記号 (例: _OO_, qで終了): ").strip()
-            except EOFError:
-                break
+            print("Interactive Mode: 入力待ちの間も目が動きます。")
+            while True:
+                try:
+                    user_input = input("顔の記号 (例: _OO_, qで終了): ").strip()
+                except EOFError:
+                    break
 
-            if user_input.lower() == "q" or not user_input:
-                break
+                if user_input.lower() == "q" or not user_input:
+                    break
 
-            # 表情のみ更新。視線は RfGazeManager が自動で行う。
-            self._new_face(time.time(), user_input)
-
-        self._running = False
-        draw_thread.join(timeout=1.0)
+                # 表情のみ更新。視線は RfGazeManager が自動で行う。
+                self._new_face(time.time(), user_input)
+        finally:
+            self._running = False
+            draw_thread.join(timeout=1.0)
+            self._robot_face.stop()
 
 
 class RobotFaceApp:
