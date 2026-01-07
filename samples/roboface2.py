@@ -1082,7 +1082,6 @@ class RobotFaceApp:
 
         try:
             self.current_mode: AppMode
-
             if random_mode_enabled:
                 self.current_mode = RandomMode(
                     self.disp_dev,
@@ -1100,12 +1099,12 @@ class RobotFaceApp:
             self.__log.error(errmsg(e))
             raise
 
-    def end(self) -> None:
-        self.disp_dev.close()
-
-    def main(self) -> None:
-        self.current_mode.show_face_outline()
-        self.current_mode.run()
+    def run(self) -> None:
+        """アプリケーションを実行する"""
+        try:
+            self.current_mode.run()
+        finally:
+            self.disp_dev.close()
 
 
 @click.command("robot_face0.py")
@@ -1168,21 +1167,15 @@ def main(
             debug=debug,
         )
 
-        app.main()
+        app.run()
 
     except KeyboardInterrupt:
         print("\nEnd.")
 
     except Exception as e:
         _log.error(errmsg(e))
-
         import traceback
-
         traceback.print_exc()
-
-    finally:
-        if app:
-            app.end()
 
 
 if __name__ == "__main__":
