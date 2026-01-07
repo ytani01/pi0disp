@@ -11,7 +11,7 @@ import math
 import random
 import socket
 import threading
-
+import queue
 # import sys
 import time
 from abc import ABC, abstractmethod
@@ -338,12 +338,21 @@ def lerp(a: float, b: float, t: float) -> float:
 # クラス定義
 # ====================================================================
 class RfGazeManager(threading.Thread):
-    """視線の移動をサブスレッドで自律的に制御するクラス。"""
+    """視線の移動と表情変更をサブスレッドで自律的に制御するクラス。"""
 
-    def __init__(self, debug: bool = False) -> None:
+    def __init__(
+        self,
+        updater: RfUpdater | None = None,
+        parser: RfParser | None = None,
+        debug: bool = False,
+    ) -> None:
         super().__init__(name=self.__class__.__name__, daemon=True)
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
+
+        self.updater = updater
+        self.parser = parser
+        self.queue: queue.Queue = queue.Queue()
 
         self.current_x: float = 0.0
         self.target_x: float = 0.0
@@ -363,6 +372,32 @@ class RfGazeManager(threading.Thread):
         lerp_factor = RfConfig.ANIMATION["gaze_lerp_factor"]
 
         while self._running:
+            # キューからコマンドを取得
+            while not self.queue.empty():
+                try:
+                    cmd = self.queue.get_nowait()
+                except queue.Empty:
+                    break
+
+                if cmd == "exit":
+                    self._running = False
+                    self.queue.task_done()
+                    break
+
+                if isinstance(cmd, str) and self.updater and self.parser:
+                    try:
+                        target_face = self.parser.parse(cmd)
+                        self.updater.start_change(target_face)
+                        self.__log.info("Expression changed to: %s", cmd)
+                    except Exception as e:
+                        self.__log.error(
+                            "Failed to parse expression %s: %s", cmd, errmsg(e)
+                        )
+                self.queue.task_done()
+
+            if not self._running:
+                break
+
             now = time.time()
 
             # ランダムに目標値を更新
@@ -871,11 +906,14 @@ class RobotFace:
         self.__log = get_logger(self.__class__.__name__, self.__debug)
         self.__log.debug("size=%s", size)
 
+        self.parser = RfParser()
         self.updater = RfUpdater(
             face=face,
             debug=debug,
         )
-        self.gaze_manager = RfGazeManager(debug=debug)
+        self.gaze_manager = RfGazeManager(
+            updater=self.updater, parser=self.parser, debug=debug
+        )
         self.renderer = RfRenderer(
             size=size,
             debug=debug,
@@ -933,11 +971,11 @@ class RobotFace:
     ) -> None:
         """現在の顔の状態をディスプレイに描画・出力する。"""
         self.__log.debug("full=%s, bg_color=%s", full, bg_color)
+        # 常にパーツを含んだイメージを取得する
+        img = self.get_parts_image(disp.width, disp.height, bg_color)
         if full:
-            img = self.get_outline_image(disp.width, disp.height, bg_color)
             disp.display(img)
         else:
-            img = self.get_parts_image(disp.width, disp.height, bg_color)
             disp.display_regions(img, RfConfig.PART_REGIONS)
 
     def get_outline_image(
