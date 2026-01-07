@@ -1,0 +1,8 @@
+{
+  "track_id": "eye_movement_thread_fix_20260108",
+  "type": "bug_fix",
+  "status": "new",
+  "created_at": "2026-01-08T10:00:00Z",
+  "updated_at": "2026-01-08T10:00:00Z",
+  "description": "目の動きをスレッド化の修正: キュー方式への移行とインタラクティブモードのバグ修正"
+}

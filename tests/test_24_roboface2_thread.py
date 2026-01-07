@@ -67,8 +67,7 @@ def test_interactive_mode_background_draw():
     with patch('builtins.input', side_effect=slow_input):
         mode.run()
     
-    # display_regions が複数回呼ばれているはず (描画スレッドが回っているため)
-    # interval は 0.1s なので、0.5s 待てば数回は呼ばれるはず
-    print(f"DEBUG: display_regions count = {mock_disp.display_regions.call_count}")
-    assert mock_disp.display_regions.call_count > 1
+    # 全体更新(full=True)に変更したため、display が複数回呼ばれているはず
+    print(f"DEBUG: display count = {mock_disp.display.call_count}")
+    assert mock_disp.display.call_count > 1
 

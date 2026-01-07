@@ -12,6 +12,7 @@ import random
 import socket
 import threading
 import queue
+import readline
 # import sys
 import time
 from abc import ABC, abstractmethod
@@ -371,32 +372,43 @@ class RfGazeManager(threading.Thread):
         interval = RfConfig.ANIMATION["gaze_update_interval"]
         lerp_factor = RfConfig.ANIMATION["gaze_lerp_factor"]
 
+        pending_expr = None
+
         while self._running:
-            # キューからコマンドを取得
-            while not self.queue.empty():
+            # 1. キューから新しいコマンドを取得（未処理分がなければ）
+            if pending_expr is None:
                 try:
                     cmd = self.queue.get_nowait()
-                except queue.Empty:
-                    break
-
-                if cmd == "exit":
-                    self._running = False
+                    if cmd == "exit":
+                        self._running = False
+                    else:
+                        pending_expr = cmd
                     self.queue.task_done()
-                    break
+                except queue.Empty:
+                    pass
 
-                if isinstance(cmd, str) and self.updater and self.parser:
-                    try:
-                        target_face = self.parser.parse(cmd)
-                        self.updater.start_change(target_face)
-                        self.__log.info("Expression changed to: %s", cmd)
-                    except Exception as e:
-                        self.__log.error(
-                            "Failed to parse expression %s: %s", cmd, errmsg(e)
-                        )
-                self.queue.task_done()
-
+            # 2. 停止フラグの再チェック
             if not self._running:
                 break
+
+            # 3. ペンディングされている表情があれば、アニメーション終了を待って適用
+            if (
+                pending_expr
+                and isinstance(pending_expr, str)
+                and self.updater
+                and not self.updater.is_changing
+            ):
+                try:
+                    target_face = self.parser.parse(pending_expr)
+                    self.updater.start_change(target_face)
+                    self.__log.debug("Expression changed to: %s", pending_expr)
+                except Exception as e:
+                    self.__log.error(
+                        "Failed to parse expression %s: %s",
+                        pending_expr,
+                        errmsg(e),
+                    )
+                pending_expr = None  # 処理完了
 
             now = time.time()
 
@@ -434,11 +446,11 @@ class RfParser:
 
     def parse(self, face_str: str) -> RfState:
         """parse face string."""
-        self.__log.info("face_str=%a", face_str)
+        self.__log.debug("face_str=%a", face_str)
 
         if face_str in RfConfig.FACE_WORDS:
             face_str = RfConfig.FACE_WORDS[face_str]
-            self.__log.info(" ==>  face_str=%a", face_str)
+            self.__log.debug(" ==>  face_str=%a", face_str)
 
         if len(face_str) != 4:
             raise ValueError(
@@ -504,7 +516,7 @@ class RfUpdater:
     ) -> None:
         """変形開始."""
         self.__log.debug(
-            "duration=%.2f,target_face=%s", duration, target_face
+            "duration=%s,target_face=%s", duration, target_face
         )
 
         if not duration:
@@ -1055,11 +1067,11 @@ class AppMode(ABC):
             face (str): face string.
                 "": random
         """
-        self._log.info("face=%a", face)
+        self._log.debug("face=%a", face)
 
         if not face:
             face = random.choice(list(RfConfig.FACE_WORDS.keys()))
-            self._log.info(" random ==> face=%s", face)
+            self._log.debug(" random ==> face=%s", face)
 
         # サブスレッドのキューに投入
         self._robot_face.enqueue_face(face)
@@ -1078,7 +1090,7 @@ class AppMode(ABC):
             self.GAZE_INTERVAL_MIN, self.GAZE_INTERVAL_MAX
         )
 
-        self._log.info("gaze=%.2f, duration=%.2f", gaze, duration)
+        self._log.debug("gaze=%.2f, duration=%.2f", gaze, duration)
         self._next_gaze_time = now + duration
 
     @abstractmethod
@@ -1094,7 +1106,7 @@ class AppMode(ABC):
     def update_face_and_show(self) -> None:
         """顔の状態をアップデートし、imgを生成して、ディスプレイに表示."""
         self._robot_face.update()
-        self._robot_face.draw(self._disp_dev, self._bg_color, full=False)
+        self._robot_face.draw(self._disp_dev, self._bg_color, full=True)
 
 
 class RandomMode(AppMode):
@@ -1141,12 +1153,40 @@ class InteractiveMode(AppMode):
         super().__init__(disp_dev, bg_color, debug=debug)
         self._running = False
 
-    def _draw_loop(self):
-        """描画を継続的に行うサブスレッド用ループ"""
-        interval = RfConfig.ANIMATION["frame_interval"]
+    def _input_loop(self):
+        """ユーザー入力を受け取るサブスレッド用ループ"""
+        print("Interactive Mode: 入力待ちの間も目が動きます。")
         while self._running:
-            self.update_face_and_show()
-            time.sleep(interval)
+            try:
+                # 入力待ち。このスレッドはここでブロックされる。
+                user_input = input("顔の記号 (例: _OO_, qで終了): ").strip()
+            except (EOFError, KeyboardInterrupt):
+                self._running = False
+                break
+
+            if not user_input:
+                continue
+
+            if user_input.lower() == "q":
+                self._running = False
+                break
+
+            # 表情文字列を分割してキューに投入
+            for face in user_input.split():
+                self._new_face(time.time(), face)
+
+            # 履歴に追加
+            try:
+                if (
+                    readline.get_current_history_length() == 0
+                    or readline.get_history_item(
+                        readline.get_current_history_length()
+                    )
+                    != user_input
+                ):
+                    readline.add_history(user_input)
+            except Exception:
+                pass
 
     def run(self) -> None:
         """Run."""
@@ -1156,30 +1196,24 @@ class InteractiveMode(AppMode):
         # 視線・表情更新スレッドを開始
         self._robot_face.start()
 
-        # 描画スレッドを開始
-        draw_thread = threading.Thread(target=self._draw_loop, daemon=True)
-        draw_thread.start()
+        # 入力スレッドを開始
+        input_thread = threading.Thread(target=self._input_loop, daemon=True)
+        input_thread.start()
 
+        # 初期表情
+        self._new_face(time.time(), "_OO_")
+
+        interval = RfConfig.ANIMATION["frame_interval"]
         try:
-            # 初期表情
-            self._new_face(time.time(), "_OO_")
-
-            print("Interactive Mode: 入力待ちの間も目が動きます。")
-            while True:
-                try:
-                    user_input = input("顔の記号 (例: _OO_, qで終了): ").strip()
-                except EOFError:
-                    break
-
-                if user_input.lower() == "q" or not user_input:
-                    break
-
-                # 表情のみ更新。視線は RfGazeManager が自動で行う。
-                self._new_face(time.time(), user_input)
+            # メインスレッドで描画ループを回す (OpenCVのGUIスレッド要件に対応)
+            while self._running:
+                self.update_face_and_show()
+                time.sleep(interval)
         finally:
             self._running = False
-            draw_thread.join(timeout=1.0)
             self._robot_face.stop()
+            # input_thread は input() でブロックされているため join できないが、
+            # daemon=True かつプロセス終了により回収される。
 
 
 class RobotFaceApp:
@@ -1221,10 +1255,8 @@ class RobotFaceApp:
     def run(self) -> None:
         """アプリケーションを実行する"""
         try:
-            self.current_mode._robot_face.start()
             self.current_mode.run()
         finally:
-            self.current_mode._robot_face.stop()
             self.disp_dev.close()
 
 
