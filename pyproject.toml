@@ -23,10 +23,12 @@ dev = [
     "flake8>=7.3.0",
     "isort>=6.0.1",
     "mypy>=1.17.1",
+    "psutil>=7.2.1",
     "pytest>=8.4.1",
     "pytest-cov>=7.0.0",
     "pytest-xdist>=3.8.0",
     "ruff>=0.12.9",
+    "types-psutil>=7.2.1.20251231",
 ]
 samples = [
     "opencv-python>=4.11.0.86",

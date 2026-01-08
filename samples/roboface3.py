@@ -18,7 +18,7 @@ import threading
 # import sys
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from logging import Logger
 from typing import ClassVar
 
@@ -120,10 +120,10 @@ class Lcd(DisplayBase):
         except OSError:
             return False
 
-    def display(self, pil_image: Image.Image) -> None:
+    def display(self, pil_image: Image.Image, full: bool = False) -> None:
         """Show all."""
-        self.__log.debug("")
-        self.lcd.display(pil_image)
+        self.__log.debug("full=%s", full)
+        self.lcd.display(pil_image, full=full)
 
     def display_regions(
         self,
@@ -248,15 +248,14 @@ class RfConfig:
 
     # アニメーション定数
     ANIMATION: ClassVar[dict[str, float]] = {
-        "fps": 20.0,  # 目標FPS
+        "fps": 10.0,  # 目標FPS
         "frame_interval": 0.5,  # (互換性のために残すが、基本はfpsを使用)
         "eye_open_threshold": 6,
         "mouth_open_threshold": 0.5,
         "mouth_aspect_ratio": 1.3,
         "face_change_duration": 0.9,
         "gaze_loop_duration": 3.0,
-        "gaze_lerp_factor": 0.1,  # スレッド更新に合わせて少し緩やかにする
-        "gaze_update_interval": 0.05,  # 20fps
+        "gaze_lerp_factor": 0.2,  # 10fpsに合わせて調整 (1 - (1-0.1)^2)
         "gaze_change_interval_min": 1.0,
         "gaze_change_interval_max": 4.0,
         "gaze_x_range": 5.0,
@@ -372,7 +371,8 @@ class RfGazeManager(threading.Thread):
         self._running = True
         self.__log.debug("Gaze thread started.")
 
-        interval = RfConfig.ANIMATION["gaze_update_interval"]
+        fps = RfConfig.ANIMATION.get("fps", 10.0)
+        interval = 1.0 / fps
         lerp_factor = RfConfig.ANIMATION["gaze_lerp_factor"]
 
         pending_expr = None
@@ -427,7 +427,7 @@ class RfGazeManager(threading.Thread):
                     RfConfig.ANIMATION["gaze_change_interval_max"],
                 )
                 self._next_move_time = now + duration
-                self.__log.info(
+                self.__log.debug(
                     "New target_x: %.2f (next move in %.2f s)",
                     self.target_x,
                     duration,
@@ -657,6 +657,7 @@ class RfRenderer:
 
         self.size = size
         self.scale = size / 100.0
+        self._base_face_img: Image.Image | None = None
 
     def _scale_xy(self, x: float, y: float) -> tuple[int, int]:
         return (round(x * self.scale), round(y * self.scale))
@@ -890,10 +891,18 @@ class RfRenderer:
             screen_height,
             bg_color,
         )
-        img = Image.new("RGB", (self.size, self.size), bg_color)
+
+        # 背景の描画をキャッシュ
+        if self._base_face_img is None:
+            base_img = Image.new("RGB", (self.size, self.size), bg_color)
+            base_draw = ImageDraw.Draw(base_img)
+            self._draw_background(base_draw)
+            self._base_face_img = base_img
+
+        # キャッシュされた背景をコピー
+        img = self._base_face_img.copy()
         draw = ImageDraw.Draw(img)
 
-        self._draw_background(draw)
         self._draw_eyes(draw, face, gaze_offset_x)
         self._draw_mouth(draw, face)
 
@@ -990,36 +999,28 @@ class RobotFace:
 
     def draw(
         self,
-        disp: DisplayBase,
+        disp: Lcd,
         bg_color: tuple | str,
         full: bool = False,
     ) -> None:
         """現在の顔の状態をディスプレイに描画・出力する。"""
-        self.__log.debug("full=%s, bg_color=%s", full, bg_color)
-
         current_state = self.updater.current_face
         current_gaze_x = self.gaze_manager.current_x
 
-        # 状態変化のチェック
-        # NOTE: 浮動小数点の比較なので、視線については微小な変化を無視する
-        gaze_changed = (
-            self._last_gaze_x is None
-            or abs(self._last_gaze_x - current_gaze_x) > 0.01
-        )
-        state_changed = (
-            self._last_state is None or self._last_state != current_state
-        )
-
-        if not full and not state_changed and not gaze_changed:
-            self.__log.debug("No change detected. Skip drawing.")
-            return
-
+        t0 = time.perf_counter()
         # 常にパーツを含んだイメージを取得する
         img = self.get_parts_image(disp.width, disp.height, bg_color)
-        if full:
-            disp.display(img)
-        else:
-            disp.display_regions(img, RfConfig.PART_REGIONS)
+        t1 = time.perf_counter()
+
+        # ライブラリ側の自動差分更新（Dirty Rectangle）機能を使用する
+        disp.display(img, full=full)
+        t2 = time.perf_counter()
+
+        self.__log.debug(
+            "render=%.2fms, display=%.2fms",
+            (t1 - t0) * 1000,
+            (t2 - t1) * 1000,
+        )
 
         # 状態を保存
         self._last_state = current_state.copy()
@@ -1136,7 +1137,7 @@ class AppMode(ABC):
     def update_face_and_show(self) -> None:
         """顔の状態をアップデートし、imgを生成して、ディスプレイに表示."""
         self._robot_face.update()
-        self._robot_face.draw(self._disp_dev, self._bg_color, full=True)
+        self._robot_face.draw(self._disp_dev, self._bg_color, full=False)
 
 
 class RandomMode(AppMode):
@@ -1159,7 +1160,7 @@ class RandomMode(AppMode):
         self.show_face_outline()
         self._robot_face.start()
 
-        fps = RfConfig.ANIMATION.get("fps", 20.0)
+        fps = RfConfig.ANIMATION.get("fps", 10.0)
         interval = 1.0 / fps
 
         try:
@@ -1186,7 +1187,7 @@ class InteractiveMode(AppMode):
 
     def _input_loop(self):
         """ユーザー入力を受け取るサブスレッド用ループ"""
-        print("Interactive Mode: 入力待ちの間も目が動きます。")
+        self._log.info("Interactive Mode: 入力待ちの間も目が動きます。")
         while self._running:
             try:
                 # 入力待ち。このスレッドはここでブロックされる。
@@ -1234,7 +1235,7 @@ class InteractiveMode(AppMode):
         # 初期表情
         self._new_face(time.time(), "_OO_")
 
-        fps = RfConfig.ANIMATION.get("fps", 20.0)
+        fps = RfConfig.ANIMATION.get("fps", 10.0)
         interval = 1.0 / fps
 
         try:
@@ -1356,7 +1357,7 @@ def main(
         app.run()
 
     except KeyboardInterrupt:
-        print("\nEnd.")
+        _log.info("\nEnd.")
 
     except Exception as e:
         _log.error(errmsg(e))

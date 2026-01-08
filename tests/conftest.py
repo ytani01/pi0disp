@@ -30,6 +30,21 @@ print(
 )
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        "--duration",
+        action="store",
+        default=10,
+        type=int,
+        help="パフォーマンス測定の実行時間 (秒)",
+    )
+
+
+@pytest.fixture(scope="session")
+def duration(request):
+    return request.config.getoption("--duration")
+
+
 @pytest.fixture
 def mock_pi_constructor():
     """Mock pigpio.pi constructor."""

@@ -156,7 +156,7 @@ class DispBase(metaclass=ABCMeta):
         """
         self._log.warning("このメソッドはオーバーライドしてください。")
 
-    def display(self, image: Image.Image):
+    def display(self, image: Image.Image, full: bool = False):
         """
         画像を表示する抽象メソッド。
 
@@ -165,6 +165,7 @@ class DispBase(metaclass=ABCMeta):
 
         パラメータ:
             image (Image.Image): 表示するPIL Imageオブジェクト。
+            full (bool): 差分更新ではなく全画面を強制的に更新するか。
         """
         if image.size != self._size:
             self._log.debug(

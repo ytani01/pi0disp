@@ -20,3 +20,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## [x] Track: samples/roboface2.py のCPU負荷を下げたい
 *Link: [./conductor/archive/roboface2_cpu_optimization_20260108/plan.md](./conductor/archive/roboface2_cpu_optimization_20260108/plan.md)*
+
+---
+
+## [ ] Track: samples/roboface2.py で,CPU負荷を下げる改良をしたい (roboface3.py)
+*Link: [./conductor/tracks/roboface3_cpu_optimization_20260108/plan.md](./conductor/tracks/roboface3_cpu_optimization_20260108/plan.md)*

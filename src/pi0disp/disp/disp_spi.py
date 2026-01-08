@@ -120,19 +120,35 @@ class DispSpi(DispBase):
             raise RuntimeError(
                 f"SPIバスを開けませんでした: handle={self.spi_handle}"
             )
+        self._last_dc_level = -1
+
+    def _set_dc_level(self, level: int):
+        """DCピンのレベルを設定（キャッシュによる最適化）"""
+        if self._last_dc_level != level:
+            self.pi.write(self.pin.dc, level)
+            self._last_dc_level = level
+
+    def _set_cs_level(self, level: int):
+        """CSピンのレベルを設定（キャッシュがあれば最適化、現在は未実装だが拡張性のため）"""
+        if self.pin.cs is not None:
+            self.pi.write(self.pin.cs, level)
 
     def _write_command(self, command: int):
         """ディスプレイにコマンドバイトを送信する。"""
-        self.pi.write(self.pin.dc, 0)
+        self._set_dc_level(0)
+        self._set_cs_level(0)
         self.pi.spi_write(self.spi_handle, [command])
+        self._set_cs_level(1)
 
     def _write_data(self, data: Union[int, bytes, list]):
         """ディスプレイにデータバイトまたはバッファを送信する。"""
-        self.pi.write(self.pin.dc, 1)
+        self._set_dc_level(1)
+        self._set_cs_level(0)
         if isinstance(data, int):
             self.pi.spi_write(self.spi_handle, [data])
         else:
             self.pi.spi_write(self.spi_handle, data)
+        self._set_cs_level(1)
 
     def set_brightness(self, brightness: int):
         """バックライトの明るさを設定する (0-255)。"""

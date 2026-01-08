@@ -9,7 +9,7 @@ import time
 from typing import Optional, Tuple
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageChops
 
 from ..utils.mylogger import get_logger
 from ..utils.performance_core import create_optimizer_pack
@@ -94,6 +94,7 @@ class ST7789V(DispSpi):
         # Initialize the optimizer pack
         self._optimizers = create_optimizer_pack()
         self._last_window: Optional[Tuple[int, int, int, int]] = None
+        self._last_image: Optional[Image.Image] = None
 
         self.init_display()
         self.set_rotation(self._rotation)
@@ -141,10 +142,6 @@ class ST7789V(DispSpi):
 
     def set_window(self, x0: int, y0: int, x1: int, y1: int):
         """描画ウィンドウを設定する"""
-        window = (x0, y0, x1, y1)
-        if self._last_window == window:
-            return
-
         if self._mv:
             tx0, tx1 = x0 + self._y_offset, x1 + self._y_offset
             ty0, ty1 = y0 + self._x_offset, y1 + self._x_offset
@@ -157,13 +154,15 @@ class ST7789V(DispSpi):
         self._write_command(self._CMD["RASET"])
         self._write_data([ty0 >> 8, ty0 & 0xFF, ty1 >> 8, ty1 & 0xFF])
         self._write_command(self._CMD["RAMWR"])
-        self._last_window = window
 
     def write_pixels(self, pixel_bytes: bytes):
         """ピクセルデータを書き込む"""
         chunk_size = self._optimizers["adaptive_chunking"].get_chunk_size()
         data_len = len(pixel_bytes)
-        self.pi.write(self.pin.dc, 1)
+
+        self._set_dc_level(1)
+        self._set_cs_level(0)
+
         if data_len <= chunk_size:
             self.pi.spi_write(self.spi_handle, pixel_bytes)
         else:
@@ -171,17 +170,51 @@ class ST7789V(DispSpi):
                 self.pi.spi_write(
                     self.spi_handle, pixel_bytes[i : i + chunk_size]
                 )
+        self._set_cs_level(1)
 
-    def display(self, image: Image.Image):
-        """全画面表示"""
+    def display(self, image: Image.Image, full: bool = False):
+        """
+        全画面イメージを表示。
+        前回の表示イメージと比較し、差分のある矩形領域（Dirty Rectangle）のみを更新することで、
+        通信データ量とCPU負荷を最小限に抑える。
+        """
         if image.size != self._size:
             image = image.resize(self._size)
-        img_array = np.array(image)
+
+        # 初回表示、または強制更新指定がある場合は全画面表示
+        if full or self._last_image is None:
+            img_array = np.array(image)
+            pixel_bytes = self._optimizers[
+                "color_converter"
+            ].rgb_to_rgb565_bytes(img_array)
+            self.set_window(0, 0, self.size.width - 1, self.size.height - 1)
+            self.write_pixels(pixel_bytes)
+            self._last_image = image.copy()
+            return
+
+        # 前回のイメージとの差分領域 (Bounding Box) を高速に取得
+        # getbbox() は差分がない場合に None を返す
+        diff_bbox = ImageChops.difference(image, self._last_image).getbbox()
+
+        if diff_bbox is None:
+            # 差分がない場合は何もしない
+            return
+
+        # diff_bbox は (left, upper, right, lower)
+        region_img = image.crop(diff_bbox)
+        region_arr = np.array(region_img)
         pixel_bytes = self._optimizers["color_converter"].rgb_to_rgb565_bytes(
-            img_array
+            region_arr
         )
-        self.set_window(0, 0, self.size.width - 1, self.size.height - 1)
+
+        # Bounding Boxの境界をRAMWRに合わせて設定
+        self.set_window(
+            diff_bbox[0], diff_bbox[1], diff_bbox[2] - 1, diff_bbox[3] - 1
+        )
         self.write_pixels(pixel_bytes)
+
+        # 今回のイメージを保存
+        self._last_image = image.copy()
 
     def display_region(
         self, image: Image.Image, x0: int, y0: int, x1: int, y1: int

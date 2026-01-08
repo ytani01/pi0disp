@@ -74,11 +74,12 @@ def test_sequential_expression_processing():
 
             time.sleep(0.05)
 
-        # 記録されたターゲットの中に、投入した表情が順番に含まれているか確認
-        # [初期状態, ^oo^, >oo<, vOOv] のはず
-        expected_faces = [parser.parse(e) for e in ["_OO_"] + expressions]
+            # 記録されたターゲットの中に、投入した表情が順番に含まれているか 確認
 
-        # ログ出力用
+            # [初期状態, ^oo^, >oo<, vOOv] のはず
+
+            # ログ出力用
+
         print(
             f"DEBUG: Processed expressions count: {len(processed_expressions)}"
         )
