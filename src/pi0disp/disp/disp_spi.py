@@ -136,27 +136,15 @@ class DispSpi(DispBase):
 
     def _write_command(self, command: int):
         """ディスプレイにコマンドバイトを送信する。"""
-<<<<<<< HEAD
         self._set_dc_level(0)
         self._set_cs_level(0)
-=======
-        if self._last_dc_level != 0:
-            self.pi.write(self.pin.dc, 0)
-            self._last_dc_level = 0
->>>>>>> 7f834a22b3dd6713b23f46ac1f2c89e8cf0c6c0d
         self.pi.spi_write(self.spi_handle, [command])
         self._set_cs_level(1)
 
     def _write_data(self, data: Union[int, bytes, list]):
         """ディスプレイにデータバイトまたはバッファを送信する。"""
-<<<<<<< HEAD
         self._set_dc_level(1)
         self._set_cs_level(0)
-=======
-        if self._last_dc_level != 1:
-            self.pi.write(self.pin.dc, 1)
-            self._last_dc_level = 1
->>>>>>> 7f834a22b3dd6713b23f46ac1f2c89e8cf0c6c0d
         if isinstance(data, int):
             self.pi.spi_write(self.spi_handle, [data])
         else:

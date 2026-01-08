@@ -71,16 +71,6 @@ def test_sequential_expression_processing():
             f = parser.parse(e)
             expected_features.add((f.brow.tilt, f.mouth.curve))
 
-<<<<<<< HEAD
-            # 記録されたターゲットの中に、投入した表情が順番に含まれているか 確認
-
-            # [初期状態, ^oo^, >oo<, vOOv] のはず
-
-            # ログ出力用
-
-        print(
-            f"DEBUG: Processed expressions count: {len(processed_expressions)}"
-=======
         # 少なくとも最初の数個の表情がターゲットとして設定されたことを確認
         # (高速化により全てを拾えない可能性があるため、サブセットであることを確認)
         print(f"DEBUG: Targets seen: {targets_seen}")
@@ -95,7 +85,6 @@ def test_sequential_expression_processing():
         )
         assert first_change in targets_seen, (
             f"Target {first_change} not seen."
->>>>>>> 7f834a22b3dd6713b23f46ac1f2c89e8cf0c6c0d
         )
 
     finally:

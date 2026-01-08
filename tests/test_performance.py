@@ -7,31 +7,19 @@ import time
 import psutil
 import pytest
 
-<<<<<<< HEAD
-# ロガー設定
-log = logging.getLogger(__name__)
-if not log.handlers:
-=======
 # ロガー設定をファイルのトップレベルで一度だけ実行
 log = logging.getLogger(__name__)
 if not log.handlers:  # 既にハンドラが設定されていなければ設定する
->>>>>>> 7f834a22b3dd6713b23f46ac1f2c89e8cf0c6c0d
     handler = logging.StreamHandler()
     formatter = logging.Formatter(
         "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
     handler.setFormatter(formatter)
     log.addHandler(handler)
-<<<<<<< HEAD
-log.setLevel(logging.INFO)
-
-
-=======
 log.setLevel(logging.INFO)  # デバッグログも表示したい場合は DEBUG に変更
 
 
 # pigpiodプロセスのPIDを検索
->>>>>>> 7f834a22b3dd6713b23f46ac1f2c89e8cf0c6c0d
 def get_pigpiod_pid():
     for proc in psutil.process_iter(["pid", "name", "cmdline"]):
         try:
@@ -50,36 +38,22 @@ def get_pigpiod_pid():
 
 @pytest.fixture(scope="module")
 def roboface_process():
-<<<<<<< HEAD
     # 今回は roboface2.py をベースラインとして起動
     cmd = ["uv", "run", "samples/roboface2.py", "--random"]
     process = None
     try:
-=======
-    cmd = ["uv", "run", "samples/roboface2.py", "--random"]
-    process = None
-    try:
         # Popenでサブプロセスとして起動
->>>>>>> 7f834a22b3dd6713b23f46ac1f2c89e8cf0c6c0d
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-<<<<<<< HEAD
-            preexec_fn=os.setsid,
-=======
             preexec_fn=os.setsid,  # プロセスグループを作成
->>>>>>> 7f834a22b3dd6713b23f46ac1f2c89e8cf0c6c0d
         )
         log.info(f"Started roboface2.py with PID: {process.pid}")
         yield process
     finally:
         if process:
-<<<<<<< HEAD
-
-=======
             # プロセスツリー全体を停止させるための関数
->>>>>>> 7f834a22b3dd6713b23f46ac1f2c89e8cf0c6c0d
             def kill_proc_tree(pid, sig=signal.SIGTERM, include_parent=True):
                 try:
                     parent = psutil.Process(pid)
@@ -91,38 +65,25 @@ def roboface_process():
                 except psutil.NoSuchProcess:
                     pass
 
-<<<<<<< HEAD
+            # 1. まず SIGTERM で優しく終了を試みる
             log.info(f"Terminating process tree for PID: {process.pid}")
             kill_proc_tree(process.pid, signal.SIGTERM)
+
+            # 2. しばらく待機
             gone, alive = psutil.wait_procs(
                 [psutil.Process(process.pid)]
                 if psutil.pid_exists(process.pid)
                 else [],
                 timeout=3,
             )
-            for p in alive:
-=======
-            # 1. まず SIGTERM で優しく終了を試みる
-            log.info(f"Terminating process tree for PID: {process.pid}")
-            kill_proc_tree(process.pid, signal.SIGTERM)
-            
-            # 2. しばらく待機
-            gone, alive = psutil.wait_procs([psutil.Process(process.pid)] if psutil.pid_exists(process.pid) else [], timeout=3)
-            
+
             # 3. まだ生きていれば SIGKILL で強制終了
             for p in alive:
                 log.warning(f"Process {p.pid} did not terminate, killing it.")
->>>>>>> 7f834a22b3dd6713b23f46ac1f2c89e8cf0c6c0d
                 try:
                     p.kill()
                 except psutil.NoSuchProcess:
                     pass
-<<<<<<< HEAD
-            process.wait()
-
-
-def test_cpu_memory_usage(roboface_process, duration):
-=======
 
             # 4. OSによるプロセスリソースの完全な回収 (Reaping)
             process.wait()
@@ -134,57 +95,28 @@ def test_cpu_memory_usage(roboface_process, duration):
                 log.error(f"roboface2.py stderr:\n{stderr.decode()}")
 
 
-def test_cpu_memory_usage(
-    roboface_process, duration, caplog
-):  # caplog 引数を追加
->>>>>>> 7f834a22b3dd6713b23f46ac1f2c89e8cf0c6c0d
+def test_cpu_memory_usage(roboface_process, duration):
     roboface_pid = roboface_process.pid
     log.info(
         f"Monitoring roboface2.py (PID: {roboface_pid}) for {duration} seconds..."
     )
 
-<<<<<<< HEAD
-=======
     # pigpiodのPIDを取得
->>>>>>> 7f834a22b3dd6713b23f46ac1f2c89e8cf0c6c0d
     pigpiod_pid = get_pigpiod_pid()
     assert pigpiod_pid is not None, "pigpiod process not found."
     log.info(f"Monitoring pigpiod (PID: {pigpiod_pid})")
 
     roboface_cpu_usages = []
-<<<<<<< HEAD
-    roboface_mem_usages = []
-    pigpiod_cpu_usages = []
-    pigpiod_mem_usages = []
-
-    sampling_interval = 1
-=======
     roboface_mem_usages = []  # MB単位
     pigpiod_cpu_usages = []
     pigpiod_mem_usages = []  # MB単位
 
     sampling_interval = 1  # 1秒ごとにサンプリング
->>>>>>> 7f834a22b3dd6713b23f46ac1f2c89e8cf0c6c0d
     end_time = time.time() + duration
 
     roboface_proc = psutil.Process(roboface_pid)
     pigpiod_proc = psutil.Process(pigpiod_pid)
 
-<<<<<<< HEAD
-    roboface_proc.cpu_percent(interval=None)
-    pigpiod_proc.cpu_percent(interval=None)
-    time.sleep(sampling_interval)
-
-    while time.time() < end_time:
-        try:
-            roboface_cpu = roboface_proc.cpu_percent(interval=None)
-            roboface_mem = roboface_proc.memory_info().rss / (1024 * 1024)
-            roboface_cpu_usages.append(roboface_cpu)
-            roboface_mem_usages.append(roboface_mem)
-
-            pigpiod_cpu = pigpiod_proc.cpu_percent(interval=None)
-            pigpiod_mem = pigpiod_proc.memory_info().rss / (1024 * 1024)
-=======
     # 最初の瞬間的なCPU使用率の計測を避けるために一度呼び出す
     roboface_proc.cpu_percent(interval=None)
     pigpiod_proc.cpu_percent(interval=None)
@@ -205,30 +137,10 @@ def test_cpu_memory_usage(
             pigpiod_mem = pigpiod_proc.memory_info().rss / (
                 1024 * 1024
             )  # bytes to MB
->>>>>>> 7f834a22b3dd6713b23f46ac1f2c89e8cf0c6c0d
             pigpiod_cpu_usages.append(pigpiod_cpu)
             pigpiod_mem_usages.append(pigpiod_mem)
 
             log.info(
-<<<<<<< HEAD
-                f"roboface CPU: {roboface_cpu:.1f}%, pigpiod CPU: {pigpiod_cpu:.1f}%"
-            )
-            time.sleep(sampling_interval)
-        except Exception as e:
-            log.error(f"Error: {e}")
-            break
-
-    if roboface_cpu_usages:
-        log.info("\n--- Performance Test Results ---")
-        log.info(
-            f"roboface2.py: Avg CPU: {sum(roboface_cpu_usages) / len(roboface_cpu_usages):.1f}%"
-        )
-        log.info(
-            f"pigpiod:      Avg CPU: {sum(pigpiod_cpu_usages) / len(pigpiod_cpu_usages):.1f}%"
-        )
-
-    assert roboface_process.poll() is None
-=======
                 f"Time left: {round(end_time - time.time())}s "
                 f"roboface CPU: {roboface_cpu:.2f}%, MEM: {roboface_mem:.2f}MB | "
                 f"pigpiod CPU: {pigpiod_cpu:.2f}%, MEM: {pigpiod_mem:.2f}MB"
@@ -276,4 +188,3 @@ def test_cpu_memory_usage(
     assert roboface_process.poll() is None, (
         "roboface2.py process terminated unexpectedly."
     )
->>>>>>> 7f834a22b3dd6713b23f46ac1f2c89e8cf0c6c0d

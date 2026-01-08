@@ -25,3 +25,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## [x] Track: samples/roboface2.py で,CPU負荷を下げる改良をしたい (roboface3.py) (2026-01-08)
 *Link: [./conductor/archive/roboface3_cpu_optimization_20260108/plan.md](./conductor/archive/roboface3_cpu_optimization_20260108/plan.md)*
+
+---
+
+## [~] Track: git pull したらコンフリクトが生じました。コンフリクトの解消をしたい。
+*Link: [./conductor/tracks/git_conflict_resolution_20260108/plan.md](./conductor/tracks/git_conflict_resolution_20260108/plan.md)*

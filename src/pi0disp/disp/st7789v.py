@@ -142,82 +142,36 @@ class ST7789V(DispSpi):
 
     def set_window(self, x0: int, y0: int, x1: int, y1: int):
         """描画ウィンドウを設定する"""
-<<<<<<< HEAD
         if self._mv:
             tx0, tx1 = x0 + self._y_offset, x1 + self._y_offset
             ty0, ty1 = y0 + self._x_offset, y1 + self._x_offset
         else:
             tx0, tx1 = x0 + self._x_offset, x1 + self._x_offset
             ty0, ty1 = y0 + self._y_offset, y1 + self._y_offset
-=======
-        window = (x0, y0, x1, y1)
-        if self._last_window != window:
-            if self._mv:
-                tx0, tx1 = x0 + self._y_offset, x1 + self._y_offset
-                ty0, ty1 = y0 + self._x_offset, y1 + self._x_offset
-            else:
-                tx0, tx1 = x0 + self._x_offset, x1 + self._x_offset
-                ty0, ty1 = y0 + self._y_offset, y1 + self._y_offset
 
-            self._write_command(self._CMD["CASET"])
-            self._write_data([tx0 >> 8, tx0 & 0xFF, tx1 >> 8, tx1 & 0xFF])
-            self._write_command(self._CMD["RASET"])
-            self._write_data([ty0 >> 8, ty0 & 0xFF, ty1 >> 8, ty1 & 0xFF])
-            self._last_window = window
->>>>>>> 7f834a22b3dd6713b23f46ac1f2c89e8cf0c6c0d
-
-        # RAMWR は窓設定の有無に関わらず、書き込み開始前に常に必要
+        self._write_command(self._CMD["CASET"])
+        self._write_data([tx0 >> 8, tx0 & 0xFF, tx1 >> 8, tx1 & 0xFF])
+        self._write_command(self._CMD["RASET"])
+        self._write_data([ty0 >> 8, ty0 & 0xFF, ty1 >> 8, ty1 & 0xFF])
         self._write_command(self._CMD["RAMWR"])
 
     def write_pixels(self, pixel_bytes: bytes):
         """ピクセルデータを書き込む"""
         chunk_size = self._optimizers["adaptive_chunking"].get_chunk_size()
         data_len = len(pixel_bytes)
-<<<<<<< HEAD
 
         self._set_dc_level(1)
         self._set_cs_level(0)
 
-=======
->>>>>>> 7f834a22b3dd6713b23f46ac1f2c89e8cf0c6c0d
         if data_len <= chunk_size:
-            self._write_data(pixel_bytes)
+            self.pi.spi_write(self.spi_handle, pixel_bytes)
         else:
             for i in range(0, data_len, chunk_size):
-                self._write_data(pixel_bytes[i : i + chunk_size])
-
-        def display(self, image: Image.Image):
-
-            """
-
-            全画面イメージを表示。
-
-            前回の表示イメージと比較し、差分のある矩形領域（Dirty Rectangle）のみを更新することで、
-
-            通信データ量とCPU負荷を最小限に抑える。
-
-            """
-
-            if image.size != self._size:
-
-                image = image.resize(self._size)
-
-    
-
-            if self._last_image is None:
-
-                # 初回表示は全画面
-
-                img_array = np.array(image)
-
-                pixel_bytes = self._optimizers["color_converter"].rgb_to_rgb565_bytes(
-
-                    img_array
-
+                self.pi.spi_write(
+                    self.spi_handle, pixel_bytes[i : i + chunk_size]
                 )
         self._set_cs_level(1)
 
-<<<<<<< HEAD
     def display(self, image: Image.Image, full: bool = False):
         """
         全画面イメージを表示。
@@ -258,63 +212,6 @@ class ST7789V(DispSpi):
             diff_bbox[0], diff_bbox[1], diff_bbox[2] - 1, diff_bbox[3] - 1
         )
         self.write_pixels(pixel_bytes)
-=======
-                self.set_window(0, 0, self.size.width - 1, self.size.height - 1)
-
-                self.write_pixels(pixel_bytes)
-
-                self._last_image = image.copy()
-
-                return
-
-    
-
-            # 前回のイメージとの差分領域 (Bounding Box) を高速に取得
-
-            # getbbox() は差分がない場合に None を返す
-
-            diff_bbox = ImageChops.difference(image, self._last_image).getbbox()
-
-            
-
-            if diff_bbox is None:
-
-                # 差分がない場合は何もしない
-
-                return
-
-    
-
-            # 差分領域のみ切り出して更新
-
-            # diff_bbox は (left, upper, right, lower)
-
-            region_img = image.crop(diff_bbox)
-
-            region_arr = np.array(region_img)
-
-            pixel_bytes = self._optimizers["color_converter"].rgb_to_rgb565_bytes(
-
-                region_arr
-
-            )
-
-            self.set_window(
-
-                diff_bbox[0], diff_bbox[1], diff_bbox[2] - 1, diff_bbox[3] - 1
-
-            )
-
-            self.write_pixels(pixel_bytes)
-
-    
-
-            # 今回のイメージを保存
-
-            self._last_image = image.copy()
-
-    
->>>>>>> 7f834a22b3dd6713b23f46ac1f2c89e8cf0c6c0d
 
         # 今回のイメージを保存
         self._last_image = image.copy()

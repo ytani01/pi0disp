@@ -18,7 +18,7 @@ import threading
 # import sys
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from logging import Logger
 from typing import ClassVar
 
@@ -890,7 +890,7 @@ class RfRenderer:
             screen_height,
             bg_color,
         )
-        
+
         # 背景イメージの作成・キャッシュ
         if self._base_face_img is None:
             base_img = Image.new("RGB", (self.size, self.size), bg_color)
@@ -901,7 +901,7 @@ class RfRenderer:
         # キャッシュからコピーしてパーツを描画
         img = self._base_face_img.copy()
         draw = ImageDraw.Draw(img)
-        
+
         self._draw_eyes(draw, face, gaze_offset_x)
         self._draw_mouth(draw, face)
 

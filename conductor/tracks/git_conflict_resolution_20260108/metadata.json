@@ -1,0 +1,8 @@
+{
+  "track_id": "git_conflict_resolution_20260108",
+  "type": "chore",
+  "status": "new",
+  "created_at": "2026-01-08T21:20:00Z",
+  "updated_at": "2026-01-08T21:20:00Z",
+  "description": "git pull したらコンフリクトが生じました。コンフリクトの解消をしたい。"
+}
