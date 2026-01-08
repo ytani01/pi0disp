@@ -1,6 +1,6 @@
 # Track: roboface2.py および pigpiod のCPU負荷最適化 - 実装計画
 
-## Phase 1: 現状分析と評価基準の定義
+## Phase 1: 現状分析と評価基準の定義 [checkpoint: 454d0af]
 - [x] Task: `roboface2.py` の現状のCPU負荷とメモリ使用量を測定する。
     - **測定結果 (10秒間、ランダムモード):**
         - `roboface2.py` (PID: 483328):
