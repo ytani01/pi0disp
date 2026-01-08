@@ -3,12 +3,12 @@
 ## フェーズ 1: 構造のリファクタリングとモード追加
 - [x] **タスク 1.1: クリックコマンドへのオプション追加** (6c3f420)
     - `src/pi0disp/commands/ballanime.py` の `ballanime` コマンドに `--mode [simple|fast]` オプションを追加し、デフォルトを `simple` に設定する。
-- [~] **タスク 1.2: ループ関数の分離**
+- [x] **タスク 1.2: ループ関数の分離** (2e39287)
     - 現在の `_main_loop_optimized` を参考に、`_loop_simple` と `_loop_fast` の 2 つの関数に分離し、モードに応じて呼び分ける構造にする。
-- [ ] **Task: Conductor - User Manual Verification 'フェーズ 1' (Protocol in workflow.md)**
+- [x] **Task: Conductor - User Manual Verification 'フェーズ 1' (Protocol in workflow.md)**
 
 ## フェーズ 2: Simple モードの実装（簡略化）
-- [ ] **タスク 2.1: 不要なロジックの削ぎ落とし**
+- [~] **タスク 2.1: 不要なロジックの削ぎ落とし**
     - `_loop_simple` 内から `dirty_regions` の計算、`RegionOptimizer.merge_regions`、`lcd.display_region` などの手動更新ロジックをすべて削除する。
 - [ ] **タスク 2.2: 自動差分更新への移行**
     - 描画済みの Image オブジェクトを `lcd.display(image)` に渡すだけのシンプルな実装に変更する。
