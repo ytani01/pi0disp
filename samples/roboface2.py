@@ -168,7 +168,6 @@ class CV2Disp(DisplayBase):
     def close(self) -> None:
         cv2.destroyAllWindows()
 
-
 def get_disp_dev(width: int, height: int, debug: bool = False) -> DisplayBase:
     """Create display device."""
     _log = get_logger("()", debug)
@@ -247,7 +246,8 @@ class RfConfig:
 
     # アニメーション定数
     ANIMATION: ClassVar[dict[str, float]] = {
-        "frame_interval": 0.1,
+        "fps": 20.0,  # 目標FPS
+        "frame_interval": 0.1,  # (互換性のために残す)
         "eye_open_threshold": 6,
         "mouth_open_threshold": 0.5,
         "mouth_aspect_ratio": 1.3,
@@ -585,9 +585,9 @@ class RfUpdater:
             # 表情変化がない場合は、ここでリターン
             return
 
-        #
+        # 
         # Update Face
-        #
+        # 
         p_rate = self.progress_rate()
         self.__log.debug(
             "elapsed time:%.2f,progress_rate=%.2f",
@@ -825,7 +825,7 @@ class RfRenderer:
             ],
         )
         self._draw_brows(
-            draw,
+            draw, 
             eye_x1,
             eye_x2,
             eye_y,
@@ -932,6 +932,10 @@ class RobotFace:
             debug=debug,
         )
 
+        # 最適化用：前回の状態を保持
+        self._last_state: RfState | None = None
+        self._last_gaze_x: float | None = None
+
     def start(self) -> None:
         """スレッドを開始する。"""
         self.__log.debug("Starting gaze manager thread...")
@@ -989,10 +993,32 @@ class RobotFace:
     ) -> None:
         """現在の顔の状態をディスプレイに描画・出力する。"""
         self.__log.debug("full=%s, bg_color=%s", full, bg_color)
+
+        current_state = self.updater.current_face
+        current_gaze_x = self.gaze_manager.current_x
+
+        # 状態変化のチェック
+        # NOTE: 浮動小数点の比較なので、視線については微小な変化を無視する
+        gaze_changed = (
+            self._last_gaze_x is None
+            or abs(self._last_gaze_x - current_gaze_x) > 0.01
+        )
+        state_changed = (
+            self._last_state is None or self._last_state != current_state
+        )
+
+        if not full and not state_changed and not gaze_changed:
+            self.__log.debug("No change detected. Skip drawing.")
+            return
+
         # 常にパーツを含んだイメージを取得する
         img = self.get_parts_image(disp.width, disp.height, bg_color)
         # ライブラリ側の自動差分更新（Dirty Rectangle）機能を使用する
         disp.display(img)
+
+        # 状態を保存
+        self._last_state = current_state.copy()
+        self._last_gaze_x = current_gaze_x
 
     def get_outline_image(
         self,
@@ -1128,7 +1154,8 @@ class RandomMode(AppMode):
         self.show_face_outline()
         self._robot_face.start()
 
-        interval = RfConfig.ANIMATION["frame_interval"]
+        fps = RfConfig.ANIMATION.get("fps", 20.0)
+        interval = 1.0 / fps
 
         try:
             # change face parts
@@ -1202,7 +1229,9 @@ class InteractiveMode(AppMode):
         # 初期表情
         self._new_face(time.time(), "_OO_")
 
-        interval = RfConfig.ANIMATION["frame_interval"]
+        fps = RfConfig.ANIMATION.get("fps", 20.0)
+        interval = 1.0 / fps
+
         try:
             # メインスレッドで描画ループを回す (OpenCVのGUIスレッド要件に対応)
             while self._running:
