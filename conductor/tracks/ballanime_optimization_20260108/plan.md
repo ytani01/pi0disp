@@ -16,12 +16,12 @@
 
 ## フェーズ 3: Fast モードの実装（極限最適化）
 - [x] **タスク 3.1: 背景キャッシュの導入** (2e39287)
-    - `_loop_fast` において、背景の生成・コピーコストを削減するために背景画像をキャッシュし、`copy()` して使い回す方式を徹底する。
+    - `_loop_fast` におにおいて、背景の生成・コピーコストを削減するために背景画像をキャッシュし、`copy()` して使い回す方式を徹底する。
 - [x] **タスク 3.2: 手動領域計算の洗練** (2e39287)
     - ボールの移動前後の領域を統合し、ドライバの差分検知をバイパスする `display_region` 呼び出しが最適に行われるように調整する。
 - [x] **Task: Conductor - User Manual Verification 'フェーズ 3' (Protocol in workflow.md)**
 
 ## フェーズ 4: パフォーマンス比較テストの構築
-- [~] **タスク 4.1: 計測用テストスクリプトの作成**
+- [x] **タスク 4.1: 計測用テストスクリプトの作成** (e177805)
     - `tests/test_performance.py` を拡張（または新規作成）し、両モードを一定時間実行して CPU 負荷と平均 FPS を取得・表示するテストを実装する。
-- [ ] **Task: Conductor - User Manual Verification 'フェーズ 4' (Protocol in workflow.md)**
+- [x] **Task: Conductor - User Manual Verification 'フェーズ 4' (Protocol in workflow.md)**
