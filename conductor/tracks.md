@@ -30,3 +30,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## [x] Track: git pull したらコンフリクトが生じました。コンフリクトの解消をしたい。 (2026-01-08)
 *Link: [./conductor/archive/git_conflict_resolution_20260108/plan.md](./conductor/archive/git_conflict_resolution_20260108/plan.md)*
+
+---
+
+## [x] Track: 先のトラックで最適化した内容をREADME.mdにまとめてアピールしたい。 (2026-01-08)
+*Link: [./conductor/archive/optimize_usage_docs_20260108/plan.md](./conductor/archive/optimize_usage_docs_20260108/plan.md)*
