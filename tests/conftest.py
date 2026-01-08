@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from click.testing import CliRunner  # 追加
+from click.testing import CliRunner
 
 from ._testbase_cli import (
     KEY_DOWN,
@@ -34,7 +34,11 @@ def pytest_addoption(parser):
     parser.addoption(
         "--duration",
         action="store",
+<<<<<<< HEAD
         default=10,
+=======
+        default=10,  # デフォルトは10秒
+>>>>>>> 7f834a22b3dd6713b23f46ac1f2c89e8cf0c6c0d
         type=int,
         help="パフォーマンス測定の実行時間 (秒)",
     )

@@ -248,8 +248,8 @@ class RfConfig:
 
     # アニメーション定数
     ANIMATION: ClassVar[dict[str, float]] = {
-        "fps": 20.0,  # 目標FPS
-        "frame_interval": 0.5,  # (互換性のために残すが、基本はfpsを使用)
+        "fps": 5.0,  # 目標FPS
+        "frame_interval": 0.1,  # (互換性のために残す)
         "eye_open_threshold": 6,
         "mouth_open_threshold": 0.5,
         "mouth_aspect_ratio": 1.3,
@@ -257,8 +257,8 @@ class RfConfig:
         "gaze_loop_duration": 3.0,
         "gaze_lerp_factor": 0.1,  # スレッド更新に合わせて少し緩やかにする
         "gaze_update_interval": 0.05,  # 20fps
-        "gaze_change_interval_min": 1.0,
-        "gaze_change_interval_max": 4.0,
+        "gaze_move_interval_min": 1.0,
+        "gaze_move_interval_max": 4.0,
         "gaze_x_range": 5.0,
     }
 
@@ -274,10 +274,9 @@ class RfConfig:
     }
 
     # 部分更新領域 (x1, y1, x2, y2)
+    # 通信回数削減のため、目と口を包含する単一領域に統合
     PART_REGIONS: ClassVar[list[tuple[int, int, int, int]]] = [
-        (41, 50, 105, 138),  # 左目
-        (150, 50, 215, 138),  # 右目
-        (89, 135, 170, 200),  # 口
+        (41, 50, 215, 200),  # 統合された顔パーツ領域
     ]
 
     # インスタンス変数 (必要に応じてオーバーライド可能)
@@ -423,11 +422,11 @@ class RfGazeManager(threading.Thread):
                 limit = RfConfig.ANIMATION["gaze_x_range"]
                 self.target_x = random.uniform(-limit, limit)
                 duration = random.uniform(
-                    RfConfig.ANIMATION["gaze_change_interval_min"],
-                    RfConfig.ANIMATION["gaze_change_interval_max"],
+                    RfConfig.ANIMATION["gaze_move_interval_min"],
+                    RfConfig.ANIMATION["gaze_move_interval_max"],
                 )
                 self._next_move_time = now + duration
-                self.__log.info(
+                self.__log.debug(
                     "New target_x: %.2f (next move in %.2f s)",
                     self.target_x,
                     duration,
@@ -657,6 +656,7 @@ class RfRenderer:
 
         self.size = size
         self.scale = size / 100.0
+        self._base_face_img: Image.Image | None = None
 
     def _scale_xy(self, x: float, y: float) -> tuple[int, int]:
         return (round(x * self.scale), round(y * self.scale))
@@ -890,10 +890,18 @@ class RfRenderer:
             screen_height,
             bg_color,
         )
-        img = Image.new("RGB", (self.size, self.size), bg_color)
-        draw = ImageDraw.Draw(img)
+        
+        # 背景イメージの作成・キャッシュ
+        if self._base_face_img is None:
+            base_img = Image.new("RGB", (self.size, self.size), bg_color)
+            base_draw = ImageDraw.Draw(base_img)
+            self._draw_background(base_draw)
+            self._base_face_img = base_img
 
-        self._draw_background(draw)
+        # キャッシュからコピーしてパーツを描画
+        img = self._base_face_img.copy()
+        draw = ImageDraw.Draw(img)
+        
         self._draw_eyes(draw, face, gaze_offset_x)
         self._draw_mouth(draw, face)
 
@@ -1016,10 +1024,8 @@ class RobotFace:
 
         # 常にパーツを含んだイメージを取得する
         img = self.get_parts_image(disp.width, disp.height, bg_color)
-        if full:
-            disp.display(img)
-        else:
-            disp.display_regions(img, RfConfig.PART_REGIONS)
+        # ライブラリ側の自動差分更新（Dirty Rectangle）機能を使用する
+        disp.display(img)
 
         # 状態を保存
         self._last_state = current_state.copy()
