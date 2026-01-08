@@ -43,7 +43,7 @@
             - Average Memory (RSS): 2.15MB
 - [x] Task: Conductor - User Manual Verification 'Phase 2: `pigpio` 操作の最適化' (Protocol in workflow.md)
 
-<h2>Phase 3: 通信オーバーヘッドと描画ロジックの最適化</h2>
+## Phase 3: 通信オーバーヘッドと描画ロジックの最適化 [checkpoint: af69db6]
 - [x] Task: `pigpiod` と `roboface2.py` 間のデータ転送メカニズムを分析する。
     - **分析結果:** 通信回数（ネットワーク往復）がボトルネック。チャンクサイズ拡大と差分更新が有効。
 - [x] Task: 通信オーバーヘッドを削減するためのアプローチ（例: データ構造の最適化、転送頻度の調整）を検討する。
