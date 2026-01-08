@@ -1,7 +1,8 @@
 # tests/conftest.py
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 from click.testing import CliRunner
 
 from ._testbase_cli import (
@@ -28,6 +29,7 @@ print(
     KEY_RIGHT,
 )
 
+
 def pytest_addoption(parser):
     parser.addoption(
         "--duration",
@@ -36,6 +38,7 @@ def pytest_addoption(parser):
         type=int,
         help="パフォーマンス測定の実行時間 (秒)",
     )
+
 
 @pytest.fixture(scope="session")
 def duration(request):

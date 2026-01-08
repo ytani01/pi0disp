@@ -384,7 +384,7 @@ class AdaptiveChunking:
         self,
         initial_size: int = 4096,
         min_size: int = 1024,
-        max_size: int = 32768,
+        max_size: int = 16384,
     ):
         self.chunk_size = initial_size
         self.min_size = min_size

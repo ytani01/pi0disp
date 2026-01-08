@@ -8,17 +8,18 @@
 from __future__ import annotations
 
 import math
+import queue
 import random
+import readline
 import socket
 import threading
-import queue
-import readline
+
 # import sys
 import time
 from abc import ABC, abstractmethod
-from typing import ClassVar
 from dataclasses import dataclass, field, replace
 from logging import Logger
+from typing import ClassVar
 
 # from typing import Callable
 import click
@@ -273,7 +274,7 @@ class RfConfig:
     # 部分更新領域 (x1, y1, x2, y2)
     # 通信回数削減のため、目と口を包含する単一領域に統合
     PART_REGIONS: ClassVar[list[tuple[int, int, int, int]]] = [
-        (41, 50, 215, 200), # 統合された顔パーツ領域
+        (41, 50, 215, 200),  # 統合された顔パーツ領域
     ]
 
     # インスタンス変数 (必要に応じてオーバーライド可能)
@@ -395,12 +396,15 @@ class RfGazeManager(threading.Thread):
                 pending_expr
                 and isinstance(pending_expr, str)
                 and self.updater
+                and self.parser
                 and not self.updater.is_changing
             ):
                 try:
                     target_face = self.parser.parse(pending_expr)
                     self.updater.start_change(target_face)
-                    self.__log.debug("Expression changed to: %s", pending_expr)
+                    self.__log.debug(
+                        "Expression changed to: %s", pending_expr
+                    )
                 except Exception as e:
                     self.__log.error(
                         "Failed to parse expression %s: %s",
@@ -514,9 +518,7 @@ class RfUpdater:
         duration: float | None = None,
     ) -> None:
         """変形開始."""
-        self.__log.debug(
-            "duration=%s,target_face=%s", duration, target_face
-        )
+        self.__log.debug("duration=%s,target_face=%s", duration, target_face)
 
         if not duration:
             duration = RfConfig.ANIMATION["face_change_duration"]
@@ -1325,6 +1327,7 @@ def main(
     except Exception as e:
         _log.error(errmsg(e))
         import traceback
+
         traceback.print_exc()
 
 

@@ -170,6 +170,9 @@ class DispSpi(DispBase):
         self.pi.write(self.pin.rst, 1)
         time.sleep(0.5)
 
+        # リセット後はDCの状態が不明なためキャッシュをクリア
+        self._last_dc_level = None
+
     def close(self):
         """リソースをクリーンアップし、SPI接続とGPIOピンを解放する。"""
         if self.pi.connected:

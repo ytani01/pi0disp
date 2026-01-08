@@ -143,22 +143,22 @@ class ST7789V(DispSpi):
     def set_window(self, x0: int, y0: int, x1: int, y1: int):
         """描画ウィンドウを設定する"""
         window = (x0, y0, x1, y1)
-        if self._last_window == window:
-            return
+        if self._last_window != window:
+            if self._mv:
+                tx0, tx1 = x0 + self._y_offset, x1 + self._y_offset
+                ty0, ty1 = y0 + self._x_offset, y1 + self._x_offset
+            else:
+                tx0, tx1 = x0 + self._x_offset, x1 + self._x_offset
+                ty0, ty1 = y0 + self._y_offset, y1 + self._y_offset
 
-        if self._mv:
-            tx0, tx1 = x0 + self._y_offset, x1 + self._y_offset
-            ty0, ty1 = y0 + self._x_offset, y1 + self._x_offset
-        else:
-            tx0, tx1 = x0 + self._x_offset, x1 + self._x_offset
-            ty0, ty1 = y0 + self._y_offset, y1 + self._y_offset
+            self._write_command(self._CMD["CASET"])
+            self._write_data([tx0 >> 8, tx0 & 0xFF, tx1 >> 8, tx1 & 0xFF])
+            self._write_command(self._CMD["RASET"])
+            self._write_data([ty0 >> 8, ty0 & 0xFF, ty1 >> 8, ty1 & 0xFF])
+            self._last_window = window
 
-        self._write_command(self._CMD["CASET"])
-        self._write_data([tx0 >> 8, tx0 & 0xFF, tx1 >> 8, tx1 & 0xFF])
-        self._write_command(self._CMD["RASET"])
-        self._write_data([ty0 >> 8, ty0 & 0xFF, ty1 >> 8, ty1 & 0xFF])
+        # RAMWR は窓設定の有無に関わらず、書き込み開始前に常に必要
         self._write_command(self._CMD["RAMWR"])
-        self._last_window = window
 
     def write_pixels(self, pixel_bytes: bytes):
         """ピクセルデータを書き込む"""
@@ -182,9 +182,9 @@ class ST7789V(DispSpi):
         if self._last_image is None:
             # 初回表示は全画面
             img_array = np.array(image)
-            pixel_bytes = self._optimizers["color_converter"].rgb_to_rgb565_bytes(
-                img_array
-            )
+            pixel_bytes = self._optimizers[
+                "color_converter"
+            ].rgb_to_rgb565_bytes(img_array)
             self.set_window(0, 0, self.size.width - 1, self.size.height - 1)
             self.write_pixels(pixel_bytes)
             self._last_image = image.copy()
@@ -193,10 +193,10 @@ class ST7789V(DispSpi):
         # 前回のイメージとの差分を検出
         curr_arr = np.array(image)
         last_arr = np.array(self._last_image)
-        
+
         # 差分があるピクセルを特定 (True/False マスク)
         diff = np.any(curr_arr != last_arr, axis=-1)
-        
+
         if not np.any(diff):
             # 差分がない場合は何もしない
             return
@@ -242,7 +242,7 @@ class ST7789V(DispSpi):
         if self._last_image is None:
             # まだ一度も全画面表示されていない場合は、背景色で初期化（仮に黒）
             self._last_image = Image.new("RGB", self._size, (0, 0, 0))
-        
+
         self._last_image.paste(region_img, region)
 
     def close(self):

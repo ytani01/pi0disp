@@ -28,6 +28,7 @@ dev = [
     "pytest-cov>=7.0.0",
     "pytest-xdist>=3.8.0",
     "ruff>=0.12.9",
+    "types-psutil>=7.2.1.20251231",
 ]
 samples = [
     "opencv-python>=4.11.0.86",

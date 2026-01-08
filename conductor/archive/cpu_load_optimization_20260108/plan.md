@@ -65,10 +65,13 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 3: 通信オーバーヘッドと描画ロジックの最適化' (Protocol in workflow.md)
 
 ## Phase 4: 品質保証と最終確認
-- [ ] Task: すべての単体テストおよび統合テストが成功することを確認する。
-- [ ] Task: リントツール (`mise run lint`) および型チェックツール (`mypy`) でエラーが発生しないことを確認する。
-- [ ] Task: 定義された受け入れ基準がすべて満たされていることを確認する。
-- [ ] Task: 実際のハードウェアまたはモック環境での長時間動作確認を実施する。
-- [ ] Task: コードの可読性と保守性が維持されていることを確認する。
-- [ ] Task: プロジェクトドキュメント（`product.md`, `tech-stack.md` など）が必要に応じて更新されていることを確認する。
-- [ ] Task: Conductor - User Manual Verification 'Phase 4: 品質保証と最終確認' (Protocol in workflow.md)
+- [x] Task: すべての単体テストおよび統合テストが成功することを確認する。
+- [x] Task: リントツール (`mise run lint`) および型チェックツール (`mypy`) でエラーが発生しないことを確認する。
+- [x] Task: 定義された受け入れ基準がすべて満たされていることを確認する。
+    - **最終結果:** `pigpiod` の負荷を初期状態の約 1/13 (104% -> 8%) まで削減。
+- [x] Task: 実際のハードウェアまたはモック環境での長時間動作確認を実施する。
+- [x] Task: コードの可読性と保守性が維持されていることを確認する。
+- [x] Task: プロジェクトドキュメント（`product.md`, `tech-stack.md` など）が必要に応じて更新されていることを確認する。
+    - **更新内容:** `docs/ST7789V-manual.md` に Dirty Rectangle の技術解説を追記。`product.md` に超低負荷描画性能を追記。
+- [x] Task: Conductor - User Manual Verification 'Phase 4: 品質保証と最終確認' (Protocol in workflow.md)
+    - **最終結果:** 画像の乱れを解消しつつ、`pigpiod` の負荷を劇的に削減 (104% -> 12%)。全テスト合格。
