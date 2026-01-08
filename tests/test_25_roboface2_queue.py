@@ -83,13 +83,19 @@ def test_sequential_expression_processing():
             f"DEBUG: Processed expressions count: {len(processed_expressions)}"
         )
 
-        # 少なくとも最初の2つ（初期 + 1番目）は確実に通過しているはず
-        assert len(processed_expressions) >= 2
-        assert processed_expressions[1] == expected_faces[1]
-
-        # 3秒待てば3つ目（>oo<）まで行っているはず
-        if len(processed_expressions) >= 3:
-            assert processed_expressions[2] == expected_faces[2]
+        # 記録されたターゲット（重複排除済み）の中に、期待される表情が含まれているか
+        # タイミングにより最初の "_OO_" が記録されない場合があるため、
+        # expressions が順番に出現することを確認する。
+        actual_idx = 0
+        for expected in [parser.parse(e) for e in expressions]:
+            # expected が出現するまで actual_idx を進める
+            found = False
+            while actual_idx < len(processed_expressions):
+                if processed_expressions[actual_idx] == expected:
+                    found = True
+                    break
+                actual_idx += 1
+            assert found, f"Expression {expected} not found in sequence"
 
     finally:
         face.stop()
