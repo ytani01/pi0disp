@@ -60,3 +60,34 @@ def test_ballanime_benchmark_cli():
         assert "--- Benchmark Results ---" in result.output
         assert "Mode: simple" in result.output
         assert "Avg FPS: 30.00" in result.output
+
+    # 秒数指定ありのテスト
+    with (
+        patch("src.pi0disp.commands.ballanime.ST7789V") as MockLCD,
+        patch("src.pi0disp.commands.ballanime.draw_text") as MockDrawText,
+        patch("PIL.ImageFont.truetype"),
+        patch(
+            "src.pi0disp.commands.ballanime.BenchmarkTracker"
+        ) as MockTracker,
+    ):
+        MockDrawText.return_value = (0, 0, 10, 10)
+        mock_lcd_instance = MockLCD.return_value.__enter__.return_value
+        mock_lcd_instance.size.width = 240
+        mock_lcd_instance.size.height = 240
+
+        mock_instance = MockTracker.return_value
+        mock_instance.should_stop.side_effect = [False, True]
+        mock_instance.get_results.return_value = {
+            "duration": 5.0,
+            "avg_fps": 30.0,
+            "avg_cpu": 10.0,
+            "avg_pigpiod": 5.0,
+            "total_frames": 150,
+        }
+
+        result = runner.invoke(
+            ballanime, ["--benchmark", "5", "--num-balls", "1"]
+        )
+        assert result.exit_code == 0
+        # BenchmarkTracker(duration=5) が呼ばれたことを確認
+        MockTracker.assert_called_with(duration=5)
