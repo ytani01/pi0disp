@@ -13,5 +13,5 @@
 
 ## フェーズ 3: 出力と検証
 - [x] **タスク 3.1: 計測結果のレポート表示** (69c998b)
-- [x] **タスク 3.2: ユニットテストの作成** (69c998b)
-- [ ] **Task: Conductor - User Manual Verification 'フェーズ 3' (Protocol in workflow.md)**
+- [x] **タスク 3.2: ユニットテストの作成** (044648d)
+- [x] **Task: Conductor - User Manual Verification 'フェーズ 3' (Protocol in workflow.md)** (044648d)
