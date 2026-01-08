@@ -15,6 +15,6 @@
 - [x] **タスク 3.2: 動作確認とテスト** (a5c4b06)
 - [x] **Task: Conductor - User Manual Verification 'フェーズ 3' (Protocol in workflow.md)** (a5c4b06)
 
-## フェーズ 4: 最終確認
+## フェーズ 4: 最終確認 [checkpoint: 3e909d0]
 - [x] **タスク 4.1: 全コマンドの統合テスト実行** (8dd80ae)
 - [x] **Task: Conductor - User Manual Verification 'フェーズ 4' (Protocol in workflow.md)** (8dd80ae)
