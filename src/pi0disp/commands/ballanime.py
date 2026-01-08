@@ -508,6 +508,14 @@ def _main_loop_optimized(
     help="Number of balls to display",
 )
 @click.option(
+    "--mode",
+    "-m",
+    type=click.Choice(["simple", "fast"], case_sensitive=False),
+    default="simple",
+    show_default=True,
+    help="Optimization mode: 'simple' for driver-level optimization, 'fast' for manual app-level optimization.",
+)
+@click.option(
     "--ball-speed",
     "-s",
     type=float,
@@ -525,19 +533,21 @@ def ballanime(
     spi_mhz: float,
     fps: float,
     num_balls: int,
+    mode: str,
     ball_speed: float,
     rst,
     dc,
     bl,
     debug,
 ) -> None:
-    """物理ベースのアニメーションデモを実行する（計算最適化版）。"""
+    """物理ベースのアニメーションデモを実行する。"""
     __log = get_logger(__name__, debug)
     __log.debug(
-        "spi_mhz=%s, fps=%s, num_balls=%s, ball_speed=%s",
+        "spi_mhz=%s, fps=%s, num_balls=%s, mode=%s, ball_speed=%s",
         spi_mhz,
         fps,
         num_balls,
+        mode,
         ball_speed,
     )
     __log.debug("rst=%s, dc=%s, bl=%s", rst, dc, bl)
