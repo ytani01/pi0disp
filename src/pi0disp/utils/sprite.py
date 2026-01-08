@@ -127,3 +127,54 @@ class Sprite(ABC):
             draw (ImageDraw.ImageDraw): The drawing context to use.
         """
         pass
+
+
+class CircleSprite(Sprite):
+    """
+    A sprite representing a circular object.
+    Can be manipulated using center coordinates (cx, cy) and radius.
+    """
+
+    __slots__ = ("_radius",)
+
+    def __init__(self, cx: float, cy: float, radius: int):
+        self._radius = radius
+        super().__init__(x=cx - radius, y=cy - radius, width=radius * 2, height=radius * 2)
+
+    @property
+    def cx(self) -> float:
+        """Returns the x-coordinate of the center."""
+        return self._x + self._radius
+
+    @cx.setter
+    def cx(self, val: float):
+        """Sets the x-coordinate of the center."""
+        self.x = val - self._radius
+
+    @property
+    def cy(self) -> float:
+        """Returns the y-coordinate of the center."""
+        return self._y + self._radius
+
+    @cy.setter
+    def cy(self, val: float):
+        """Sets the y-coordinate of the center."""
+        self.y = val - self._radius
+
+    @property
+    def radius(self) -> int:
+        """Returns the radius of the circle."""
+        return self._radius
+
+    @radius.setter
+    def radius(self, val: int):
+        """Sets the radius and updates size and position to keep the center."""
+        if self._radius != val:
+            # Maintain center
+            cx, cy = self.cx, self.cy
+            self._radius = val
+            self.width = val * 2
+            self.height = val * 2
+            self.cx, self.cy = cx, cy
+            self._dirty = True
+
