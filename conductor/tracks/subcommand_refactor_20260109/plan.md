@@ -10,7 +10,7 @@
 - [x] **タスク 2.2: 動作確認とテスト** (a3b1c30)
 - [x] **Task: Conductor - User Manual Verification 'フェーズ 2' (Protocol in workflow.md)** (a3b1c30)
 
-## フェーズ 3: image コマンドのリファクタリング
+## フェーズ 3: image コマンドのリファクタリング [checkpoint: 7911297]
 - [x] **タスク 3.1: src/pi0disp/commands/image.py の書き換え** (a5c4b06)
 - [x] **タスク 3.2: 動作確認とテスト** (a5c4b06)
 - [x] **Task: Conductor - User Manual Verification 'フェーズ 3' (Protocol in workflow.md)** (a5c4b06)
