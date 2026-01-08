@@ -1,8 +1,8 @@
 # 実装計画 - ballanime_benchmark_20260109
 
 ## フェーズ 1: 基盤整備と依存関係の追加
-- [x] **タスク 1.1: psutil の依存関係追加** (bde0bc7)
-- [ ] **タスク 1.2: ballanime コマンドへのオプション追加**
+- [x] **タスク 1.1: psutil の依存関係追加** (25150a9)
+- [x] **タスク 1.2: ballanime コマンドへのオプション追加** (25150a9)
 - [ ] **Task: Conductor - User Manual Verification 'フェーズ 1' (Protocol in workflow.md)**
 
 ## フェーズ 2: 計測ロジックの実装

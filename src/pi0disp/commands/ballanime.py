@@ -8,11 +8,13 @@ ST7789Vディスプレイで動作する、物理ベースのアニメーショ�
 
 import colorsys
 import math
+import os
 import time
 from typing import List, Optional
 
 import click
 import numpy as np
+import psutil
 from PIL import Image, ImageDraw, ImageFont
 
 from .. import (
@@ -521,6 +523,12 @@ def _loop_fast(
     help="Absolute speed of balls (pixels/second).",
 )
 @click.option(
+    "--benchmark",
+    "-B",
+    is_flag=True,
+    help="Run benchmark for 10 seconds and report FPS/CPU usage.",
+)
+@click.option(
     "--rst", type=int, default=25, show_default=True, help="RST PIN"
 )
 @click.option("--dc", type=int, default=24, show_default=True, help="DC PIN")
@@ -533,6 +541,7 @@ def ballanime(
     num_balls: int,
     mode: str,
     ball_speed: float,
+    benchmark: bool,
     rst,
     dc,
     bl,
@@ -541,12 +550,13 @@ def ballanime(
     """物理ベースのアニメーションデモを実行する。"""
     __log = get_logger(__name__, debug)
     __log.debug(
-        "spi_mhz=%s, fps=%s, num_balls=%s, mode=%s, ball_speed=%s",
+        "spi_mhz=%s, fps=%s, num_balls=%s, mode=%s, ball_speed=%s, benchmark=%s",
         spi_mhz,
         fps,
         num_balls,
         mode,
         ball_speed,
+        benchmark,
     )
     __log.debug("rst=%s, dc=%s, bl=%s", rst, dc, bl)
 
