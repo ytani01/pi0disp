@@ -655,6 +655,7 @@ class RfRenderer:
 
         self.size = size
         self.scale = size / 100.0
+        self._base_face_img: Image.Image | None = None
 
     def _scale_xy(self, x: float, y: float) -> tuple[int, int]:
         return (round(x * self.scale), round(y * self.scale))
@@ -888,10 +889,18 @@ class RfRenderer:
             screen_height,
             bg_color,
         )
-        img = Image.new("RGB", (self.size, self.size), bg_color)
-        draw = ImageDraw.Draw(img)
+        
+        # 背景イメージの作成・キャッシュ
+        if self._base_face_img is None:
+            base_img = Image.new("RGB", (self.size, self.size), bg_color)
+            base_draw = ImageDraw.Draw(base_img)
+            self._draw_background(base_draw)
+            self._base_face_img = base_img
 
-        self._draw_background(draw)
+        # キャッシュからコピーしてパーツを描画
+        img = self._base_face_img.copy()
+        draw = ImageDraw.Draw(img)
+        
         self._draw_eyes(draw, face, gaze_offset_x)
         self._draw_mouth(draw, face)
 

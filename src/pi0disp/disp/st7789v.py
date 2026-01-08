@@ -9,7 +9,7 @@ import time
 from typing import Optional, Tuple
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageChops
 
 from ..utils.mylogger import get_logger
 from ..utils.performance_core import create_optimizer_pack
@@ -170,56 +170,91 @@ class ST7789V(DispSpi):
             for i in range(0, data_len, chunk_size):
                 self._write_data(pixel_bytes[i : i + chunk_size])
 
-    def display(self, image: Image.Image):
-        """
-        全画面イメージを表示。
-        前回の表示イメージと比較し、差分のある矩形領域（Dirty Rectangle）のみを更新することで、
-        通信データ量とCPU負荷を最小限に抑える。
-        """
-        if image.size != self._size:
-            image = image.resize(self._size)
+        def display(self, image: Image.Image):
 
-        if self._last_image is None:
-            # 初回表示は全画面
-            img_array = np.array(image)
-            pixel_bytes = self._optimizers[
-                "color_converter"
-            ].rgb_to_rgb565_bytes(img_array)
-            self.set_window(0, 0, self.size.width - 1, self.size.height - 1)
+            """
+
+            全画面イメージを表示。
+
+            前回の表示イメージと比較し、差分のある矩形領域（Dirty Rectangle）のみを更新することで、
+
+            通信データ量とCPU負荷を最小限に抑える。
+
+            """
+
+            if image.size != self._size:
+
+                image = image.resize(self._size)
+
+    
+
+            if self._last_image is None:
+
+                # 初回表示は全画面
+
+                img_array = np.array(image)
+
+                pixel_bytes = self._optimizers["color_converter"].rgb_to_rgb565_bytes(
+
+                    img_array
+
+                )
+
+                self.set_window(0, 0, self.size.width - 1, self.size.height - 1)
+
+                self.write_pixels(pixel_bytes)
+
+                self._last_image = image.copy()
+
+                return
+
+    
+
+            # 前回のイメージとの差分領域 (Bounding Box) を高速に取得
+
+            # getbbox() は差分がない場合に None を返す
+
+            diff_bbox = ImageChops.difference(image, self._last_image).getbbox()
+
+            
+
+            if diff_bbox is None:
+
+                # 差分がない場合は何もしない
+
+                return
+
+    
+
+            # 差分領域のみ切り出して更新
+
+            # diff_bbox は (left, upper, right, lower)
+
+            region_img = image.crop(diff_bbox)
+
+            region_arr = np.array(region_img)
+
+            pixel_bytes = self._optimizers["color_converter"].rgb_to_rgb565_bytes(
+
+                region_arr
+
+            )
+
+            self.set_window(
+
+                diff_bbox[0], diff_bbox[1], diff_bbox[2] - 1, diff_bbox[3] - 1
+
+            )
+
             self.write_pixels(pixel_bytes)
+
+    
+
+            # 今回のイメージを保存
+
             self._last_image = image.copy()
-            return
 
-        # 前回のイメージとの差分を検出
-        curr_arr = np.array(image)
-        last_arr = np.array(self._last_image)
-
-        # 差分があるピクセルを特定 (True/False マスク)
-        diff = np.any(curr_arr != last_arr, axis=-1)
-
-        if not np.any(diff):
-            # 差分がない場合は何もしない
-            return
-
-        # 差分を包含する最小矩形 (Bounding Box) を計算
-        rows = np.any(diff, axis=1)
-        cols = np.any(diff, axis=0)
-        y0, y1 = np.where(rows)[0][[0, -1]]
-        x0, x1 = np.where(cols)[0][[0, -1]]
-
-        # 差分領域のみ更新
-        # display_region を呼ぶと _last_image の更新が難しいため、ここで直接処理する
-        region = (x0, y0, x1 + 1, y1 + 1)
-        region_img = image.crop(region)
-        region_arr = np.array(region_img)
-        pixel_bytes = self._optimizers["color_converter"].rgb_to_rgb565_bytes(
-            region_arr
-        )
-        self.set_window(region[0], region[1], region[2] - 1, region[3] - 1)
-        self.write_pixels(pixel_bytes)
-
-        # 今回のイメージを保存
-        self._last_image = image.copy()
+    
 
     def display_region(
         self, image: Image.Image, x0: int, y0: int, x1: int, y1: int
