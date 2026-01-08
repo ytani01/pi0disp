@@ -15,3 +15,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## [x] Track: 目の動きをスレッド化の修正 (2026-01-08)
 *Link: [./conductor/archive/eye_movement_thread_fix_20260108/plan.md](./conductor/archive/eye_movement_thread_fix_20260108/plan.md)*
+
+---
+
+## [~] Track: roboface2.py および pigpiod のCPU負荷最適化 (2026-01-08)
+*Link: [./conductor/tracks/cpu_load_optimization_20260108/](./conductor/tracks/cpu_load_optimization_20260108/)*

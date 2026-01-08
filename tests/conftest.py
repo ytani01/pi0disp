@@ -1,9 +1,8 @@
 # tests/conftest.py
 
-from unittest.mock import MagicMock, patch
-
 import pytest
-from click.testing import CliRunner  # 追加
+from unittest.mock import MagicMock, patch
+from click.testing import CliRunner
 
 from ._testbase_cli import (
     KEY_DOWN,
@@ -28,6 +27,19 @@ print(
     KEY_LEFT,
     KEY_RIGHT,
 )
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--duration",
+        action="store",
+        default=300,  # デフォルトは300秒 (5分)
+        type=int,
+        help="パフォーマンス測定の実行時間 (秒)",
+    )
+
+@pytest.fixture(scope="session")
+def duration(request):
+    return request.config.getoption("--duration")
 
 
 @pytest.fixture
