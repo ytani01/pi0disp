@@ -8,14 +8,14 @@
 - [x] **Task: Conductor - User Manual Verification 'フェーズ 1' (Protocol in workflow.md)**
 
 ## フェーズ 2: Simple モードの実装（簡略化）
-- [~] **タスク 2.1: 不要なロジックの削ぎ落とし**
+- [x] **タスク 2.1: 不要なロジックの削ぎ落とし** (2e39287)
     - `_loop_simple` 内から `dirty_regions` の計算、`RegionOptimizer.merge_regions`、`lcd.display_region` などの手動更新ロジックをすべて削除する。
-- [ ] **タスク 2.2: 自動差分更新への移行**
+- [x] **タスク 2.2: 自動差分更新への移行** (2e39287)
     - 描画済みの Image オブジェクトを `lcd.display(image)` に渡すだけのシンプルな実装に変更する。
-- [ ] **Task: Conductor - User Manual Verification 'フェーズ 2' (Protocol in workflow.md)**
+- [x] **Task: Conductor - User Manual Verification 'フェーズ 2' (Protocol in workflow.md)**
 
 ## フェーズ 3: Fast モードの実装（極限最適化）
-- [ ] **タスク 3.1: 背景キャッシュの導入**
+- [~] **タスク 3.1: 背景キャッシュの導入**
     - `_loop_fast` において、背景の生成・コピーコストを削減するために背景画像をキャッシュし、`copy()` して使い回す方式を徹底する。
 - [ ] **タスク 3.2: 手動領域計算の洗練**
     - ボールの移動前後の領域を統合し、ドライバの差分検知をバイパスする `display_region` 呼び出しが最適に行われるように調整する。
