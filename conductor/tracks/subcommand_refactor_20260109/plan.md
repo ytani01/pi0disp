@@ -6,9 +6,9 @@
 - [x] **Task: Conductor - User Manual Verification 'フェーズ 1' (Protocol in workflow.md)** (4f8c06d)
 
 ## フェーズ 2: coltest コマンドのリファクタリング
-- [ ] **タスク 2.1: src/pi0disp/commands/coltest.py の書き換え**
-- [ ] **タスク 2.2: 動作確認とテスト**
-- [ ] **Task: Conductor - User Manual Verification 'フェーズ 2' (Protocol in workflow.md)**
+- [x] **タスク 2.1: src/pi0disp/commands/coltest.py の書き換え** (a3b1c30)
+- [x] **タスク 2.2: 動作確認とテスト** (a3b1c30)
+- [x] **Task: Conductor - User Manual Verification 'フェーズ 2' (Protocol in workflow.md)** (a3b1c30)
 
 ## フェーズ 3: image コマンドのリファクタリング
 - [ ] **タスク 3.1: src/pi0disp/commands/image.py の書き換え**
