@@ -11,9 +11,9 @@
 - [x] **Task: Conductor - User Manual Verification 'フェーズ 2' (Protocol in workflow.md)** (a3b1c30)
 
 ## フェーズ 3: image コマンドのリファクタリング
-- [ ] **タスク 3.1: src/pi0disp/commands/image.py の書き換え**
-- [ ] **タスク 3.2: 動作確認とテスト**
-- [ ] **Task: Conductor - User Manual Verification 'フェーズ 3' (Protocol in workflow.md)**
+- [x] **タスク 3.1: src/pi0disp/commands/image.py の書き換え** (a5c4b06)
+- [x] **タスク 3.2: 動作確認とテスト** (a5c4b06)
+- [x] **Task: Conductor - User Manual Verification 'フェーズ 3' (Protocol in workflow.md)** (a5c4b06)
 
 ## フェーズ 4: 最終確認
 - [ ] **タスク 4.1: 全コマンドの統合テスト実行**
