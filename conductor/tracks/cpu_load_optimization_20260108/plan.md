@@ -44,12 +44,25 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 2: `pigpio` 操作の最適化' (Protocol in workflow.md)
 
 <h2>Phase 3: 通信オーバーヘッドと描画ロジックの最適化</h2>
-- [ ] Task: `pigpiod` と `roboface2.py` 間のデータ転送メカニズムを分析する。
-- [ ] Task: 通信オーバーヘッドを削減するためのアプローチ（例: データ構造の最適化、転送頻度の調整）を検討する。
-- [ ] Task: `roboface2.py` 内部の画像処理および描画ロジックを分析する。
-- [ ] Task: 新しい描画アルゴリズムやデータ構造（例: 変更領域のみの描画、効率的なバッファ管理）を導入し、`pigpio` への影響を最小限に抑える。
-- [ ] Task: 変更後のパフォーマンスを測定し、ベースラインと比較する。
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: 通信オーバーヘッドと描画ロジックの最適化' (Protocol in workflow.md)
+- [x] Task: `pigpiod` と `roboface2.py` 間のデータ転送メカニズムを分析する。
+    - **分析結果:** 通信回数（ネットワーク往復）がボトルネック。チャンクサイズ拡大と差分更新が有効。
+- [x] Task: 通信オーバーヘッドを削減するためのアプローチ（例: データ構造の最適化、転送頻度の調整）を検討する。
+    - **最適化内容:**
+        - `AdaptiveChunking` の `max_size` を 32KB に拡大。
+        - `ST7789V` に自動差分更新（Dirty Rectangle）機能を導入。
+- [x] Task: `roboface2.py` 内部の画像処理および描画ロジックを分析する。
+- [x] Task: 新しい描画アルゴリズムやデータ構造（例: 変更領域のみの描画、効率的なバッファ管理）を導入し、`pigpio` への影響を最小限に抑える。
+    - **最適化内容:** `roboface2.py` の手動部分更新を廃止し、ライブラリ層の自動差分更新に一元化。
+- [x] Task: 変更後のパフォーマンスを測定し、ベースラインと比較する。
+    - **測定結果 (10秒間、ランダムモード):**
+        - `roboface2.py` (PID: 504216):
+            - Average CPU: 0.00%
+            - Average Memory (RSS): 30.07MB
+        - `pigpiod` (PID: 500398):
+            - Average CPU: 7.77% (改善前: 103.81%, Phase 2 後: 53.97%)
+            - Max CPU: 20.90% (改善前: 105.90%, Phase 2 後: 66.70%)
+            - Average Memory (RSS): 2.16MB
+- [x] Task: Conductor - User Manual Verification 'Phase 3: 通信オーバーヘッドと描画ロジックの最適化' (Protocol in workflow.md)
 
 ## Phase 4: 品質保証と最終確認
 - [ ] Task: すべての単体テストおよび統合テストが成功することを確認する。

@@ -989,10 +989,8 @@ class RobotFace:
         self.__log.debug("full=%s, bg_color=%s", full, bg_color)
         # 常にパーツを含んだイメージを取得する
         img = self.get_parts_image(disp.width, disp.height, bg_color)
-        if full:
-            disp.display(img)
-        else:
-            disp.display_regions(img, RfConfig.PART_REGIONS)
+        # ライブラリ側の自動差分更新（Dirty Rectangle）機能を使用する
+        disp.display(img)
 
     def get_outline_image(
         self,
