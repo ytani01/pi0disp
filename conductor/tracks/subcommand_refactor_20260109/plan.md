@@ -16,5 +16,5 @@
 - [x] **Task: Conductor - User Manual Verification 'フェーズ 3' (Protocol in workflow.md)** (a5c4b06)
 
 ## フェーズ 4: 最終確認
-- [ ] **タスク 4.1: 全コマンドの統合テスト実行**
-- [ ] **Task: Conductor - User Manual Verification 'フェーズ 4' (Protocol in workflow.md)**
+- [x] **タスク 4.1: 全コマンドの統合テスト実行** (8dd80ae)
+- [x] **Task: Conductor - User Manual Verification 'フェーズ 4' (Protocol in workflow.md)** (8dd80ae)
