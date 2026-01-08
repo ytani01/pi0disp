@@ -13,10 +13,11 @@ import click
 import numpy as np
 from PIL import Image, ImageDraw
 
-from .. import ST7789V, __version__, click_common_opts, get_logger
+from .. import __version__, click_common_opts, get_logger
 from ..disp.disp_spi import SpiPins
+from ..disp.st7789v import ST7789V
 
-log = get_logger(__name__)
+__log = get_logger(__name__)
 
 
 class Coltest:
@@ -37,12 +38,22 @@ class Coltest:
     def setup_history(self):
         """Setup persistent history."""
         if os.path.exists(self.HIST_FILE):
-            readline.read_history_file(self.HIST_FILE)
+            try:
+                readline.read_history_file(self.HIST_FILE)
+            except Exception as e:
+                self.log.debug("Failed to read history file: %s", e)
 
         if hasattr(readline, "set_auto_history"):
             readline.set_auto_history(True)
 
-        atexit.register(readline.write_history_file, self.HIST_FILE)
+        atexit.register(self.save_history)
+
+    def save_history(self):
+        """Save history to file."""
+        try:
+            readline.write_history_file(self.HIST_FILE)
+        except Exception as e:
+            self.log.debug("Failed to write history file: %s", e)
 
     def generate_image(self):
         """Generates a test image based on current state."""
@@ -138,8 +149,8 @@ class Coltest:
                         click.echo(f"Unknown command token: {token}")
                         continue
 
-                    cmd, val = match.groups()
-                    val = max(0, min(255, int(val)))
+                    cmd, val_str = match.groups()
+                    val = max(0, min(255, int(val_str)))
 
                     if cmd == "r":
                         self.r = val
@@ -180,15 +191,15 @@ def coltest(ctx, rst, dc, bl, debug):
 
     try:
         with ST7789V(
-            pin=SpiPins(rst=rst, dc=dc, bl=bl), brightness=255
+            pin=SpiPins(rst=rst, dc=dc, bl=bl), brightness=255, debug=debug
         ) as lcd:
-            __log.info(
+            __log.debug(
                 "Display initialized: %sx%s", lcd.size.width, lcd.size.height
             )
             session = Coltest(lcd, __log)
             session.run()
     except Exception as e:
-        __log.error("Failed to initialize display: %s", e)
+        __log.error(f"Error occurred: {e}")
         exit(1)
     finally:
         click.echo("Done.")
