@@ -8,17 +8,18 @@
 from __future__ import annotations
 
 import math
+import queue
 import random
+import readline
 import socket
 import threading
-import queue
-import readline
+
 # import sys
 import time
 from abc import ABC, abstractmethod
-from typing import ClassVar
 from dataclasses import dataclass, field, replace
 from logging import Logger
+from typing import ClassVar
 
 # from typing import Callable
 import click
@@ -246,7 +247,7 @@ class RfConfig:
 
     # アニメーション定数
     ANIMATION: ClassVar[dict[str, float]] = {
-        "frame_interval": 0.1,
+        "frame_interval": 0.5,
         "eye_open_threshold": 6,
         "mouth_open_threshold": 0.5,
         "mouth_aspect_ratio": 1.3,
@@ -254,8 +255,8 @@ class RfConfig:
         "gaze_loop_duration": 3.0,
         "gaze_lerp_factor": 0.1,  # スレッド更新に合わせて少し緩やかにする
         "gaze_update_interval": 0.05,  # 20fps
-        "gaze_move_interval_min": 1.0,
-        "gaze_move_interval_max": 4.0,
+        "gaze_change_interval_min": 1.0,
+        "gaze_change_interval_max": 4.0,
         "gaze_x_range": 5.0,
     }
 
@@ -273,8 +274,8 @@ class RfConfig:
     # 部分更新領域 (x1, y1, x2, y2)
     PART_REGIONS: ClassVar[list[tuple[int, int, int, int]]] = [
         (41, 50, 105, 138),  # 左目
-        (150, 50, 215, 138), # 右目
-        (89, 135, 170, 200), # 口
+        (150, 50, 215, 138),  # 右目
+        (89, 135, 170, 200),  # 口
     ]
 
     # インスタンス変数 (必要に応じてオーバーライド可能)
@@ -401,7 +402,9 @@ class RfGazeManager(threading.Thread):
                 try:
                     target_face = self.parser.parse(pending_expr)
                     self.updater.start_change(target_face)
-                    self.__log.debug("Expression changed to: %s", pending_expr)
+                    self.__log.debug(
+                        "Expression changed to: %s", pending_expr
+                    )
                 except Exception as e:
                     self.__log.error(
                         "Failed to parse expression %s: %s",
@@ -417,11 +420,11 @@ class RfGazeManager(threading.Thread):
                 limit = RfConfig.ANIMATION["gaze_x_range"]
                 self.target_x = random.uniform(-limit, limit)
                 duration = random.uniform(
-                    RfConfig.ANIMATION["gaze_move_interval_min"],
-                    RfConfig.ANIMATION["gaze_move_interval_max"],
+                    RfConfig.ANIMATION["gaze_change_interval_min"],
+                    RfConfig.ANIMATION["gaze_change_interval_max"],
                 )
                 self._next_move_time = now + duration
-                self.__log.debug(
+                self.__log.info(
                     "New target_x: %.2f (next move in %.2f s)",
                     self.target_x,
                     duration,
@@ -515,9 +518,7 @@ class RfUpdater:
         duration: float | None = None,
     ) -> None:
         """変形開始."""
-        self.__log.debug(
-            "duration=%s,target_face=%s", duration, target_face
-        )
+        self.__log.debug("duration=%s,target_face=%s", duration, target_face)
 
         if not duration:
             duration = RfConfig.ANIMATION["face_change_duration"]
@@ -1328,6 +1329,7 @@ def main(
     except Exception as e:
         _log.error(errmsg(e))
         import traceback
+
         traceback.print_exc()
 
 
