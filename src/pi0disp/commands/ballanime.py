@@ -207,9 +207,9 @@ class BenchmarkTracker:
         self.pigpiod_samples: List[float] = []
 
         # pigpiod プロセスを特定
-        for p in psutil.process_iter(['name']):
+        for p in psutil.process_iter(["name"]):
             try:
-                if p.info['name'] == 'pigpiod':
+                if p.info["name"] == "pigpiod":
                     self.pigpiod_process = p
                     break
             except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -227,13 +227,15 @@ class BenchmarkTracker:
             return
 
         self.total_frames += 1
-        
+
         # 1秒ごとにCPU負荷をサンプリング
         elapsed = time.time() - self.start_time
         if int(elapsed) > len(self.cpu_samples):
             self.cpu_samples.append(self.process.cpu_percent(interval=None))
             if self.pigpiod_process:
-                self.pigpiod_samples.append(self.pigpiod_process.cpu_percent(interval=None))
+                self.pigpiod_samples.append(
+                    self.pigpiod_process.cpu_percent(interval=None)
+                )
 
     def should_stop(self) -> bool:
         if self.start_time is None:
@@ -243,15 +245,23 @@ class BenchmarkTracker:
     def get_results(self) -> dict:
         elapsed = time.time() - (self.start_time or time.time())
         avg_fps = self.total_frames / elapsed if elapsed > 0 else 0
-        avg_cpu = sum(self.cpu_samples) / len(self.cpu_samples) if self.cpu_samples else 0
-        avg_pigpiod = sum(self.pigpiod_samples) / len(self.pigpiod_samples) if self.pigpiod_samples else 0
-        
+        avg_cpu = (
+            sum(self.cpu_samples) / len(self.cpu_samples)
+            if self.cpu_samples
+            else 0
+        )
+        avg_pigpiod = (
+            sum(self.pigpiod_samples) / len(self.pigpiod_samples)
+            if self.pigpiod_samples
+            else 0
+        )
+
         return {
             "duration": elapsed,
             "avg_fps": avg_fps,
             "avg_cpu": avg_cpu,
             "avg_pigpiod": avg_pigpiod,
-            "total_frames": self.total_frames
+            "total_frames": self.total_frames,
         }
 
 
@@ -440,7 +450,10 @@ def _loop_simple(
     while True:
         frame_count += 1
         current_time = time.time()
-        delta_t = max(min(current_time - last_frame_time, target_duration * 2.5), target_duration * 0.2)
+        delta_t = max(
+            min(current_time - last_frame_time, target_duration * 2.5),
+            target_duration * 0.2,
+        )
         last_frame_time = current_time
         sub_delta_t = delta_t * inv_substeps
 
@@ -510,7 +523,10 @@ def _loop_fast(
     while True:
         frame_count += 1
         current_time = time.time()
-        delta_t = max(min(current_time - last_frame_time, target_duration * 2.5), target_duration * 0.2)
+        delta_t = max(
+            min(current_time - last_frame_time, target_duration * 2.5),
+            target_duration * 0.2,
+        )
         last_frame_time = current_time
         sub_delta_t = delta_t * inv_substeps
 
@@ -528,16 +544,44 @@ def _loop_fast(
             curr_bbox = ball.get_bbox()
             dirty_region = merge_bboxes(prev_bbox, curr_bbox)
             if dirty_region:
-                dirty_regions.append(RegionOptimizer.clamp_region(expand_bbox(dirty_region, 1), screen_width, screen_height))
+                dirty_regions.append(
+                    RegionOptimizer.clamp_region(
+                        expand_bbox(dirty_region, 1),
+                        screen_width,
+                        screen_height,
+                    )
+                )
             ball.draw(draw)
             ball.prev_bbox = curr_bbox
 
         if fps_counter.update():
             if prev_fps_bbox:
-                hud_draw.rectangle((prev_fps_bbox[0]-4, prev_fps_bbox[1]-6, prev_fps_bbox[2]+4, prev_fps_bbox[3]+6), fill=(0, 0, 0, 0))
-            current_fps_bbox = draw_text(hud_draw, fps_counter.fps_text, font, x="left", y="top", width=screen_width, height=screen_height, color=TEXT_COLOR)
+                hud_draw.rectangle(
+                    (
+                        prev_fps_bbox[0] - 4,
+                        prev_fps_bbox[1] - 6,
+                        prev_fps_bbox[2] + 4,
+                        prev_fps_bbox[3] + 6,
+                    ),
+                    fill=(0, 0, 0, 0),
+                )
+            current_fps_bbox = draw_text(
+                hud_draw,
+                fps_counter.fps_text,
+                font,
+                x="left",
+                y="top",
+                width=screen_width,
+                height=screen_height,
+                color=TEXT_COLOR,
+            )
             if current_fps_bbox:
-                expanded_fps = (current_fps_bbox[0]-4, current_fps_bbox[1]-6, current_fps_bbox[2]+4, current_fps_bbox[3]+6)
+                expanded_fps = (
+                    current_fps_bbox[0] - 4,
+                    current_fps_bbox[1] - 6,
+                    current_fps_bbox[2] + 4,
+                    current_fps_bbox[3] + 6,
+                )
                 dirty_regions.append(expanded_fps)
                 prev_fps_bbox = current_fps_bbox
 
@@ -546,7 +590,9 @@ def _loop_fast(
         final_frame = frame_rgba.convert("RGB")
 
         if dirty_regions:
-            optimized = RegionOptimizer.merge_regions(dirty_regions, max_regions=8)
+            optimized = RegionOptimizer.merge_regions(
+                dirty_regions, max_regions=8
+            )
             for r in optimized:
                 lcd.display_region(final_frame, *r)
 
@@ -694,9 +740,25 @@ def ballanime(
 
             # モードに応じたメインループを開始
             if mode.lower() == "fast":
-                _loop_fast(lcd, background_image, balls, fps_counter, font_large, fps, tracker)
+                _loop_fast(
+                    lcd,
+                    background_image,
+                    balls,
+                    fps_counter,
+                    font_large,
+                    fps,
+                    tracker,
+                )
             else:
-                _loop_simple(lcd, background_image, balls, fps_counter, font_large, fps, tracker)
+                _loop_simple(
+                    lcd,
+                    background_image,
+                    balls,
+                    fps_counter,
+                    font_large,
+                    fps,
+                    tracker,
+                )
 
             if tracker:
                 res = tracker.get_results()
