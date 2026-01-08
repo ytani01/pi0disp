@@ -108,6 +108,7 @@ class DispSpi(DispBase):
 
         self._brightness = brightness
         self._backlight_on = False
+        self._last_dc_level: Optional[int] = None
 
         # Configure GPIO pins
         for p in [self.pin.rst, self.pin.dc, self.pin.bl, self.pin.cs]:
@@ -123,12 +124,16 @@ class DispSpi(DispBase):
 
     def _write_command(self, command: int):
         """ディスプレイにコマンドバイトを送信する。"""
-        self.pi.write(self.pin.dc, 0)
+        if self._last_dc_level != 0:
+            self.pi.write(self.pin.dc, 0)
+            self._last_dc_level = 0
         self.pi.spi_write(self.spi_handle, [command])
 
     def _write_data(self, data: Union[int, bytes, list]):
         """ディスプレイにデータバイトまたはバッファを送信する。"""
-        self.pi.write(self.pin.dc, 1)
+        if self._last_dc_level != 1:
+            self.pi.write(self.pin.dc, 1)
+            self._last_dc_level = 1
         if isinstance(data, int):
             self.pi.spi_write(self.spi_handle, [data])
         else:

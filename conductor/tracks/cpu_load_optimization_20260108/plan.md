@@ -23,13 +23,25 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: 現状分析と評価基準の定義' (Protocol in workflow.md)
 
 ## Phase 2: `pigpio` 操作の最適化
-- [ ] Task: `roboface2.py` および関連モジュールにおける `pigpio` GPIO操作の箇所を特定する。
-- [ ] Task: `pigpio` 操作の頻度を削減するためのコード変更案を検討する。
-    - [ ] バッチ処理や差分更新の導入を検討する。
-    - [ ] `pigpio.pi.wave()` の利用可能性を評価する。
-- [ ] Task: 変更案に基づいて`pigpio`操作を最適化する。
-- [ ] Task: 最適化後のパフォーマンスを測定し、ベースラインと比較する。
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: `pigpio` 操作の最適化' (Protocol in workflow.md)
+- [x] Task: `roboface2.py` および関連モジュールにおける `pigpio` GPIO操作の箇所を特定する。
+- [x] Task: `pigpio` 操作の頻度を削減するためのコード変更案を検討する。
+    - **決定案:** GPIO (DCピン) 操作の冗長な呼び出しを削除し、SPI送信と集約する。また、`roboface2.py` の部分更新領域を統合し、`set_window` の呼び出し回数を削減する。
+- [x] Task: 変更案に基づいて`pigpio`操作を最適化する。
+    - **最適化内容:**
+        - `DispSpi` で `DC` ピンの状態をキャッシュし、不要な `pi.write` 呼び出しを削減。
+        - `ST7789V.write_pixels` から冗長な `DC` 設定を削除。
+        - `roboface2.py` の部分更新領域を統合し、通信回数を削減。
+- [x] Task: 最適化後のパフォーマンスを測定し、ベースラインと比較する。
+    - **測定結果 (10秒間、ランダムモード):**
+        - `roboface2.py` (PID: 502322):
+            - Average CPU: 0.00%
+            - Max CPU: 0.00%
+            - Average Memory (RSS): 29.89MB
+        - `pigpiod` (PID: 500398):
+            - Average CPU: 53.97% (改善前: 103.81%)
+            - Max CPU: 66.70% (改善前: 105.90%)
+            - Average Memory (RSS): 2.15MB
+- [x] Task: Conductor - User Manual Verification 'Phase 2: `pigpio` 操作の最適化' (Protocol in workflow.md)
 
 <h2>Phase 3: 通信オーバーヘッドと描画ロジックの最適化</h2>
 - [ ] Task: `pigpiod` と `roboface2.py` 間のデータ転送メカニズムを分析する。

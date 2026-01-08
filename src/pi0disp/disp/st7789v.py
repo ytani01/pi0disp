@@ -163,14 +163,11 @@ class ST7789V(DispSpi):
         """ピクセルデータを書き込む"""
         chunk_size = self._optimizers["adaptive_chunking"].get_chunk_size()
         data_len = len(pixel_bytes)
-        self.pi.write(self.pin.dc, 1)
         if data_len <= chunk_size:
-            self.pi.spi_write(self.spi_handle, pixel_bytes)
+            self._write_data(pixel_bytes)
         else:
             for i in range(0, data_len, chunk_size):
-                self.pi.spi_write(
-                    self.spi_handle, pixel_bytes[i : i + chunk_size]
-                )
+                self._write_data(pixel_bytes[i : i + chunk_size])
 
     def display(self, image: Image.Image):
         """全画面表示"""
