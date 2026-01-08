@@ -7,10 +7,10 @@
 - [x] **Task: Conductor - User Manual Verification 'フェーズ 1' (Protocol in workflow.md)** (d7bcf7d)
 
 ## フェーズ 2: CircleSprite の実装
-- [x] **タスク 2.1: CircleSprite クラスの追加** (d7bcf7d)
-- [x] **タスク 2.2: bbox プロパティのオーバーライド** (d7bcf7d)
-- [ ] **Task: Conductor - User Manual Verification 'フェーズ 2' (Protocol in workflow.md)**
+- [x] **タスク 2.1: CircleSprite クラスの追加** (d76956c)
+- [x] **タスク 2.2: bbox プロパティのオーバーライド** (d76956c)
+- [x] **Task: Conductor - User Manual Verification 'フェーズ 2' (Protocol in workflow.md)** (d76956c)
 
 ## フェーズ 3: テストと検証
-- [ ] **タスク 3.1: ユニットテストの作成**
+- [x] **タスク 3.1: ユニットテストの作成** (d76956c)
 - [ ] **Task: Conductor - User Manual Verification 'フェーズ 3' (Protocol in workflow.md)**
