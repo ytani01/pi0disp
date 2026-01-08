@@ -1,0 +1,8 @@
+{
+  "track_id": "subcommand_refactor_20260109",
+  "type": "chore",
+  "status": "new",
+  "created_at": "2026-01-09T00:00:00Z",
+  "updated_at": "2026-01-09T00:00:00Z",
+  "description": "pi0dispのサブコマンド: coltest,image,rgbも、現在のST7789Vの仕様に合わせて改良したい。"
+}
