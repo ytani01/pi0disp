@@ -12,5 +12,5 @@
 - [x] **Task: Conductor - User Manual Verification 'フェーズ 2' (Protocol in workflow.md)** (d76956c)
 
 ## フェーズ 3: テストと検証
-- [x] **タスク 3.1: ユニットテストの作成** (d76956c)
-- [ ] **Task: Conductor - User Manual Verification 'フェーズ 3' (Protocol in workflow.md)**
+- [x] **タスク 3.1: ユニットテストの作成** (ae52126)
+- [x] **Task: Conductor - User Manual Verification 'フェーズ 3' (Protocol in workflow.md)** (ae52126)

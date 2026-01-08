@@ -744,7 +744,9 @@ def ballanime(
             if benchmark is not None:
                 duration = int(benchmark)
                 if duration < 1:
-                    __log.warning("Benchmark duration must be at least 1s. Using default 10s.")
+                    __log.warning(
+                        "Benchmark duration must be at least 1s. Using default 10s."
+                    )
                     duration = 10
                 tracker = BenchmarkTracker(duration=duration)
 

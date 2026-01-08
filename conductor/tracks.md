@@ -9,5 +9,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-## [ ] Track: report.md に基づいて、sprite.py をリファクタリングする。
+## [x] Track: report.md に基づいて、sprite.py をリファクタリングする。 (2026-01-09)
 *Link: [./conductor/tracks/sprite_refactor_20260109/](./conductor/tracks/sprite_refactor_20260109/)*

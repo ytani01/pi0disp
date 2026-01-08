@@ -139,7 +139,9 @@ class CircleSprite(Sprite):
 
     def __init__(self, cx: float, cy: float, radius: int):
         self._radius = radius
-        super().__init__(x=cx - radius, y=cy - radius, width=radius * 2, height=radius * 2)
+        super().__init__(
+            x=cx - radius, y=cy - radius, width=radius * 2, height=radius * 2
+        )
 
     @property
     def cx(self) -> float:
@@ -177,4 +179,3 @@ class CircleSprite(Sprite):
             self.height = val * 2
             self.cx, self.cy = cx, cy
             self._dirty = True
-
