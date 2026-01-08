@@ -15,9 +15,9 @@
 - [x] **Task: Conductor - User Manual Verification 'フェーズ 2' (Protocol in workflow.md)**
 
 ## フェーズ 3: Fast モードの実装（極限最適化）
-- [~] **タスク 3.1: 背景キャッシュの導入**
+- [x] **タスク 3.1: 背景キャッシュの導入** (2e39287)
     - `_loop_fast` において、背景の生成・コピーコストを削減するために背景画像をキャッシュし、`copy()` して使い回す方式を徹底する。
-- [ ] **タスク 3.2: 手動領域計算の洗練**
+- [~] **タスク 3.2: 手動領域計算の洗練**
     - ボールの移動前後の領域を統合し、ドライバの差分検知をバイパスする `display_region` 呼び出しが最適に行われるように調整する。
 - [ ] **Task: Conductor - User Manual Verification 'フェーズ 3' (Protocol in workflow.md)**
 
