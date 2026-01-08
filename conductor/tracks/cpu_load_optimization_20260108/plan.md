@@ -22,7 +22,7 @@
 - [x] Task: `pigpiod` のCPU使用率、フレームレート、メモリ使用量の具体的な目標値を定義する。
 - [x] Task: Conductor - User Manual Verification 'Phase 1: 現状分析と評価基準の定義' (Protocol in workflow.md)
 
-## Phase 2: `pigpio` 操作の最適化
+## Phase 2: `pigpio` 操作の最適化 [checkpoint: c5c22e7]
 - [x] Task: `roboface2.py` および関連モジュールにおける `pigpio` GPIO操作の箇所を特定する。
 - [x] Task: `pigpio` 操作の頻度を削減するためのコード変更案を検討する。
     - **決定案:** GPIO (DCピン) 操作の冗長な呼び出しを削除し、SPI送信と集約する。また、`roboface2.py` の部分更新領域を統合し、`set_window` の呼び出し回数を削減する。
