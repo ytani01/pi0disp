@@ -40,3 +40,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## [x] Track: ドライバの改良に伴い、src/pi0disp/commands/ballanime.py のコードをより改良または簡略化出来ないか検討したい。 (2026-01-09)
 *Link: [./conductor/tracks/ballanime_optimization_20260108/](./conductor/tracks/ballanime_optimization_20260108/)*
+
+---
+
+## [ ] Track: ballanime の simple とfastモードの実行FPSを比較したい。
+*Link: [./conductor/tracks/ballanime_benchmark_20260109/](./conductor/tracks/ballanime_benchmark_20260109/)*
