@@ -247,7 +247,7 @@ class RfConfig:
 
     # アニメーション定数
     ANIMATION: ClassVar[dict[str, float]] = {
-        "fps": 20.0,  # 目標FPS
+        "fps": 5.0,  # 目標FPS
         "frame_interval": 0.1,  # (互換性のために残す)
         "eye_open_threshold": 6,
         "mouth_open_threshold": 0.5,
