@@ -42,29 +42,49 @@ def roboface_process():
     process = None
     try:
         # Popenでサブプロセスとして起動
-        # stdoutとstderrはPIPEにリダイレクトして親プロセスで制御
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            preexec_fn=os.setsid,  # プロセスグループを作成し、子プロセスをまとめて管理
+            preexec_fn=os.setsid,  # プロセスグループを作成
         )
         log.info(f"Started roboface2.py with PID: {process.pid}")
         yield process
     finally:
-        if process and process.poll() is None:
-            # プロセスがまだ実行中であれば終了させる
-            log.info(f"Terminating roboface2.py with PID: {process.pid}")
-            os.killpg(
-                os.getpgid(process.pid), signal.SIGTERM
-            )  # プロセスグループ全体を終了
-            process.wait(timeout=5)
-            if process.poll() is None:
-                os.killpg(os.getpgid(process.pid), signal.SIGKILL)  # 強制終了
         if process:
+            # プロセスツリー全体を停止させるための関数
+            def kill_proc_tree(pid, sig=signal.SIGTERM, include_parent=True):
+                try:
+                    parent = psutil.Process(pid)
+                    children = parent.children(recursive=True)
+                    for child in children:
+                        child.send_signal(sig)
+                    if include_parent:
+                        parent.send_signal(sig)
+                except psutil.NoSuchProcess:
+                    pass
+
+            # 1. まず SIGTERM で優しく終了を試みる
+            log.info(f"Terminating process tree for PID: {process.pid}")
+            kill_proc_tree(process.pid, signal.SIGTERM)
+            
+            # 2. しばらく待機
+            gone, alive = psutil.wait_procs([psutil.Process(process.pid)] if psutil.pid_exists(process.pid) else [], timeout=3)
+            
+            # 3. まだ生きていれば SIGKILL で強制終了
+            for p in alive:
+                log.warning(f"Process {p.pid} did not terminate, killing it.")
+                try:
+                    p.kill()
+                except psutil.NoSuchProcess:
+                    pass
+
+            # 4. OSによるプロセスリソースの完全な回収 (Reaping)
+            process.wait()
+
             stdout, stderr = process.communicate()
             if stdout:
-                log.info(f"roboface2.py stdout:\n{stdout.decode()}")
+                log.info(f"roboface2.py stdout captured (len: {len(stdout)})")
             if stderr:
                 log.error(f"roboface2.py stderr:\n{stderr.decode()}")
 
