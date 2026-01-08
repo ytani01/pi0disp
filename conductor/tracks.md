@@ -28,5 +28,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-## [~] Track: git pull したらコンフリクトが生じました。コンフリクトの解消をしたい。
-*Link: [./conductor/tracks/git_conflict_resolution_20260108/plan.md](./conductor/tracks/git_conflict_resolution_20260108/plan.md)*
+## [x] Track: git pull したらコンフリクトが生じました。コンフリクトの解消をしたい。 (2026-01-08)
+*Link: [./conductor/archive/git_conflict_resolution_20260108/plan.md](./conductor/archive/git_conflict_resolution_20260108/plan.md)*
