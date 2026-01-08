@@ -194,6 +194,67 @@ class FpsCounter:
         return False
 
 
+class BenchmarkTracker:
+    """ベンチマーク計測クラス"""
+
+    def __init__(self, duration: float = 10.0):
+        self.duration = duration
+        self.start_time: Optional[float] = None
+        self.total_frames = 0
+        self.process = psutil.Process(os.getpid())
+        self.pigpiod_process: Optional[psutil.Process] = None
+        self.cpu_samples: List[float] = []
+        self.pigpiod_samples: List[float] = []
+
+        # pigpiod プロセスを特定
+        for p in psutil.process_iter(['name']):
+            try:
+                if p.info['name'] == 'pigpiod':
+                    self.pigpiod_process = p
+                    break
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+
+    def start(self):
+        self.start_time = time.time()
+        # 初回のCPU負荷計測（基準値）
+        self.process.cpu_percent(interval=None)
+        if self.pigpiod_process:
+            self.pigpiod_process.cpu_percent(interval=None)
+
+    def update(self):
+        if self.start_time is None:
+            return
+
+        self.total_frames += 1
+        
+        # 1秒ごとにCPU負荷をサンプリング
+        elapsed = time.time() - self.start_time
+        if int(elapsed) > len(self.cpu_samples):
+            self.cpu_samples.append(self.process.cpu_percent(interval=None))
+            if self.pigpiod_process:
+                self.pigpiod_samples.append(self.pigpiod_process.cpu_percent(interval=None))
+
+    def should_stop(self) -> bool:
+        if self.start_time is None:
+            return False
+        return (time.time() - self.start_time) >= self.duration
+
+    def get_results(self) -> dict:
+        elapsed = time.time() - (self.start_time or time.time())
+        avg_fps = self.total_frames / elapsed if elapsed > 0 else 0
+        avg_cpu = sum(self.cpu_samples) / len(self.cpu_samples) if self.cpu_samples else 0
+        avg_pigpiod = sum(self.pigpiod_samples) / len(self.pigpiod_samples) if self.pigpiod_samples else 0
+        
+        return {
+            "duration": elapsed,
+            "avg_fps": avg_fps,
+            "avg_cpu": avg_cpu,
+            "avg_pigpiod": avg_pigpiod,
+            "total_frames": self.total_frames
+        }
+
+
 # --- 計算最適化されたヘルパー関数 ---
 def _initialize_balls_optimized(
     num_balls: int, width: int, height: int, ball_speed: float
@@ -362,6 +423,7 @@ def _loop_simple(
     fps_counter: FpsCounter,
     font,
     target_fps: float,
+    tracker: Optional[BenchmarkTracker] = None,
 ):
     """Simple mode loop: relying on driver-level optimization."""
     target_duration = 1.0 / target_fps
@@ -371,6 +433,9 @@ def _loop_simple(
     inv_substeps = 1.0 / PHYSICS_SUBSTEPS
     screen_width = lcd.size.width
     screen_height = lcd.size.height
+
+    if tracker:
+        tracker.start()
 
     while True:
         frame_count += 1
@@ -404,6 +469,11 @@ def _loop_simple(
 
         lcd.display(frame_image)
 
+        if tracker:
+            tracker.update()
+            if tracker.should_stop():
+                break
+
         wait_time = max(0, last_frame_time + target_duration - time.time())
         if wait_time > 0:
             time.sleep(wait_time)
@@ -416,6 +486,7 @@ def _loop_fast(
     fps_counter: FpsCounter,
     font,
     target_fps: float,
+    tracker: Optional[BenchmarkTracker] = None,
 ):
     """Fast mode loop: manual region optimization and background caching."""
     target_duration = 1.0 / target_fps
@@ -432,6 +503,9 @@ def _loop_fast(
 
     # 背景画像を一旦RGBに変換して保持（キャッシュ）
     bg_cache = background.convert("RGB")
+
+    if tracker:
+        tracker.start()
 
     while True:
         frame_count += 1
@@ -475,6 +549,11 @@ def _loop_fast(
             optimized = RegionOptimizer.merge_regions(dirty_regions, max_regions=8)
             for r in optimized:
                 lcd.display_region(final_frame, *r)
+
+        if tracker:
+            tracker.update()
+            if tracker.should_stop():
+                break
 
         wait_time = max(0, last_frame_time + target_duration - time.time())
         if wait_time > 0:
@@ -611,12 +690,24 @@ def ballanime(
                 num_balls, lcd.size.width, lcd.size.height, ball_speed
             )
             fps_counter = FpsCounter()
+            tracker = BenchmarkTracker() if benchmark else None
 
             # モードに応じたメインループを開始
             if mode.lower() == "fast":
-                _loop_fast(lcd, background_image, balls, fps_counter, font_large, fps)
+                _loop_fast(lcd, background_image, balls, fps_counter, font_large, fps, tracker)
             else:
-                _loop_simple(lcd, background_image, balls, fps_counter, font_large, fps)
+                _loop_simple(lcd, background_image, balls, fps_counter, font_large, fps, tracker)
+
+            if tracker:
+                res = tracker.get_results()
+                print("\n--- Benchmark Results ---")
+                print(f"Mode: {mode}")
+                print(f"Duration: {res['duration']:.2f}s")
+                print(f"Total Frames: {res['total_frames']}")
+                print(f"Avg FPS: {res['avg_fps']:.2f}")
+                print(f"Avg CPU (ballanime): {res['avg_cpu']:.1f}%")
+                print(f"Avg CPU (pigpiod): {res['avg_pigpiod']:.1f}%")
+                print("--------------------------\n")
 
     except KeyboardInterrupt:
         __log.info("\n終了しました。\n")
