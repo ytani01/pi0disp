@@ -5,7 +5,7 @@
 - [x] **タスク 1.2: 動作確認とテスト** (4f8c06d)
 - [x] **Task: Conductor - User Manual Verification 'フェーズ 1' (Protocol in workflow.md)** (4f8c06d)
 
-## フェーズ 2: coltest コマンドのリファクタリング
+## フェーズ 2: coltest コマンドのリファクタリング [checkpoint: 4911011]
 - [x] **タスク 2.1: src/pi0disp/commands/coltest.py の書き換え** (a3b1c30)
 - [x] **タスク 2.2: 動作確認とテスト** (a3b1c30)
 - [x] **Task: Conductor - User Manual Verification 'フェーズ 2' (Protocol in workflow.md)** (a3b1c30)
