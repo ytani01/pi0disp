@@ -35,3 +35,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## [x] Track: 先のトラックで最適化した内容をREADME.mdにまとめてアピールしたい。 (2026-01-08)
 *Link: [./conductor/archive/optimize_usage_docs_20260108/plan.md](./conductor/archive/optimize_usage_docs_20260108/plan.md)*
+
+---
+
+## [x] Track: ドライバの改良に伴い、src/pi0disp/commands/ballanime.py のコードをより改良または簡略化出来ないか検討したい。 (2026-01-09)
+*Link: [./conductor/tracks/ballanime_optimization_20260108/](./conductor/tracks/ballanime_optimization_20260108/)*
