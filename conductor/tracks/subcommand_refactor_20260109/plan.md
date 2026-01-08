@@ -1,6 +1,6 @@
 # 実装計画 - subcommand_refactor_20260109
 
-## フェーズ 1: rgb コマンドのリファクタリング
+## フェーズ 1: rgb コマンドのリファクタリング [checkpoint: 3ceea5e]
 - [x] **タスク 1.1: src/pi0disp/commands/rgb.py の書き換え** (4f8c06d)
 - [x] **タスク 1.2: 動作確認とテスト** (4f8c06d)
 - [x] **Task: Conductor - User Manual Verification 'フェーズ 1' (Protocol in workflow.md)** (4f8c06d)
