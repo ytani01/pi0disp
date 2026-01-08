@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from click.testing import CliRunner
 
-from src.pi0disp.commands.ballanime import BenchmarkTracker, ballanime
+from pi0disp.commands.ballanime import BenchmarkTracker, ballanime
 
 
 def test_benchmark_tracker_logic():
@@ -28,12 +28,10 @@ def test_ballanime_benchmark_cli():
 
     # ST7789V, FONT, pigpio, draw_text などをモック化
     with (
-        patch("src.pi0disp.commands.ballanime.ST7789V") as MockLCD,
-        patch("src.pi0disp.commands.ballanime.draw_text") as MockDrawText,
+        patch("pi0disp.commands.ballanime.ST7789V") as MockLCD,
+        patch("pi0disp.commands.ballanime.draw_text") as MockDrawText,
         patch("PIL.ImageFont.truetype"),
-        patch(
-            "src.pi0disp.commands.ballanime.BenchmarkTracker"
-        ) as MockTracker,
+        patch("pi0disp.commands.ballanime.BenchmarkTracker") as MockTracker,
     ):
         # draw_text のモック設定 (bboxを返す)
         MockDrawText.return_value = (0, 0, 10, 10)
@@ -63,12 +61,10 @@ def test_ballanime_benchmark_cli():
 
     # 秒数指定ありのテスト
     with (
-        patch("src.pi0disp.commands.ballanime.ST7789V") as MockLCD,
-        patch("src.pi0disp.commands.ballanime.draw_text") as MockDrawText,
+        patch("pi0disp.commands.ballanime.ST7789V") as MockLCD,
+        patch("pi0disp.commands.ballanime.draw_text") as MockDrawText,
         patch("PIL.ImageFont.truetype"),
-        patch(
-            "src.pi0disp.commands.ballanime.BenchmarkTracker"
-        ) as MockTracker,
+        patch("pi0disp.commands.ballanime.BenchmarkTracker") as MockTracker,
     ):
         MockDrawText.return_value = (0, 0, 10, 10)
         mock_lcd_instance = MockLCD.return_value.__enter__.return_value
