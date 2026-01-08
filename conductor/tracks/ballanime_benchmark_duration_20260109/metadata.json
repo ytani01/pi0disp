@@ -1,0 +1,8 @@
+{
+  "track_id": "ballanime_benchmark_duration_20260109",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-01-09T00:00:00Z",
+  "updated_at": "2026-01-09T00:00:00Z",
+  "description": "ballanime の --benchmark オプションで、秒数を指定できるようにして。"
+}

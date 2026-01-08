@@ -650,8 +650,10 @@ def _loop_fast(
 @click.option(
     "--benchmark",
     "-B",
-    is_flag=True,
-    help="Run benchmark for 10 seconds and report FPS/CPU usage.",
+    type=int,
+    is_flag=False,
+    flag_value=10,
+    help="Run benchmark for N seconds (default 10) and report FPS/CPU usage.",
 )
 @click.option(
     "--rst", type=int, default=25, show_default=True, help="RST PIN"
@@ -666,7 +668,7 @@ def ballanime(
     num_balls: int,
     mode: str,
     ball_speed: float,
-    benchmark: bool,
+    benchmark: Optional[int],
     rst,
     dc,
     bl,
