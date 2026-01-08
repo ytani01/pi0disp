@@ -168,6 +168,7 @@ class CV2Disp(DisplayBase):
     def close(self) -> None:
         cv2.destroyAllWindows()
 
+
 def get_disp_dev(width: int, height: int, debug: bool = False) -> DisplayBase:
     """Create display device."""
     _log = get_logger("()", debug)
@@ -585,9 +586,9 @@ class RfUpdater:
             # 表情変化がない場合は、ここでリターン
             return
 
-        # 
+        #
         # Update Face
-        # 
+        #
         p_rate = self.progress_rate()
         self.__log.debug(
             "elapsed time:%.2f,progress_rate=%.2f",
@@ -825,7 +826,7 @@ class RfRenderer:
             ],
         )
         self._draw_brows(
-            draw, 
+            draw,
             eye_x1,
             eye_x2,
             eye_y,

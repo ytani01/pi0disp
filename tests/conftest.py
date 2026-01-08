@@ -34,7 +34,7 @@ def pytest_addoption(parser):
     parser.addoption(
         "--duration",
         action="store",
-        default=300,  # デフォルトは300秒 (5分)
+        default=10,  # デフォルトは10秒
         type=int,
         help="パフォーマンス測定の実行時間 (秒)",
     )

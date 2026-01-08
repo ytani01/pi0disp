@@ -83,7 +83,9 @@ def test_sequential_expression_processing():
             parser.parse(expressions[0]).brow.tilt,
             parser.parse(expressions[0]).mouth.curve,
         )
-        assert first_change in targets_seen, f"Target {first_change} not seen."
+        assert first_change in targets_seen, (
+            f"Target {first_change} not seen."
+        )
 
     finally:
         face.stop()
