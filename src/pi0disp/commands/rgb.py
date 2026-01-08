@@ -4,27 +4,31 @@
 """Display RGB color circles command."""
 
 import time
+from typing import Tuple
 
 import click
 import numpy as np
 from PIL import Image, ImageDraw
 
-from .. import ST7789V, __version__, click_common_opts, get_logger
+from .. import __version__, click_common_opts, get_logger
 from ..disp.disp_spi import SpiPins
+from ..disp.st7789v import ST7789V
 
-log = get_logger(__name__)
+__log = get_logger(__name__)
 
 
-def generate_rgb_circles(width, height, colors_tuple):
+def generate_rgb_circles(
+    width: int,
+    height: int,
+    colors_tuple: Tuple[
+        Tuple[int, int, int], Tuple[int, int, int], Tuple[int, int, int]
+    ],
+) -> Image.Image:
     """Generates an image with three overlapping RGB circles using additive blending."""
     # Create a black background NumPy array
     final_image_np = np.zeros((height, width, 3), dtype=np.uint8)
 
     # Calculate optimal radius to fit the screen
-    # Based on analysis:
-    # Total width occupied: s + 2 * radius = 1.5 * radius + 2 * radius = 3.5 * radius
-    # Total height occupied: (sqrt(3) * s / 2) + 2 * radius = (sqrt(3) * 1.5 * radius / 2) + 2 * radius approx 3.299 * radius
-    # So, radius <= width / 3.5 and radius <= height / 3.299
     radius = int(min(width / 3.5, height / 3.299))
 
     # Ensure radius is at least 1 to avoid division by zero or negative values
@@ -36,11 +40,6 @@ def generate_rgb_circles(width, height, colors_tuple):
     # Calculate side length of equilateral triangle
     s = radius * 1.2
 
-    # Calculate the vertical offset to center the entire circle arrangement
-    # The vertical extent of the circles is from (center_y - s / np.sqrt(3) - radius) to (center_y + s / (2 * np.sqrt(3)) + radius)
-    # The midpoint of this extent is center_y - s / (4 * np.sqrt(3))
-    # We want this midpoint to be height // 2
-    # So, new_center_y = height // 2 + s / (4 * np.sqrt(3))
     center_y = int(height // 2 + s / (4 * np.sqrt(3)))
 
     # Calculate coordinates for equilateral triangle vertices
@@ -68,20 +67,9 @@ def generate_rgb_circles(width, height, colors_tuple):
         return np.array(img, dtype=np.uint8)
 
     # Draw each circle and add its pixel values to the final image
-    red_circle_np = draw_opaque_circle(
-        colors_tuple[0], red_pos, radius, width, height
-    )
-    green_circle_np = draw_opaque_circle(
-        colors_tuple[1], green_pos, radius, width, height
-    )
-    blue_circle_np = draw_opaque_circle(
-        colors_tuple[2], blue_pos, radius, width, height
-    )
-
-    # Add the arrays, clamping values at 255
-    final_image_np = np.clip(final_image_np + red_circle_np, 0, 255)
-    final_image_np = np.clip(final_image_np + green_circle_np, 0, 255)
-    final_image_np = np.clip(final_image_np + blue_circle_np, 0, 255)
+    for color, pos in zip(colors_tuple, [red_pos, green_pos, blue_pos]):
+        circle_np = draw_opaque_circle(color, pos, radius, width, height)
+        final_image_np = np.clip(final_image_np + circle_np, 0, 255)
 
     return Image.fromarray(final_image_np, "RGB")
 
@@ -106,12 +94,9 @@ def rgb(ctx, duration, rst, dc, bl, debug):
     __log.debug("duration=%s", duration)
     __log.debug("rst=%s, dc=%s, bl=%s", rst, dc, bl)
 
-    cmd_name = ctx.command.name
-    __log.debug("cmd_name=%s", cmd_name)
-
     try:
-        with ST7789V(pin=SpiPins(rst=rst, dc=dc, bl=bl)) as lcd:
-            __log.info(
+        with ST7789V(pin=SpiPins(rst=rst, dc=dc, bl=bl), debug=debug) as lcd:
+            __log.debug(
                 "Display initialized: %sx%s",
                 lcd.size.width,
                 lcd.size.height,
@@ -123,10 +108,10 @@ def rgb(ctx, duration, rst, dc, bl, debug):
                 ((0, 0, 255), (255, 0, 0), (0, 255, 0)),  # B, R, G
             ]
 
-            __log.info("Starting RGB color cycle...")
+            print("Starting RGB color cycle... Ctrl+C to stop.")
             while True:
                 for colors_tuple in color_permutations:
-                    __log.info(
+                    __log.debug(
                         "Generating RGB circles image with colors: %s",
                         colors_tuple,
                     )
@@ -134,24 +119,22 @@ def rgb(ctx, duration, rst, dc, bl, debug):
                         lcd.size.width, lcd.size.height, colors_tuple
                     )
 
-                    # Save the generated image to a file
-                    # (optional, for debugging/screenshot)
-                    output_filename = "/tmp/rgb_circles_command.png"
-                    rgb_circles_image.save(output_filename)
-                    __log.info(
-                        "RGB circles image saved to %s", output_filename
-                    )
-                    __log.info(
+                    # Save the generated image to a file (optional, for debugging)
+                    if debug:
+                        output_filename = "/tmp/rgb_circles_command.png"
+                        rgb_circles_image.save(output_filename)
+                        __log.debug(
+                            "RGB circles image saved to %s", output_filename
+                        )
+
+                    __log.debug(
                         "Displaying RGB circles for %s seconds...", duration
                     )
                     lcd.display(rgb_circles_image)
                     time.sleep(duration)
 
-    except RuntimeError as _e:
-        __log.error("%s: %s", type(_e).__name__, _e)
+    except KeyboardInterrupt:
+        print("\nFinished.")
+    except Exception as e:
+        __log.error(f"Error occurred: {e}")
         exit(1)
-    except Exception as _e:
-        __log.error("%s: %s", type(_e).__name__, _e)
-        exit(1)
-    finally:
-        __log.info("Color circles display finished.")
