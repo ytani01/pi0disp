@@ -6,8 +6,8 @@
 - [x] **タスク 1.3:** `test_roboface.py` の内容を修正し、テスト対象を `samples/roboface.py` に変更する。 (2201264)
 - [x] **タスク 1.4:** `test_24_roboface2_thread.py` と `test_25_roboface2_queue.py` の内容を確認し、`roboface.py` に合わせて修正、または不要であれば削除する。 (fab251f)
 - [x] **タスク 1.5:** `test_debug_roboface.py` の内容を確認し、`roboface.py` に合わせて修正、または不要であれば削除する。 (2201264)
-- [ ] **タスク 1.4:** `test_24_roboface2_thread.py` と `test_25_roboface2_queue.py` の内容を確認し、`roboface.py` に合わせて修正、または不要であれば削除する。
-- [ ] **タスク 1.5:** `test_debug_roboface.py` の内容を確認し、`roboface.py` に合わせて修正、または不要であれば削除する。
+
+
 - [ ] **Task: Conductor - User Manual Verification 'フェーズ 1' (Protocol in workflow.md)**
 
 ## フェーズ 2: 最終確認
