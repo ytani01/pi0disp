@@ -24,14 +24,13 @@ from .. import (
     get_ip_address,
     get_logger,
 )
-from ..utils.process_utils import (
-    get_ballanime_pigpiod_pids,
-    collect_memory_usage,
-    calculate_average_memory_usage,
-    format_memory_usage,
-)
 from ..disp.disp_spi import SpiPins
 from ..disp.st7789v import ST7789V
+from ..utils.process_utils import (
+    calculate_average_memory_usage,
+    format_memory_usage,
+    get_ballanime_pigpiod_pids,
+)
 
 __log = get_logger(__name__)
 
@@ -240,7 +239,9 @@ class BenchmarkTracker:
         elapsed = time.time() - self.start_time
         if int(elapsed) > len(self.cpu_samples):
             try:
-                self.cpu_samples.append(self.process.cpu_percent(interval=None))
+                self.cpu_samples.append(
+                    self.process.cpu_percent(interval=None)
+                )
                 self.mem_ballanime_samples.append(
                     self.process.memory_info().rss
                 )
