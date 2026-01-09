@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-import re
-import subprocess
-import sys
 
 import numpy as np
 from PIL import Image
