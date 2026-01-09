@@ -13,7 +13,7 @@
 
 - [x] Task: Conductor - User Manual Verification '基盤のリファクタリングと最適化準備' (Protocol in workflow.md) [240137c]
 
-## フェーズ 2: `simple` および `optimized` モードの実装
+## フェーズ 2: `simple` および `optimized` モードの実装 [checkpoint: 1b731a8]
 ### タスク 2.1: `--mode` オプションの導入と `simple` モードの分離
 - [x] テスト: `tests/test_ballanime_cmd.py` で `--mode` オプションのパースと、各モードへの分岐が正しく行われることをテストする。 [b71a854]
 - [x] 実装: `--mode` オプションを追加し、既存ロジックを `simple` モードとして隔離する。 [b71a854]
@@ -24,7 +24,7 @@
 - [x] 実装: `Sprite` と `RegionOptimizer` を連携させた `optimized` モードを実装する。 [ccf5f13]
 - [x] 検証: デバッグモードで「更新された矩形数」をカウントし、期待通りに転送回数が削減されているかを数値で確認する。 [ccf5f13]
 
-- [ ] Task: Conductor - User Manual Verification 'simple および optimized モードの実装' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'simple および optimized モードの実装' (Protocol in workflow.md) [1b731a8]
 
 ## フェーズ 3: `cairo` および `cairo-optimized` モードの実装
 ### タスク 3.1: `Cairo` 描画エンジンの導入
