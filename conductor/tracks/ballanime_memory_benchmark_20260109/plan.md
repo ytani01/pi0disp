@@ -16,7 +16,7 @@
 - [x] テスト作成: 収集したメモリ使用量データの平均値を算出し、適切な単位を自動判別するテスト
 - [x] 実装: メモリ使用量の平均値を算出し、自動判別された単位で整形された文字列として返す機能
 - [x] リファクタリング: 平均値算出と単位判別ロジックの汎用性と保守性を高めるようリファクタリング (e44495c)
-- [ ] Task: Conductor - User Manual Verification 'メモリ使用量計測機能の実装' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'メモリ使用量計測機能の実装' (Protocol in workflow.md)
 
 ## フェーズ 2: ベンチマーク出力への統合
 
