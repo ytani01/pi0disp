@@ -8,7 +8,7 @@
 - [x] **タスク 1.5:** `test_debug_roboface.py` の内容を確認し、`roboface.py` に合わせて修正、または不要であれば削除する。 (2201264)
 
 
-- [ ] **Task: Conductor - User Manual Verification 'フェーズ 1' (Protocol in workflow.md)**
+- [x] **Task: Conductor - User Manual Verification 'フェーズ 1' (Protocol in workflow.md)** [checkpoint: e5bad0d]
 
 ## フェーズ 2: 最終確認
 - [ ] **タスク 2.1:** `uv run test` を実行し、すべてのテストがパスすることを確認する。
