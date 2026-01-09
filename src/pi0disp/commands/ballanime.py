@@ -451,13 +451,21 @@ def pil_to_cairo_surface(pil_image: Image.Image) -> cairo.ImageSurface:
     return surface
 
 
-def cairo_surface_to_pil(surface: cairo.ImageSurface) -> Image.Image:
-    """Cairo ImageSurface (ARGB32) を PIL画像 (RGB) に変換する。"""
+def cairo_surface_to_pil(
+    surface: cairo.ImageSurface, region: tuple | None = None
+) -> Image.Image:
+    """Cairo ImageSurface (ARGB32) を PIL画像 (RGB) に変換する。特定領域の抽出に対応。"""
     width = surface.get_width()
     height = surface.get_height()
+    # numpy array view of the buffer
     data = np.ndarray(
         shape=(height, width, 4), dtype=np.uint8, buffer=surface.get_data()
     )
+
+    if region:
+        x1, y1, x2, y2 = region
+        data = data[y1:y2, x1:x2, :]
+
     # BGRA -> RGB
     img = Image.fromarray(data[:, :, :3], "RGB")
     b, g, r = img.split()
@@ -621,9 +629,65 @@ def _loop(
 
             lcd.display(frame_image)
 
+        elif mode == "cairo-optimized":
+            dirty_regions = []
+            for ball in balls:
+                region = ball.get_dirty_region()
+                if region:
+                    dirty_regions.append(region)
+
+            fps_updated = fps_counter.update()
+            if fps_updated:
+                dirty_regions.append((0, 0, 100, 40))
+
+            merged_regions = RegionOptimizer.merge_regions(dirty_regions)
+
+            for rx, ry, rw, rh in merged_regions:
+                x1, y1 = max(0, rx), max(0, ry)
+                x2, y2 = min(screen_width, rx + rw), min(screen_height, ry + rh)
+                if x1 >= x2 or y1 >= y2:
+                    continue
+
+                cairo_ctx.save()
+                cairo_ctx.rectangle(x1, y1, x2 - x1, y2 - y1)
+                cairo_ctx.clip()
+
+                # 背景描画
+                cairo_ctx.set_source_surface(background_surface, 0, 0)
+                cairo_ctx.paint()
+
+                # ボール描画
+                for ball in balls:
+                    bx1, by1, bx2, by2 = ball.bbox
+                    if not (bx2 < x1 or bx1 > x2 or by2 < y1 or by1 > y2):
+                        r, g, b = [c / 255.0 for c in ball.fill_color]
+                        cairo_ctx.set_source_rgb(r, g, b)
+                        cairo_ctx.arc(ball.cx, ball.cy, ball.radius, 0, TWO_PI)
+                        cairo_ctx.fill()
+
+                cairo_ctx.restore()
+
+                # その領域を PIL画像に変換
+                region_image = cairo_surface_to_pil(
+                    cairo_surface, (x1, y1, x2, y2)
+                )
+
+                if x1 < 100 and y1 < 40:
+                    draw = ImageDraw.Draw(region_image)
+                    draw.text(
+                        (0 - x1, 0 - y1),
+                        fps_counter.fps_text,
+                        font=font,
+                        fill=TEXT_COLOR,
+                    )
+
+                lcd.display_region(region_image, x1, y1, x2, y2)
+
+            for ball in balls:
+                ball.record_current_bbox()
+
         else:
-            # TODO: Other modes (cairo-optimized)
-            __log.warning(f"Mode {mode} not implemented yet, using simple.")
+            __log.warning(f"Mode {mode} unknown, using simple.")
             frame_image.paste(background)
             draw = ImageDraw.Draw(frame_image)
             for ball in balls:
