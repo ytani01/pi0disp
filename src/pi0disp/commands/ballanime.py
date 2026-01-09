@@ -24,6 +24,12 @@ from .. import (
     get_ip_address,
     get_logger,
 )
+from ..utils.process_utils import (
+    get_ballanime_pigpiod_pids,
+    collect_memory_usage,
+    calculate_average_memory_usage,
+    format_memory_usage,
+)
 from ..disp.disp_spi import SpiPins
 from ..disp.st7789v import ST7789V
 
@@ -203,22 +209,26 @@ class BenchmarkTracker:
         self.pigpiod_process: Optional[psutil.Process] = None
         self.cpu_samples: List[float] = []
         self.pigpiod_samples: List[float] = []
+        self.mem_ballanime_samples: List[int] = []
+        self.mem_pigpiod_samples: List[int] = []
 
         # pigpiod プロセスを特定
-        for p in psutil.process_iter(["name"]):
+        _, pigpiod_pid = get_ballanime_pigpiod_pids()
+        if pigpiod_pid:
             try:
-                if p.info["name"] == "pigpiod":
-                    self.pigpiod_process = p
-                    break
+                self.pigpiod_process = psutil.Process(pigpiod_pid)
             except (psutil.NoSuchProcess, psutil.AccessDenied):
-                continue
+                self.pigpiod_process = None
 
     def start(self):
         self.start_time = time.time()
         # 初回のCPU負荷計測（基準値）
         self.process.cpu_percent(interval=None)
         if self.pigpiod_process:
-            self.pigpiod_process.cpu_percent(interval=None)
+            try:
+                self.pigpiod_process.cpu_percent(interval=None)
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
 
     def update(self):
         if self.start_time is None:
@@ -226,14 +236,24 @@ class BenchmarkTracker:
 
         self.total_frames += 1
 
-        # 1秒ごとにCPU負荷をサンプリング
+        # 1秒ごとにCPU負荷とメモリ使用量をサンプリング
         elapsed = time.time() - self.start_time
         if int(elapsed) > len(self.cpu_samples):
-            self.cpu_samples.append(self.process.cpu_percent(interval=None))
-            if self.pigpiod_process:
-                self.pigpiod_samples.append(
-                    self.pigpiod_process.cpu_percent(interval=None)
+            try:
+                self.cpu_samples.append(self.process.cpu_percent(interval=None))
+                self.mem_ballanime_samples.append(
+                    self.process.memory_info().rss
                 )
+
+                if self.pigpiod_process:
+                    self.pigpiod_samples.append(
+                        self.pigpiod_process.cpu_percent(interval=None)
+                    )
+                    self.mem_pigpiod_samples.append(
+                        self.pigpiod_process.memory_info().rss
+                    )
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
 
     def should_stop(self) -> bool:
         if self.start_time is None:
@@ -254,11 +274,21 @@ class BenchmarkTracker:
             else 0
         )
 
+        # 平均メモリ使用量の算出とフォーマット
+        avg_mem_ballanime = calculate_average_memory_usage(
+            self.mem_ballanime_samples
+        )
+        avg_mem_pigpiod = calculate_average_memory_usage(
+            self.mem_pigpiod_samples
+        )
+
         return {
             "duration": elapsed,
             "avg_fps": avg_fps,
             "avg_cpu": avg_cpu,
             "avg_pigpiod": avg_pigpiod,
+            "avg_mem_ballanime": format_memory_usage(avg_mem_ballanime),
+            "avg_mem_pigpiod": format_memory_usage(avg_mem_pigpiod),
             "total_frames": self.total_frames,
         }
 
@@ -641,6 +671,8 @@ def ballanime(
                 print(f"Avg FPS: {res['avg_fps']:.2f}")
                 print(f"Avg CPU (ballanime): {res['avg_cpu']:.1f}%")
                 print(f"Avg CPU (pigpiod): {res['avg_pigpiod']:.1f}%")
+                print(f"Avg Mem (ballanime): {res['avg_mem_ballanime']}")
+                print(f"Avg Mem (pigpiod): {res['avg_mem_pigpiod']}")
                 print("--------------------------\n")
 
     except KeyboardInterrupt:

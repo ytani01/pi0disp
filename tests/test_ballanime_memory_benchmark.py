@@ -120,3 +120,40 @@ def test_format_memory_usage(value, expected_string):
     """メモリ使用量を適切な単位に自動判別してフォーマットするテスト"""
     formatted_string = format_memory_usage(value)
     assert formatted_string == expected_string
+
+def test_ballanime_benchmark_memory_display():
+    """ballanime --benchmark の出力にメモリ使用量が含まれているか確認"""
+    from pi0disp.commands.ballanime import ballanime
+    from click.testing import CliRunner
+    runner = CliRunner()
+
+    with (
+        patch("pi0disp.commands.ballanime.ST7789V") as MockLCD,
+        patch("pi0disp.commands.ballanime.draw_text") as MockDrawText,
+        patch("PIL.ImageFont.truetype"),
+        patch("pi0disp.commands.ballanime.BenchmarkTracker") as MockTracker,
+    ):
+        MockDrawText.return_value = (0, 0, 10, 10)
+        mock_lcd_instance = MockLCD.return_value.__enter__.return_value
+        mock_lcd_instance.size.width = 240
+        mock_lcd_instance.size.height = 240
+        
+        mock_instance = MockTracker.return_value
+        mock_instance.should_stop.side_effect = [False, True]
+        # モックの戻り値にメモリ使用量を含める
+        mock_instance.get_results.return_value = {
+            "duration": 1.0,
+            "avg_fps": 30.0,
+            "avg_cpu": 10.0,
+            "avg_pigpiod": 5.0,
+            "avg_mem_ballanime": "15.00 MB",
+            "avg_mem_pigpiod": "5.00 MB",
+            "total_frames": 30,
+        }
+
+        result = runner.invoke(ballanime, ["--benchmark", "1", "--num-balls", "1"])
+
+        assert result.exit_code == 0
+        assert "--- Benchmark Results ---" in result.output
+        assert "Avg Mem (ballanime): 15.00 MB" in result.output
+        assert "Avg Mem (pigpiod): 5.00 MB" in result.output
