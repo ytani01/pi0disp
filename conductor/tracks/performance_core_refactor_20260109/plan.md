@@ -10,11 +10,11 @@
 - [x] **タスク 2.2: ユニットテストの作成と実行（TDDサイクル）** (c32906e)
 - [x] **Task: Conductor - User Manual Verification 'フェーズ 2' (Protocol in workflow.md)** (c32906e)
 
-## フェーズ 3: マニュアル作成とサンプルコード実装 [checkpoint: ]
-- [x] **タスク 3.1: リファレンスマニュアルの執筆（Markdown）** (b7a9165)
-- [x] **タスク 3.2: 刷新された API を使用した、わかりやすいサンプルコードの作成** (e0323a7)
-- [x] **タスク 3.3: 既存のサンプル（もしあれば）の調整または新サンプルへの置き換え確認** (c32906e)
-- [x] **Task: Conductor - User Manual Verification 'フェーズ 3' (Protocol in workflow.md)** (c32906e)
+## フェーズ 3: マニュアル作成とサンプルコード実装 [checkpoint: a636984]
+- [ ] **タスク 3.1: リファレンスマニュアルの執筆（Markdown）**
+- [ ] **タスク 3.2: 刷新された API を使用した、わかりやすいサンプルコードの作成**
+- [ ] **タスク 3.3: 既存のサンプル（もしあれば）の調整または新サンプルへの置き換え確認**
+- [ ] **Task: Conductor - User Manual Verification 'フェーズ 3' (Protocol in workflow.md)**
 
 ## フェーズ 4: 最終確認 [checkpoint: ]
 - [ ] **タスク 4.1: ドキュメントとコードの整合性チェック**
