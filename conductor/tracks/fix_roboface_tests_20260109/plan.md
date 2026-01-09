@@ -13,4 +13,4 @@
 ## フェーズ 2: 最終確認
 - [x] **タスク 2.1:** `uv run test` を実行し、すべてのテストがパスすることを確認する。 (2e2960a)
 - [x] **タスク 2.2:** コードレビューを行い、古いファイルへの参照が残っていないことを確認する。 (e7a8974)
-- [ ] **Task: Conductor - User Manual Verification 'フェーズ 2' (Protocol in workflow.md)**
+- [x] **Task: Conductor - User Manual Verification 'フェーズ 2' (Protocol in workflow.md)** [checkpoint: 82dd430]
