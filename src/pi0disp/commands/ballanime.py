@@ -311,8 +311,8 @@ def _initialize_balls_optimized(
             is_valid = True
 
             for existing_ball in balls:
-                dx = x - existing_ball.x
-                dy = y - existing_ball.y
+                dx = x - existing_ball.cx
+                dy = y - existing_ball.cy
                 dist_sq = dx * dx + dy * dy
 
                 if dist_sq <= min_dist_sq:
@@ -368,13 +368,10 @@ def _handle_ball_collisions_optimized(balls: List[Ball], frame_count: int):
                 sep_x = cos_a * sep_dist * 0.5
                 sep_y = sin_a * sep_dist * 0.5
 
-                ball1.x += sep_x
-                ball1.y += sep_y
-                ball2.x -= sep_x
-                ball2.y -= sep_y
-
-                ball1._bbox_dirty = True
-                ball2._bbox_dirty = True
+                ball1.cx += sep_x
+                ball1.cy += sep_y
+                ball2.cx -= sep_x
+                ball2.cy -= sep_y
                 continue
 
             # 通常の衝突処理
@@ -428,13 +425,10 @@ def _handle_ball_collisions_optimized(balls: List[Ball], frame_count: int):
                 correction_x = correction * nx
                 correction_y = correction * ny
 
-                ball1.x += correction_x
-                ball1.y += correction_y
-                ball2.x -= correction_x
-                ball2.y -= correction_y
-
-                ball1._bbox_dirty = True
-                ball2._bbox_dirty = True
+                ball1.cx += correction_x
+                ball1.cy += correction_y
+                ball2.cx -= correction_x
+                ball2.cy -= correction_y
 
 
 def _loop(
