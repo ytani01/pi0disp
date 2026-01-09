@@ -17,6 +17,6 @@
 - [ ] **Task: Conductor - User Manual Verification 'フェーズ 3' (Protocol in workflow.md)**
 
 ## フェーズ 4: 最終確認 [checkpoint: ]
-- [ ] **タスク 4.1: ドキュメントとコードの整合性チェック**
-- [ ] **タスク 4.2: 統合テストおよびパフォーマンス検証の実行**
-- [ ] **Task: Conductor - User Manual Verification 'フェーズ 4' (Protocol in workflow.md)**
+- [x] **タスク 4.1: ドキュメントとコードの整合性チェック** (c32906e)
+- [x] **タスク 4.2: 統合テストおよびパフォーマンス検証の実行** (c32906e)
+- [x] **Task: Conductor - User Manual Verification 'フェーズ 4' (Protocol in workflow.md)** (c32906e)
