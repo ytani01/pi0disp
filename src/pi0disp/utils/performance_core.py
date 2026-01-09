@@ -65,3 +65,64 @@ class ColorConverter:
 
         # Big-endian 16-bit
         return (r | g | b).astype(">u2").tobytes()
+
+
+class RegionOptimizer:
+    """
+    複数の描画領域 (矩形) をマージし、SPI転送回数を最適化するクラス。
+    """
+
+    @staticmethod
+    def merge_regions(regions, area_threshold: float = 1.5):
+        """
+        重なり合っている、または近い矩形をマージします。
+
+        Args:
+            regions: (x, y, w, h) のリスト。
+            area_threshold (float): マージ後の面積が (元の面積合計 * threshold)
+                                     以下ならマージする。デフォルトは 1.5。
+
+        Returns:
+            最適化された (x, y, w, h) のリスト。
+        """
+        if not regions:
+            return []
+
+        # (x1, y1, x2, y2) 形式に変換
+        work_regions = []
+        for x, y, w, h in regions:
+            work_regions.append([x, y, x + w, y + h])
+
+        changed = True
+        while changed:
+            changed = False
+            new_regions = []
+            while work_regions:
+                r1 = work_regions.pop(0)
+                merged = False
+                for i in range(len(work_regions)):
+                    r2 = work_regions[i]
+
+                    # 最小包含矩形 (MBR)
+                    nx1 = min(r1[0], r2[0])
+                    ny1 = min(r1[1], r2[1])
+                    nx2 = max(r1[2], r2[2])
+                    ny2 = max(r1[3], r2[3])
+
+                    # 面積判定
+                    a1 = (r1[2] - r1[0]) * (r1[3] - r1[1])
+                    a2 = (r2[2] - r2[0]) * (r2[3] - r2[1])
+                    na = (nx2 - nx1) * (ny2 - ny1)
+
+                    if na <= (a1 + a2) * area_threshold:
+                        work_regions[i] = [nx1, ny1, nx2, ny2]
+                        merged = True
+                        changed = True
+                        break
+
+                if not merged:
+                    new_regions.append(r1)
+            work_regions = new_regions
+
+        # (x, y, w, h) 形式に戻す
+        return [(r[0], r[1], r[2] - r[0], r[3] - r[1]) for r in work_regions]
