@@ -4,6 +4,7 @@
 *   Python
 
 ## 主要ライブラリ/フレームワーク
+*   **cairo (pycairo)**: 高品質なベクトルグラフィックス描画用
 *   **cairosvg**: SVG画像処理用
 *   **click**: CLIツール構築用
 *   **dynaconf**: 設定管理用

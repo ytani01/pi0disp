@@ -12,6 +12,7 @@ import os
 import time
 from typing import List, Optional
 
+import cairo
 import click
 import numpy as np
 import psutil
@@ -433,6 +434,36 @@ def _handle_ball_collisions_optimized(balls: List[Ball], frame_count: int):
                 ball2.cy -= correction_y
 
 
+def pil_to_cairo_surface(pil_image: Image.Image) -> cairo.ImageSurface:
+    """PIL画像をCairo ImageSurface (ARGB32) に変換する。"""
+    if pil_image.mode != "RGBA":
+        pil_image = pil_image.convert("RGBA")
+
+    width, height = pil_image.size
+    r, g, b, a = pil_image.split()
+    bgra_image = Image.merge("RGBA", (b, g, r, a))
+    data = np.array(bgra_image)
+
+    surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
+    buf = surface.get_data()
+    buf[:] = data.tobytes()
+    surface.mark_dirty()
+    return surface
+
+
+def cairo_surface_to_pil(surface: cairo.ImageSurface) -> Image.Image:
+    """Cairo ImageSurface (ARGB32) を PIL画像 (RGB) に変換する。"""
+    width = surface.get_width()
+    height = surface.get_height()
+    data = np.ndarray(
+        shape=(height, width, 4), dtype=np.uint8, buffer=surface.get_data()
+    )
+    # BGRA -> RGB
+    img = Image.fromarray(data[:, :, :3], "RGB")
+    b, g, r = img.split()
+    return Image.merge("RGB", (r, g, b))
+
+
 def _loop(
     lcd: ST7789V,
     background: Image.Image,
@@ -457,6 +488,17 @@ def _loop(
 
     # 描画バッファ
     frame_image = background.copy()
+
+    # Cairo初期化
+    cairo_surface = None
+    cairo_ctx = None
+    background_surface = None
+    if "cairo" in mode:
+        cairo_surface = cairo.ImageSurface(
+            cairo.FORMAT_ARGB32, screen_width, screen_height
+        )
+        cairo_ctx = cairo.Context(cairo_surface)
+        background_surface = pil_to_cairo_surface(background)
 
     while True:
         frame_count += 1
@@ -549,8 +591,38 @@ def _loop(
             for ball in balls:
                 ball.record_current_bbox()
 
+        elif mode == "cairo":
+            # 背景描画
+            cairo_ctx.set_source_surface(background_surface, 0, 0)
+            cairo_ctx.paint()
+
+            # ボール描画 (アンチエイリアスあり)
+            for ball in balls:
+                r, g, b = [c / 255.0 for c in ball.fill_color]
+                cairo_ctx.set_source_rgb(r, g, b)
+                cairo_ctx.arc(ball.cx, ball.cy, ball.radius, 0, TWO_PI)
+                cairo_ctx.fill()
+
+            # PIL画像に変換
+            frame_image = cairo_surface_to_pil(cairo_surface)
+            draw = ImageDraw.Draw(frame_image)
+
+            fps_counter.update()
+            draw_text(
+                draw,
+                fps_counter.fps_text,
+                font,
+                x="left",
+                y="top",
+                width=screen_width,
+                height=screen_height,
+                color=TEXT_COLOR,
+            )
+
+            lcd.display(frame_image)
+
         else:
-            # TODO: Other modes (cairo, cairo-optimized)
+            # TODO: Other modes (cairo-optimized)
             __log.warning(f"Mode {mode} not implemented yet, using simple.")
             frame_image.paste(background)
             draw = ImageDraw.Draw(frame_image)
