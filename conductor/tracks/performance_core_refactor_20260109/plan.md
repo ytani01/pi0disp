@@ -5,7 +5,7 @@
 - [x] **タスク 1.2: 新しい API インターフェースの定義と、削除対象コードのリストアップ** (3e909d0)
 - [x] **Task: Conductor - User Manual Verification 'フェーズ 1' (Protocol in workflow.md)** (3e909d0)
 
-## フェーズ 2: コアリファクタリングの実施 [checkpoint: ]
+## フェーズ 2: コアリファクタリングの実施 [checkpoint: 84439c2]
 - [x] **タスク 2.1: `performance_core.py` のコード刷新（不要なクラス・メソッドの削除と API 再構成）** (4f8c06d)
 - [x] **タスク 2.2: ユニットテストの作成と実行（TDDサイクル）** (c32906e)
 - [x] **Task: Conductor - User Manual Verification 'フェーズ 2' (Protocol in workflow.md)** (c32906e)
