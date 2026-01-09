@@ -20,9 +20,9 @@
 - [x] 検証: 実際にコマンドを叩き、`simple` モードが従来の挙動（全画面更新）を維持していることをログで確認する。 [b71a854]
 
 ### タスク 2.2: `optimized` モードの実装
-- [ ] テスト: モックを用いて、`display_region` が `RegionOptimizer` で算出された矩形に対してのみ呼び出されているかを厳密にテストする。
-- [ ] 実装: `Sprite` と `RegionOptimizer` を連携させた `optimized` モードを実装する。
-- [ ] 検証: デバッグモードで「更新された矩形数」をカウントし、期待通りに転送回数が削減されているかを数値で確認する。
+- [x] テスト: モックを用いて、`display_region` が `RegionOptimizer` で算出された矩形に対してのみ呼び出されているかを厳密にテストする。 [ccf5f13]
+- [x] 実装: `Sprite` と `RegionOptimizer` を連携させた `optimized` モードを実装する。 [ccf5f13]
+- [x] 検証: デバッグモードで「更新された矩形数」をカウントし、期待通りに転送回数が削減されているかを数値で確認する。 [ccf5f13]
 
 - [ ] Task: Conductor - User Manual Verification 'simple および optimized モードの実装' (Protocol in workflow.md)
 
