@@ -56,3 +56,29 @@ def collect_memory_usage(pid: int, num_samples: int = 10, interval: float = 0.1)
         pass # 収集中にプロセスが終了した場合は、そこまでのデータを返す
 
     return memory_data
+
+def calculate_average_memory_usage(memory_data: List[int]) -> float:
+    """
+    収集したメモリ使用量データの平均値を算出する。
+    """
+    if not memory_data:
+        return 0.0
+    return sum(memory_data) / len(memory_data)
+
+def format_memory_usage(value: float) -> str:
+    """
+    メモリ使用量 (バイト) を適切な単位 (B, KB, MB, GB) に自動判別し、整形された文字列として返す。
+    """
+    if value < 0:
+        return "N/A" # 負の値は無効とする
+
+    units = ["B", "KB", "MB", "GB"]
+    i = 0
+    while value >= 1024 and i < len(units) - 1:
+        value /= 1024
+        i += 1
+    
+    if units[i] == "B": # 単位がバイトの場合は整数で表示
+        return f"{int(value)} {units[i]}"
+    else: # それ以外の単位の場合は小数点以下2桁で表示
+        return f"{value:.2f} {units[i]}"

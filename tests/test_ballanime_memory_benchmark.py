@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import patch, MagicMock
 import os
-from pi0disp.utils.process_utils import get_process_pid, get_ballanime_pigpiod_pids, collect_memory_usage
+from pi0disp.utils.process_utils import get_process_pid, get_ballanime_pigpiod_pids, collect_memory_usage, calculate_average_memory_usage, format_memory_usage
 import psutil
 
 class MockProcess:
@@ -93,3 +93,30 @@ def test_collect_memory_usage_process_not_found():
         collected_data = collect_memory_usage(mock_pid, num_samples=num_samples, interval=interval)
         assert collected_data == []
         MockPSProcess.assert_called_once_with(mock_pid)
+
+def test_calculate_average_memory_usage():
+    """メモリ使用量データの平均値を算出するテスト"""
+    memory_data = [1000, 1100, 1050, 1200]
+    expected_average = sum(memory_data) / len(memory_data) # 1087.5
+    
+    average = calculate_average_memory_usage(memory_data)
+    assert average == expected_average
+
+    assert calculate_average_memory_usage([]) == 0.0
+
+
+@pytest.mark.parametrize("value, expected_string", [
+    (100, "100 B"),
+    (1023, "1023 B"),
+    (1024, "1.00 KB"),
+    (1024 * 1024 - 1, "1024.00 KB"), # 1048575 バイト
+    (1024 * 1024, "1.00 MB"),        # 1048576 バイト
+    (1024 * 1024 * 1024 - 1, "1024.00 MB"), # 1073741823 バイト
+    (1024 * 1024 * 1024, "1.00 GB"),        # 1073741824 バイト
+    (0, "0 B"), # 修正
+    (-1, "N/A"),
+])
+def test_format_memory_usage(value, expected_string):
+    """メモリ使用量を適切な単位に自動判別してフォーマットするテスト"""
+    formatted_string = format_memory_usage(value)
+    assert formatted_string == expected_string
