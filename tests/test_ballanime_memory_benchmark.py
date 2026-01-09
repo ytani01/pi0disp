@@ -1,7 +1,8 @@
 import pytest
 from unittest.mock import patch, MagicMock
 import os
-from pi0disp.utils.process_utils import get_process_pid, get_ballanime_pigpiod_pids
+from pi0disp.utils.process_utils import get_process_pid, get_ballanime_pigpiod_pids, collect_memory_usage
+import psutil
 
 class MockProcess:
     def __init__(self, pid, name, cmdline=None):
@@ -61,3 +62,34 @@ def test_get_process_pid_not_found():
     with patch("psutil.process_iter", return_value=[MockProcess(300, "apache")]):
         pid = get_process_pid("non_existent_process")
         assert pid is None
+
+def test_collect_memory_usage_data():
+    """メモリ使用量データを複数回収集するテスト"""
+    mock_pid = 1234
+    mock_memory_values = [1000, 1100, 1050, 1200]
+    num_samples = len(mock_memory_values)
+    interval = 0.01 # テスト用に短い間隔を設定
+
+    with patch("psutil.Process") as MockPSProcess, patch("time.sleep"):
+        mock_process_instance = MockPSProcess.return_value
+        # memory_info().rss を呼び出すたびに異なる値を返すように設定
+        from unittest.mock import PropertyMock
+        mock_rss_mock = PropertyMock(side_effect=mock_memory_values)
+        type(mock_process_instance.memory_info.return_value).rss = mock_rss_mock # memory_info().rss をモック
+
+        collected_data = collect_memory_usage(mock_pid, num_samples=num_samples, interval=interval)
+
+        assert collected_data == mock_memory_values
+        MockPSProcess.assert_called_once_with(mock_pid)
+        assert mock_rss_mock.call_count == num_samples
+
+def test_collect_memory_usage_process_not_found():
+    """プロセスが見つからない場合のメモリ使用量収集テスト"""
+    mock_pid = 9999 # 存在しないPID
+    num_samples = 3
+    interval = 0.01
+
+    with patch("psutil.Process", side_effect=psutil.NoSuchProcess(mock_pid)) as MockPSProcess, patch("time.sleep"):
+        collected_data = collect_memory_usage(mock_pid, num_samples=num_samples, interval=interval)
+        assert collected_data == []
+        MockPSProcess.assert_called_once_with(mock_pid)
