@@ -1,6 +1,6 @@
 # Track: `ballanime` の改造と性能評価（複数最適化モードの実装）
 
-## フェーズ 1: 基盤のリファクタリングと最適化準備
+## フェーズ 1: 基盤のリファクタリングと最適化準備 [checkpoint: 240137c]
 ### タスク 1.1: `RegionOptimizer` の復元とテスト
 - [x] テスト: `tests/test_performance_core.py` に `RegionOptimizer` のマージロジックを網羅するテストを追加する。 [3f2fd33]
 - [x] 実装: `src/pi0disp/utils/performance_core.py` に `RegionOptimizer` を復元する。 [3f2fd33]
@@ -11,7 +11,7 @@
 - [x] 実装: `Ball` クラスを `CircleSprite` 継承にリファクタリングする。 [57755d4]
 - [x] 検証: デバッグログを出力し、ボールの移動に伴って `dirty_region` が漏れなく算出されているかを事実確認する。 [57755d4]
 
-- [ ] Task: Conductor - User Manual Verification '基盤のリファクタリングと最適化準備' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification '基盤のリファクタリングと最適化準備' (Protocol in workflow.md) [240137c]
 
 ## フェーズ 2: `simple` および `optimized` モードの実装
 ### タスク 2.1: `--mode` オプションの導入と `simple` モードの分離
