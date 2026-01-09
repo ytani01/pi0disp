@@ -7,9 +7,9 @@
 - [x] 検証: print文やログを用いて、矩形のマージが期待通りに行われているか（重なりがある場合、ない場合など）を実走データで確認する。 [3f2fd33]
 
 ### タスク 1.2: `Ball` クラスの `CircleSprite` への移行
-- [ ] テスト: `tests/test_ballanime_refactor.py` を作成。`Ball` が `CircleSprite` の `dirty_region` 算出ロジックを正しく利用できているか検証する。
-- [ ] 実装: `Ball` クラスを `CircleSprite` 継承にリファクタリングする。
-- [ ] 検証: デバッグログを出力し、ボールの移動に伴って `dirty_region` が漏れなく算出されているかを事実確認する。
+- [x] テスト: `tests/test_ballanime_refactor.py` を作成。`Ball` が `CircleSprite` の `dirty_region` 算出ロジックを正しく利用できているか検証する。 [57755d4]
+- [x] 実装: `Ball` クラスを `CircleSprite` 継承にリファクタリングする。 [57755d4]
+- [x] 検証: デバッグログを出力し、ボールの移動に伴って `dirty_region` が漏れなく算出されているかを事実確認する。 [57755d4]
 
 - [ ] Task: Conductor - User Manual Verification '基盤のリファクタリングと最適化準備' (Protocol in workflow.md)
 
