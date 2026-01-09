@@ -21,3 +21,16 @@
 - [x] 記録: レポート内容の最終確認 (a9654ce)
 
 - [ ] Task: Conductor - User Manual Verification '調査レポートの作成と評価' (Protocol in workflow.md)
+
+## フェーズ 3: さらなる最適化の検討
+### タスク 3.1: `Sprite` クラス活用の検討
+- [x] 調査: `ballanime.py` の `Ball` クラスを `CircleSprite` の継承に置き換えた場合のメリットを評価する。 (3c95dc8)
+- [x] 検討: `Sprite.get_dirty_region()` を利用して、ドライバの自動差分検知に頼らずに `display_region` を呼ぶ構成の効率を分析する。 (3c95dc8)
+
+### タスク 3.2: `performance_core` (RegionOptimizer) の再評価
+- [x] 調査: 削除された `RegionOptimizer` の機能を再確認し、現在のドライバの実装と比較して優位性があるか（例えば、複数のDirty Regionを統合して転送回数を減らす等）を検討する。 (3c95dc8)
+
+### タスク 3.3: 最終レポートへの追記
+- [x] 実装: `report.md` にフェーズ 3 の検討結果（将来的な最適化のロードマップ等）を追記する。 (82c85a1)
+
+- [x] Task: Conductor - User Manual Verification 'さらなる最適化の検討' (Protocol in workflow.md)
