@@ -438,9 +438,10 @@ def _loop(
     fps_counter: FpsCounter,
     font,
     target_fps: float,
+    mode: str = "simple",
     tracker: Optional[BenchmarkTracker] = None,
 ):
-    """Main animation loop relying on driver-level optimization."""
+    """Main animation loop."""
     target_duration = 1.0 / target_fps
     last_frame_time = time.time()
     frame_count = 0
@@ -467,26 +468,35 @@ def _loop(
                 ball.update_position(sub_delta_t, screen_width, screen_height)
             _handle_ball_collisions_optimized(balls, frame_count)
 
-        # 描画処理: 毎回背景をコピーして全描画
-        # ドライバーレベルの Dirty Rectangle 最適化により、これで十分高速。
-        frame_image = background.copy()
-        draw = ImageDraw.Draw(frame_image)
-        for ball in balls:
-            ball.draw(draw)
+        if mode == "simple":
+            # 描画処理: 毎回背景をコピーして全描画
+            # ドライバーレベルの Dirty Rectangle 最適化により、これで十分高速。
+            frame_image = background.copy()
+            draw = ImageDraw.Draw(frame_image)
+            for ball in balls:
+                ball.draw(draw)
 
-        fps_counter.update()
-        draw_text(
-            draw,
-            fps_counter.fps_text,
-            font,
-            x="left",
-            y="top",
-            width=screen_width,
-            height=screen_height,
-            color=TEXT_COLOR,
-        )
+            fps_counter.update()
+            draw_text(
+                draw,
+                fps_counter.fps_text,
+                font,
+                x="left",
+                y="top",
+                width=screen_width,
+                height=screen_height,
+                color=TEXT_COLOR,
+            )
 
-        lcd.display(frame_image)
+            lcd.display(frame_image)
+        else:
+            # TODO: Other modes (optimized, cairo, cairo-optimized)
+            __log.warning(f"Mode {mode} not implemented yet, using simple.")
+            frame_image = background.copy()
+            draw = ImageDraw.Draw(frame_image)
+            for ball in balls:
+                ball.draw(draw)
+            lcd.display(frame_image)
 
         if tracker:
             tracker.update()
@@ -540,6 +550,17 @@ def _loop(
     help="Run benchmark for N seconds (default 10) and report FPS/CPU usage.",
 )
 @click.option(
+    "--mode",
+    "-m",
+    type=click.Choice(
+        ["simple", "optimized", "cairo", "cairo-optimized"],
+        case_sensitive=False,
+    ),
+    default="simple",
+    show_default=True,
+    help="Optimization/Rendering mode",
+)
+@click.option(
     "--rst", type=int, default=25, show_default=True, help="RST PIN"
 )
 @click.option("--dc", type=int, default=24, show_default=True, help="DC PIN")
@@ -552,6 +573,7 @@ def ballanime(
     num_balls: int,
     ball_speed: float,
     benchmark: Optional[int],
+    mode: str,
     rst,
     dc,
     bl,
@@ -560,12 +582,13 @@ def ballanime(
     """物理ベースのアニメーションデモを実行する。"""
     __log = get_logger(__name__, debug)
     __log.debug(
-        "spi_mhz=%s, fps=%s, num_balls=%s, ball_speed=%s, benchmark=%s",
+        "spi_mhz=%s, fps=%s, num_balls=%s, ball_speed=%s, benchmark=%s, mode=%s",
         spi_mhz,
         fps,
         num_balls,
         ball_speed,
         benchmark,
+        mode,
     )
     __log.debug("rst=%s, dc=%s, bl=%s", rst, dc, bl)
 
@@ -637,6 +660,7 @@ def ballanime(
                 fps_counter,
                 font_large,
                 fps,
+                mode,
                 tracker,
             )
 
