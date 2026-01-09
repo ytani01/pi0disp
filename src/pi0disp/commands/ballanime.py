@@ -31,7 +31,9 @@ from ..utils.process_utils import (
     format_memory_usage,
     get_ballanime_pigpiod_pids,
 )
+from ..utils.performance_core import RegionOptimizer
 from ..utils.sprite import CircleSprite
+
 
 __log = get_logger(__name__)
 
@@ -453,6 +455,9 @@ def _loop(
     if tracker:
         tracker.start()
 
+    # 描画バッファ
+    frame_image = background.copy()
+
     while True:
         frame_count += 1
         current_time = time.time()
@@ -470,8 +475,7 @@ def _loop(
 
         if mode == "simple":
             # 描画処理: 毎回背景をコピーして全描画
-            # ドライバーレベルの Dirty Rectangle 最適化により、これで十分高速。
-            frame_image = background.copy()
+            frame_image.paste(background)
             draw = ImageDraw.Draw(frame_image)
             for ball in balls:
                 ball.draw(draw)
@@ -489,10 +493,66 @@ def _loop(
             )
 
             lcd.display(frame_image)
+
+        elif mode == "optimized":
+            dirty_regions = []
+            for ball in balls:
+                region = ball.get_dirty_region()
+                if region:
+                    dirty_regions.append(region)
+
+            fps_updated = fps_counter.update()
+            if fps_updated:
+                # FPSテキスト領域 (左上)
+                dirty_regions.append((0, 0, 100, 40))
+
+            merged_regions = RegionOptimizer.merge_regions(dirty_regions)
+
+            if merged_regions:
+                __log.debug(
+                    f"Optimized: {len(merged_regions)} regions merged from {len(dirty_regions)}."
+                )
+
+            for rx, ry, rw, rh in merged_regions:
+                x1, y1 = max(0, rx), max(0, ry)
+                x2, y2 = min(screen_width, rx + rw), min(screen_height, ry + rh)
+                if x1 >= x2 or y1 >= y2:
+                    continue
+
+                # Dirty Region を背景で修復
+                patch = background.crop((x1, y1, x2, y2))
+                frame_image.paste(patch, (x1, y1))
+
+                # その領域に関連するオブジェクトを再描画
+                draw = ImageDraw.Draw(frame_image)
+                for ball in balls:
+                    bx1, by1, bx2, by2 = ball.bbox
+                    if not (bx2 < x1 or bx1 > x2 or by2 < y1 or by1 > y2):
+                        ball.draw(draw)
+
+                # FPSテキストの再描画
+                if x1 < 100 and y1 < 40:
+                    draw_text(
+                        draw,
+                        fps_counter.fps_text,
+                        font,
+                        x="left",
+                        y="top",
+                        width=screen_width,
+                        height=screen_height,
+                        color=TEXT_COLOR,
+                    )
+
+                # 正しいシグネチャで呼び出し: display_region(image, x0, y0, x1, y1)
+                lcd.display_region(frame_image, x1, y1, x2, y2)
+
+            for ball in balls:
+                ball.record_current_bbox()
+
         else:
-            # TODO: Other modes (optimized, cairo, cairo-optimized)
+            # TODO: Other modes (cairo, cairo-optimized)
             __log.warning(f"Mode {mode} not implemented yet, using simple.")
-            frame_image = background.copy()
+            frame_image.paste(background)
             draw = ImageDraw.Draw(frame_image)
             for ball in balls:
                 ball.draw(draw)
