@@ -2,12 +2,17 @@
 """
 pi0disp.utils.performance_core と関連ユーティリティの使用例
 """
+
 import numpy as np
 from PIL import Image
 
 # 1. 必要なモジュールをインポート
 from pi0disp.utils.performance_core import ColorConverter
-from pi0disp.utils.utils import clamp_region, merge_bboxes, pil_to_rgb565_bytes
+from pi0disp.utils.utils import (
+    clamp_region,
+    merge_bboxes,
+    pil_to_rgb565_bytes,
+)
 
 
 def main():
@@ -19,7 +24,9 @@ def main():
     # 4x4のRGB画像 (NumPy配列) を作成
     img_array = np.zeros((4, 4, 3), dtype=np.uint8)
     img_array[:, :, 0] = np.linspace(0, 255, 4, dtype=np.uint8)  # Red
-    img_array[:, :, 1] = np.linspace(0, 255, 4, dtype=np.uint8)[:, np.newaxis]  # Green
+    img_array[:, :, 1] = np.linspace(0, 255, 4, dtype=np.uint8)[
+        :, np.newaxis
+    ]  # Green
 
     # コンバータを作成し、RGB565に変換
     converter = ColorConverter()

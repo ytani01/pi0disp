@@ -6,7 +6,6 @@ performance_core.py - パフォーマンス最適化のためのコアモジュ�
 直結するコアな最適化ロジックを提供します。
 """
 
-from typing import Union
 
 import numpy as np
 
@@ -29,7 +28,7 @@ class ColorConverter:
         # RGB565 変換用 LUT (8bit -> 5bit/6bit/5bit)
         self._r_lut = (np.arange(256, dtype=np.uint16) >> 3) << 11
         self._g_lut = (np.arange(256, dtype=np.uint16) >> 2) << 5
-        self._b_lut = (np.arange(256, dtype=np.uint16) >> 3)
+        self._b_lut = np.arange(256, dtype=np.uint16) >> 3
         self._gamma_lut = np.array([], dtype=np.uint8)
         self.set_gamma(gamma)
 
@@ -42,7 +41,7 @@ class ColorConverter:
         """
         self._gamma_lut = np.array(
             [int(255 * ((i / 255.0) ** gamma)) for i in range(256)],
-            dtype=np.uint8
+            dtype=np.uint8,
         )
 
     def convert(

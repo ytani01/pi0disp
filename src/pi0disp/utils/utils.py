@@ -7,7 +7,7 @@ processing, region management, and display operations.
 """
 
 import socket
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont

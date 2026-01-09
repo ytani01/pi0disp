@@ -38,8 +38,8 @@ def get_pigpiod_pid():
 
 @pytest.fixture(scope="module")
 def roboface_process():
-    # 今回は roboface2.py をベースラインとして起動
-    cmd = ["uv", "run", "samples/roboface2.py", "--random"]
+    # 今回は roboface.py をベースラインとして起動
+    cmd = ["uv", "run", "samples/roboface.py", "--random"]
     process = None
     try:
         # Popenでサブプロセスとして起動
@@ -49,7 +49,7 @@ def roboface_process():
             stderr=subprocess.PIPE,
             preexec_fn=os.setsid,  # プロセスグループを作成
         )
-        log.info(f"Started roboface2.py with PID: {process.pid}")
+        log.info(f"Started roboface.py with PID: {process.pid}")
         yield process
     finally:
         if process:
@@ -90,15 +90,15 @@ def roboface_process():
 
             stdout, stderr = process.communicate()
             if stdout:
-                log.info(f"roboface2.py stdout captured (len: {len(stdout)})")
+                log.info(f"roboface.py stdout captured (len: {len(stdout)})")
             if stderr:
-                log.error(f"roboface2.py stderr:\n{stderr.decode()}")
+                log.error(f"roboface.py stderr:\n{stderr.decode()}")
 
 
 def test_cpu_memory_usage(roboface_process, duration):
     roboface_pid = roboface_process.pid
     log.info(
-        f"Monitoring roboface2.py (PID: {roboface_pid}) for {duration} seconds..."
+        f"Monitoring roboface.py (PID: {roboface_pid}) for {duration} seconds..."
     )
 
     # pigpiodのPIDを取得
@@ -124,7 +124,7 @@ def test_cpu_memory_usage(roboface_process, duration):
 
     while time.time() < end_time:
         try:
-            # roboface2.py プロセスの情報
+            # roboface.py プロセスの情報
             roboface_cpu = roboface_proc.cpu_percent(interval=None)
             roboface_mem = roboface_proc.memory_info().rss / (
                 1024 * 1024
@@ -170,7 +170,7 @@ def test_cpu_memory_usage(roboface_process, duration):
         max_pigpiod_mem = max(pigpiod_mem_usages)
 
         log.info("\n--- Performance Test Results ---")
-        log.info(f"roboface2.py (PID: {roboface_pid}):")
+        log.info(f"roboface.py (PID: {roboface_pid}):")
         log.info(f"  Average CPU: {avg_roboface_cpu:.2f}%")
         log.info(f"  Max CPU: {max_roboface_cpu:.2f}%")
         log.info(f"  Average Memory (RSS): {avg_roboface_mem:.2f}MB")
@@ -186,5 +186,5 @@ def test_cpu_memory_usage(roboface_process, duration):
 
     # 少なくとも、プロセスが途中で終了しなかったことを確認するアサート
     assert roboface_process.poll() is None, (
-        "roboface2.py process terminated unexpectedly."
+        "roboface.py process terminated unexpectedly."
     )

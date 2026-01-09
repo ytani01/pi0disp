@@ -51,12 +51,11 @@ def test_ballanime_benchmark_cli():
         }
 
         result = runner.invoke(
-            ballanime, ["--mode", "simple", "--benchmark", "--num-balls", "1"]
+            ballanime, ["--benchmark", "1", "--num-balls", "1"]
         )
 
         assert result.exit_code == 0
         assert "--- Benchmark Results ---" in result.output
-        assert "Mode: simple" in result.output
         assert "Avg FPS: 30.00" in result.output
 
     # 秒数指定ありのテスト

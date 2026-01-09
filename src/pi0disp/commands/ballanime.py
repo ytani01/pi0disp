@@ -26,7 +26,6 @@ from .. import (
 )
 from ..disp.disp_spi import SpiPins
 from ..disp.st7789v import ST7789V
-from ..utils.utils import expand_bbox, merge_bboxes
 
 __log = get_logger(__name__)
 

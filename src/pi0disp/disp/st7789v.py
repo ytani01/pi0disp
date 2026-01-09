@@ -6,7 +6,7 @@ ST7789V Display Driver for Raspberry Pi.
 """
 
 import time
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 from PIL import Image, ImageChops
