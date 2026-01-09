@@ -4,6 +4,10 @@ import pytest
 from pi0disp.utils.performance_core import ColorConverter
 from pi0disp.utils.utils import merge_bboxes, clamp_region, pil_to_rgb565_bytes
 from PIL import Image
+import subprocess
+import sys
+import re
+
 
 def test_color_converter_basic():
     """RGB to RGB565 basic conversion check."""
@@ -54,3 +58,33 @@ def test_pil_to_rgb565_bytes():
     # 4 pixels * 2 bytes = 8 bytes. All pixels should be 0xF800
     assert len(data) == 8
     assert data == b'\xf8\x00\xf8\x00\xf8\x00\xf8\x00'
+
+def run_script_and_capture(script_path: str) -> str:
+    """指定されたPythonスクリプトを実行し、標準出力を返す"""
+    result = subprocess.run(
+        [sys.executable, script_path],
+        capture_output=True,
+        text=True,
+        check=True
+    )
+    return result.stdout
+
+def test_sample_color_converter():
+    """Test the color converter sample script."""
+    script_path = "conductor/tracks/performance_core_refactor_20260109/sample_color_converter.py"
+    output = run_script_and_capture(script_path)
+    
+    assert "--- ColorConverter Sample ---" in output
+    # Check for hex output format
+    assert re.search(r"RGB565 bytes \(no gamma, first 16 bytes\): [0-9a-f]+", output)
+    assert re.search(r"RGB565 bytes \(with gamma 1.0, first 16 bytes\): [0-9a-f]+", output)
+
+def test_sample_region_utils():
+    """Test the region utils sample script."""
+    script_path = "conductor/tracks/performance_core_refactor_20260109/sample_region_utils.py"
+    output = run_script_and_capture(script_path)
+
+    assert "--- Region Utilities Sample ---" in output
+    assert "Merged (BBox1, BBox2): (x0=10, y0=10, x1=70, y1=70)" in output
+    assert "Clamped Overlap: (x0=0, y0=0, x1=100, y1=100)" in output
+
