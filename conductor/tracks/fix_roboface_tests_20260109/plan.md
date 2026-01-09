@@ -11,6 +11,6 @@
 - [x] **Task: Conductor - User Manual Verification 'フェーズ 1' (Protocol in workflow.md)** [checkpoint: e5bad0d]
 
 ## フェーズ 2: 最終確認
-- [ ] **タスク 2.1:** `uv run test` を実行し、すべてのテストがパスすることを確認する。
+- [x] **タスク 2.1:** `uv run test` を実行し、すべてのテストがパスすることを確認する。 (2e2960a)
 - [ ] **タスク 2.2:** コードレビューを行い、古いファイルへの参照が残っていないことを確認する。
 - [ ] **Task: Conductor - User Manual Verification 'フェーズ 2' (Protocol in workflow.md)**
