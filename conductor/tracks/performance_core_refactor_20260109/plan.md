@@ -1,6 +1,6 @@
 # Implementation Plan - `performance_core_refactor_20260109`
 
-## フェーズ 1: 現状分析とスリム化設計 [checkpoint: ]
+## フェーズ 1: 現状分析とスリム化設計 [checkpoint: 5fbd982]
 - [x] **タスク 1.1: 現在の `performance_core.py` と `sprite.py`, `st7789v.py` の依存関係・重複箇所の詳細分析** (8dd80ae)
 - [x] **タスク 1.2: 新しい API インターフェースの定義と、削除対象コードのリストアップ** (3e909d0)
 - [x] **Task: Conductor - User Manual Verification 'フェーズ 1' (Protocol in workflow.md)** (3e909d0)
