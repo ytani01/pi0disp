@@ -12,7 +12,8 @@ import numpy as np
 from PIL import Image, ImageChops
 
 from ..utils.mylogger import get_logger
-from ..utils.performance_core import create_optimizer_pack
+from ..utils.performance_core import ColorConverter
+from ..utils.utils import clamp_region
 from .disp_base import DispSize
 from .disp_spi import DispSpi, SpiPins
 
@@ -37,6 +38,8 @@ class ST7789V(DispSpi):
         "MADCTL": 0x36,
         "COLMOD": 0x3A,
     }
+
+    CHUNK_SIZE = 4096  # Optimized for SPI throughput on Pi
 
     def __init__(
         self,
@@ -91,9 +94,8 @@ class ST7789V(DispSpi):
         self._y_offset = y_offset
         self._mv = 0
 
-        # Initialize the optimizer pack
-        self._optimizers = create_optimizer_pack()
-        self._last_window: Optional[Tuple[int, int, int, int]] = None
+        # Initialize core components
+        self._color_converter = ColorConverter()
         self._last_image: Optional[Image.Image] = None
 
         self.init_display()
@@ -138,7 +140,6 @@ class ST7789V(DispSpi):
                 madctl |= 0x08
             self._write_command(self._CMD["MADCTL"])
             self._write_data(madctl)
-        self._last_window = None
 
     def set_window(self, x0: int, y0: int, x1: int, y1: int):
         """描画ウィンドウを設定する"""
@@ -157,18 +158,17 @@ class ST7789V(DispSpi):
 
     def write_pixels(self, pixel_bytes: bytes):
         """ピクセルデータを書き込む"""
-        chunk_size = self._optimizers["adaptive_chunking"].get_chunk_size()
         data_len = len(pixel_bytes)
 
         self._set_dc_level(1)
         self._set_cs_level(0)
 
-        if data_len <= chunk_size:
+        if data_len <= self.CHUNK_SIZE:
             self.pi.spi_write(self.spi_handle, pixel_bytes)
         else:
-            for i in range(0, data_len, chunk_size):
+            for i in range(0, data_len, self.CHUNK_SIZE):
                 self.pi.spi_write(
-                    self.spi_handle, pixel_bytes[i : i + chunk_size]
+                    self.spi_handle, pixel_bytes[i : i + self.CHUNK_SIZE]
                 )
         self._set_cs_level(1)
 
@@ -184,58 +184,47 @@ class ST7789V(DispSpi):
         # 初回表示、または強制更新指定がある場合は全画面表示
         if full or self._last_image is None:
             img_array = np.array(image)
-            pixel_bytes = self._optimizers[
-                "color_converter"
-            ].rgb_to_rgb565_bytes(img_array)
+            pixel_bytes = self._color_converter.convert(img_array)
             self.set_window(0, 0, self.size.width - 1, self.size.height - 1)
             self.write_pixels(pixel_bytes)
             self._last_image = image.copy()
             return
 
         # 前回のイメージとの差分領域 (Bounding Box) を高速に取得
-        # getbbox() は差分がない場合に None を返す
         diff_bbox = ImageChops.difference(image, self._last_image).getbbox()
 
         if diff_bbox is None:
-            # 差分がない場合は何もしない
             return
 
         # diff_bbox は (left, upper, right, lower)
         region_img = image.crop(diff_bbox)
         region_arr = np.array(region_img)
-        pixel_bytes = self._optimizers["color_converter"].rgb_to_rgb565_bytes(
-            region_arr
-        )
+        pixel_bytes = self._color_converter.convert(region_arr)
 
-        # Bounding Boxの境界をRAMWRに合わせて設定
         self.set_window(
             diff_bbox[0], diff_bbox[1], diff_bbox[2] - 1, diff_bbox[3] - 1
         )
         self.write_pixels(pixel_bytes)
 
-        # 今回のイメージを保存
         self._last_image = image.copy()
 
     def display_region(
         self, image: Image.Image, x0: int, y0: int, x1: int, y1: int
     ):
         """部分更新"""
-        region = self._optimizers["region_optimizer"].clamp_region(
+        region = clamp_region(
             (x0, y0, x1, y1), self.size.width, self.size.height
         )
         if region[2] <= region[0] or region[3] <= region[1]:
             return
         region_img = image.crop(region)
         img_array = np.array(region_img)
-        pixel_bytes = self._optimizers["color_converter"].rgb_to_rgb565_bytes(
-            img_array
-        )
+        pixel_bytes = self._color_converter.convert(img_array)
         self.set_window(region[0], region[1], region[2] - 1, region[3] - 1)
         self.write_pixels(pixel_bytes)
 
         # _last_image の対応する領域を更新
         if self._last_image is None:
-            # まだ一度も全画面表示されていない場合は、背景色で初期化（仮に黒）
             self._last_image = Image.new("RGB", self._size, (0, 0, 0))
 
         self._last_image.paste(region_img, region)

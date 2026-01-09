@@ -2,9 +2,8 @@
 """
 pi0disp project utility functions.
 
-This module provides high-level utility functions and classes that leverage
-the `performance_core` module for optimized operations, such as color
-conversion, region management, and image processing.
+This module provides high-level utility functions and classes for image
+processing, region management, and display operations.
 """
 
 import socket
@@ -14,26 +13,18 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from .mylogger import get_logger
-from .performance_core import create_optimizer_pack
+from .performance_core import ColorConverter
 
 log = get_logger(__name__)
 
-# --- Module-level Singleton ---
-_OPTIMIZER_PACK = None
-
-
-def _get_optimizers():
-    """Lazy initializer for the singleton optimizer pack."""
-    global _OPTIMIZER_PACK
-    if _OPTIMIZER_PACK is None:
-        _OPTIMIZER_PACK = create_optimizer_pack()
-    return _OPTIMIZER_PACK
+# --- Module-level Singleton for performance ---
+_COLOR_CONVERTER = ColorConverter()
 
 
 # --- Core Utility Functions ---
 
 
-def pil_to_rgb565_bytes(img: Image.Image) -> bytes:
+def pil_to_rgb565_bytes(img: Image.Image, apply_gamma: bool = False) -> bytes:
     """
     Converts a PIL Image to a big-endian RGB565 byte string using an
     optimized color converter.
@@ -41,7 +32,7 @@ def pil_to_rgb565_bytes(img: Image.Image) -> bytes:
     if img.mode != "RGB":
         img = img.convert("RGB")
     np_img = np.array(img, dtype=np.uint8)
-    return _get_optimizers()["color_converter"].rgb_to_rgb565_bytes(np_img)
+    return _COLOR_CONVERTER.convert(np_img, apply_gamma=apply_gamma)
 
 
 def merge_bboxes(
@@ -55,18 +46,11 @@ def merge_bboxes(
         return bbox2
     if bbox2 is None:
         return bbox1
-    return _get_optimizers()["region_optimizer"]._merge_two(bbox1, bbox2)
-
-
-def optimize_dirty_regions(
-    regions: List[Tuple[int, int, int, int]], max_regions: int = 8
-) -> List[Tuple[int, int, int, int]]:
-    """
-    Optimizes a list of "dirty" regions by merging overlapping or
-    nearby regions to reduce the total number of update areas.
-    """
-    return _get_optimizers()["region_optimizer"].merge_regions(
-        regions, max_regions
+    return (
+        min(bbox1[0], bbox2[0]),
+        min(bbox1[1], bbox2[1]),
+        max(bbox1[2], bbox2[2]),
+        max(bbox1[3], bbox2[3]),
     )
 
 
@@ -76,8 +60,11 @@ def clamp_region(
     """
     Clamps a region's coordinates to ensure it is within the screen boundaries.
     """
-    return _get_optimizers()["region_optimizer"].clamp_region(
-        region, width, height
+    return (
+        max(0, region[0]),
+        max(0, region[1]),
+        min(width, region[2]),
+        min(height, region[3]),
     )
 
 
@@ -104,8 +91,8 @@ class ImageProcessor:
     high-level image processing tasks.
     """
 
-    def __init__(self):
-        self.optimizers = _get_optimizers()
+    def __init__(self, gamma: float = 2.2):
+        self._converter = ColorConverter(gamma=gamma)
 
     def resize_with_aspect_ratio(
         self,
@@ -166,9 +153,9 @@ class ImageProcessor:
         if img.mode != "RGB":
             img = img.convert("RGB")
         np_img = np.array(img, dtype=np.uint8)
-        corrected = self.optimizers["color_converter"].apply_gamma(
-            np_img, gamma
-        )
+        # Use a temporary converter to avoid affecting global state
+        temp_converter = ColorConverter(gamma=gamma)
+        corrected = temp_converter._gamma_lut[np_img]
         return Image.fromarray(corrected, "RGB")
 
 

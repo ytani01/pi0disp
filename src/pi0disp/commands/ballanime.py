@@ -26,7 +26,6 @@ from .. import (
 )
 from ..disp.disp_spi import SpiPins
 from ..disp.st7789v import ST7789V
-from ..utils.performance_core import RegionOptimizer
 from ..utils.utils import expand_bbox, merge_bboxes
 
 __log = get_logger(__name__)
@@ -104,7 +103,7 @@ class Ball:
         self.speed_sq = speed * speed  # 速度の二乗を事前計算
 
         self.fill_color = fill_color
-        self.prev_bbox: Optional[tuple[int, int, int, int]] = None  # type: ignore
+        self.prev_bbox: Optional[tuple[int, int, int, int]] = None
         self._bbox_cache = None
         self._bbox_dirty = True
 
@@ -426,7 +425,7 @@ def _handle_ball_collisions_optimized(balls: List[Ball], frame_count: int):
                 ball2._bbox_dirty = True
 
 
-def _loop_simple(
+def _loop(
     lcd: ST7789V,
     background: Image.Image,
     balls: List[Ball],
@@ -435,7 +434,7 @@ def _loop_simple(
     target_fps: float,
     tracker: Optional[BenchmarkTracker] = None,
 ):
-    """Simple mode loop: relying on driver-level optimization."""
+    """Main animation loop relying on driver-level optimization."""
     target_duration = 1.0 / target_fps
     last_frame_time = time.time()
     frame_count = 0
@@ -462,7 +461,8 @@ def _loop_simple(
                 ball.update_position(sub_delta_t, screen_width, screen_height)
             _handle_ball_collisions_optimized(balls, frame_count)
 
-        # 描画処理 (Simple版: 毎回背景をコピーして全描画)
+        # 描画処理: 毎回背景をコピーして全描画
+        # ドライバーレベルの Dirty Rectangle 最適化により、これで十分高速。
         frame_image = background.copy()
         draw = ImageDraw.Draw(frame_image)
         for ball in balls:
@@ -481,120 +481,6 @@ def _loop_simple(
         )
 
         lcd.display(frame_image)
-
-        if tracker:
-            tracker.update()
-            if tracker.should_stop():
-                break
-
-        wait_time = max(0, last_frame_time + target_duration - time.time())
-        if wait_time > 0:
-            time.sleep(wait_time)
-
-
-def _loop_fast(
-    lcd: ST7789V,
-    background: Image.Image,
-    balls: List[Ball],
-    fps_counter: FpsCounter,
-    font,
-    target_fps: float,
-    tracker: Optional[BenchmarkTracker] = None,
-):
-    """Fast mode loop: manual region optimization and background caching."""
-    target_duration = 1.0 / target_fps
-    last_frame_time = time.time()
-    frame_count = 0
-
-    inv_substeps = 1.0 / PHYSICS_SUBSTEPS
-    screen_width = lcd.size.width
-    screen_height = lcd.size.height
-
-    hud_layer = Image.new("RGBA", (screen_width, screen_height), (0, 0, 0, 0))
-    hud_draw = ImageDraw.Draw(hud_layer)
-    prev_fps_bbox = None
-
-    # 背景画像を一旦RGBに変換して保持（キャッシュ）
-    bg_cache = background.convert("RGB")
-
-    if tracker:
-        tracker.start()
-
-    while True:
-        frame_count += 1
-        current_time = time.time()
-        delta_t = max(
-            min(current_time - last_frame_time, target_duration * 2.5),
-            target_duration * 0.2,
-        )
-        last_frame_time = current_time
-        sub_delta_t = delta_t * inv_substeps
-
-        for _ in range(PHYSICS_SUBSTEPS):
-            for ball in balls:
-                ball.update_position(sub_delta_t, screen_width, screen_height)
-            _handle_ball_collisions_optimized(balls, frame_count)
-
-        new_frame_image = bg_cache.copy()
-        draw = ImageDraw.Draw(new_frame_image)
-        dirty_regions = []
-
-        for ball in balls:
-            prev_bbox = ball.prev_bbox
-            curr_bbox = ball.get_bbox()
-            dirty_region = merge_bboxes(prev_bbox, curr_bbox)
-            if dirty_region:
-                dirty_regions.append(
-                    RegionOptimizer.clamp_region(
-                        expand_bbox(dirty_region, 1),
-                        screen_width,
-                        screen_height,
-                    )
-                )
-            ball.draw(draw)
-            ball.prev_bbox = curr_bbox
-
-        if fps_counter.update():
-            if prev_fps_bbox:
-                hud_draw.rectangle(
-                    (
-                        prev_fps_bbox[0] - 4,
-                        prev_fps_bbox[1] - 6,
-                        prev_fps_bbox[2] + 4,
-                        prev_fps_bbox[3] + 6,
-                    ),
-                    fill=(0, 0, 0, 0),
-                )
-            current_fps_bbox = draw_text(
-                hud_draw,
-                fps_counter.fps_text,
-                font,
-                x="left",
-                y="top",
-                width=screen_width,
-                height=screen_height,
-                color=TEXT_COLOR,
-            )
-            if current_fps_bbox:
-                expanded_fps = (
-                    current_fps_bbox[0] - 4,
-                    current_fps_bbox[1] - 6,
-                    current_fps_bbox[2] + 4,
-                    current_fps_bbox[3] + 6,
-                )
-                dirty_regions.append(expanded_fps)
-                prev_fps_bbox = current_fps_bbox
-
-        frame_rgba = new_frame_image.convert("RGBA")
-        frame_rgba.alpha_composite(hud_layer)
-        final_frame = frame_rgba.convert("RGB")
-
-        if dirty_regions:
-            optimized = RegionOptimizer.merge_regions(
-                dirty_regions, max_regions=8
-            )
-            for r in optimized:
-                lcd.display_region(final_frame, *r)
 
         if tracker:
             tracker.update()
@@ -633,14 +519,6 @@ def _loop_fast(
     help="Number of balls to display",
 )
 @click.option(
-    "--mode",
-    "-m",
-    type=click.Choice(["simple", "fast"], case_sensitive=False),
-    default="simple",
-    show_default=True,
-    help="Optimization mode: 'simple' for driver-level optimization, 'fast' for manual app-level optimization.",
-)
-@click.option(
     "--ball-speed",
     "-s",
     type=float,
@@ -666,7 +544,6 @@ def ballanime(
     spi_mhz: float,
     fps: float,
     num_balls: int,
-    mode: str,
     ball_speed: float,
     benchmark: Optional[int],
     rst,
@@ -677,20 +554,16 @@ def ballanime(
     """物理ベースのアニメーションデモを実行する。"""
     __log = get_logger(__name__, debug)
     __log.debug(
-        "spi_mhz=%s, fps=%s, num_balls=%s, mode=%s, ball_speed=%s, benchmark=%s",
+        "spi_mhz=%s, fps=%s, num_balls=%s, ball_speed=%s, benchmark=%s",
         spi_mhz,
         fps,
         num_balls,
-        mode,
         ball_speed,
         benchmark,
     )
     __log.debug("rst=%s, dc=%s, bl=%s", rst, dc, bl)
 
-    cmd_name = ctx.command.name
-    __log.debug("cmd_name=%s", cmd_name)
-
-    __log.info("mode=%s, fps=%s ... Ctrl+C で終了してください。", mode, fps)
+    __log.info("fps=%s ... Ctrl+C で終了してください。", fps)
 
     try:
         with ST7789V(
@@ -698,7 +571,7 @@ def ballanime(
             pin=SpiPins(rst=rst, dc=dc, bl=bl),
             debug=debug,
         ) as lcd:
-            # フォントをロード（元の設定維持）
+            # フォントをロード
             font_large: ImageFont.FreeTypeFont | ImageFont.ImageFont
             font_small: ImageFont.FreeTypeFont | ImageFont.ImageFont
             try:
@@ -709,7 +582,7 @@ def ballanime(
                 font_large = ImageFont.load_default()
                 font_small = ImageFont.load_default()
 
-            # 背景画像を生成（元の処理維持）
+            # 背景画像を生成
             background_image = Image.new(
                 "RGB", (lcd.size.width, lcd.size.height)
             )
@@ -750,32 +623,20 @@ def ballanime(
                     duration = 10
                 tracker = BenchmarkTracker(duration=duration)
 
-            # モードに応じたメインループを開始
-            if mode.lower() == "fast":
-                _loop_fast(
-                    lcd,
-                    background_image,
-                    balls,
-                    fps_counter,
-                    font_large,
-                    fps,
-                    tracker,
-                )
-            else:
-                _loop_simple(
-                    lcd,
-                    background_image,
-                    balls,
-                    fps_counter,
-                    font_large,
-                    fps,
-                    tracker,
-                )
+            # メインループを開始
+            _loop(
+                lcd,
+                background_image,
+                balls,
+                fps_counter,
+                font_large,
+                fps,
+                tracker,
+            )
 
             if tracker:
                 res = tracker.get_results()
                 print("\n--- Benchmark Results ---")
-                print(f"Mode: {mode}")
                 print(f"Duration: {res['duration']:.2f}s")
                 print(f"Total Frames: {res['total_frames']}")
                 print(f"Avg FPS: {res['avg_fps']:.2f}")

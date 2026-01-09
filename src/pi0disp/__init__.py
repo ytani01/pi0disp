@@ -9,7 +9,7 @@ from .disp.st7789v import ST7789V
 from .utils.click_utils import click_common_opts
 from .utils.my_conf import MyConf
 from .utils.mylogger import errmsg, get_logger
-from .utils.performance_core import RegionOptimizer
+
 from .utils.sprite import Sprite
 from .utils.utils import (
     ImageProcessor,
@@ -38,7 +38,7 @@ __all__ = [
     "DispSize",
     "DispSpi",
     "MyConf",
-    "RegionOptimizer",
+
     "SpiPins",
     "Sprite",
     "ST7789V",
