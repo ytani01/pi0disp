@@ -31,6 +31,7 @@ from ..utils.process_utils import (
     format_memory_usage,
     get_ballanime_pigpiod_pids,
 )
+from ..utils.sprite import CircleSprite
 
 __log = get_logger(__name__)
 
@@ -79,26 +80,18 @@ def fast_cos_sin(angle):
 
 
 # --- 最適化されたクラス定義 ---
-class Ball:
+class Ball(CircleSprite):
     """計算最適化版ボールクラス（見た目は同じ）"""
 
     __slots__ = (
-        "x",
-        "y",
-        "radius",
         "speed_x",
         "speed_y",
         "fill_color",
-        "prev_bbox",
         "speed_sq",
-        "_bbox_cache",
-        "_bbox_dirty",
     )
 
     def __init__(self, x, y, radius, speed, angle, fill_color):
-        self.x = float(x)
-        self.y = float(y)
-        self.radius = radius
+        super().__init__(cx=float(x), cy=float(y), radius=radius)
 
         # 三角関数計算を事前実行
         cos_a, sin_a = fast_cos_sin(angle)
@@ -107,15 +100,12 @@ class Ball:
         self.speed_sq = speed * speed  # 速度の二乗を事前計算
 
         self.fill_color = fill_color
-        self.prev_bbox: Optional[tuple[int, int, int, int]] = None
-        self._bbox_cache = None
-        self._bbox_dirty = True
 
     def update_position(self, delta_t, screen_width, screen_height):
         """位置更新（計算最適化版）"""
         # インライン計算で関数呼び出しオーバーヘッド削減
-        new_x = self.x + self.speed_x * delta_t
-        new_y = self.y + self.speed_y * delta_t
+        new_cx = self.cx + self.speed_x * delta_t
+        new_cy = self.cy + self.speed_y * delta_t
 
         # 境界チェック（分岐予測最適化）
         r = self.radius
@@ -123,19 +113,19 @@ class Ball:
         height_limit = screen_height - r
 
         # X軸境界チェック
-        if new_x <= r:
-            new_x = r
+        if new_cx <= r:
+            new_cx = r
             self.speed_x = -self.speed_x
-        elif new_x >= width_limit:
-            new_x = width_limit - 1
+        elif new_cx >= width_limit:
+            new_cx = width_limit - 1
             self.speed_x = -self.speed_x
 
         # Y軸境界チェック
-        if new_y <= r:
-            new_y = r
+        if new_cy <= r:
+            new_cy = r
             self.speed_y = -self.speed_y
-        elif new_y >= height_limit:
-            new_y = height_limit - 1
+        elif new_cy >= height_limit:
+            new_cy = height_limit - 1
             self.speed_y = -self.speed_y
 
         # 位置更新時に速度の二乗も更新
@@ -143,26 +133,18 @@ class Ball:
             self.speed_x * self.speed_x + self.speed_y * self.speed_y
         )
 
-        # 位置が変わったらbboxキャッシュを無効化
-        if new_x != self.x or new_y != self.y:
-            self.x = new_x
-            self.y = new_y
-            self._bbox_dirty = True
+        # 位置が変わったら更新
+        self.cx = new_cx
+        self.cy = new_cy
 
-    def get_bbox(self):
-        """バウンディングボックス取得（キャッシュ付き）"""
-        if self._bbox_dirty or self._bbox_cache is None:
-            r = self.radius
-            x_int = int(self.x)
-            y_int = int(self.y)
-            self._bbox_cache = (x_int - r, y_int - r, x_int + r, y_int + r)
-            self._bbox_dirty = False
-        return self._bbox_cache
+    def update(self, delta_t: float):
+        """Spriteインターフェース用"""
+        pass
 
     def draw(self, draw: ImageDraw.ImageDraw):
-        """描画処理（変更なし）"""
-        bbox = self.get_bbox()
-        draw.ellipse(bbox, fill=self.fill_color, outline=self.fill_color)
+        """描画処理"""
+        # Sprite.bbox を利用 (左上, 左上, 右下, 右下)
+        draw.ellipse(self.bbox, fill=self.fill_color, outline=self.fill_color)
 
 
 class FpsCounter:
