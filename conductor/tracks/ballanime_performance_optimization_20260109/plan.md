@@ -33,9 +33,9 @@
 - [x] 検証: 拡大表示等を行い、エッジが滑らかになっていることを視覚的に（またはピクセルデータで）事実確認する。 [6acd082]
 
 ### タスク 3.2: `cairo-optimized` モードの実装
-- [ ] テスト: Cairoでの部分描画（`clip`機能など）と、`RegionOptimizer` による送信領域が一致していることをテストする。
-- [ ] 実装: `cairo-optimized` モードを実装する。
-- [ ] 検証: ログを用いて、描画負荷（Cairo処理時間）と転送負荷の両方がバランスよく制御されているかを確認する。
+- [x] テスト: Cairoでの部分描画（`clip`機能など）と、`RegionOptimizer` による送信領域が一致していることをテストする。 [cd90d39]
+- [x] 実装: `cairo-optimized` モードを実装する。 [cd90d39]
+- [x] 検証: ログを用いて、描画負荷（Cairo処理時間）と転送負荷の両方がバランスよく制御されているかを確認する。 [cd90d39]
 
 - [ ] Task: Conductor - User Manual Verification 'cairo および cairo-optimized モードの実装' (Protocol in workflow.md)
 
