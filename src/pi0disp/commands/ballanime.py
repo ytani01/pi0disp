@@ -454,19 +454,32 @@ def pil_to_cairo_surface(pil_image: Image.Image) -> cairo.ImageSurface:
 def cairo_surface_to_pil(
     surface: cairo.ImageSurface, region: tuple | None = None
 ) -> Image.Image:
-    """Cairo ImageSurface (ARGB32) を PIL画像 (RGB) に変換する。特定領域の抽出に対応。"""
+    """Cairo ImageSurface (ARGB32) を PIL画像 (RGB) に変換する。"""
     width = surface.get_width()
     height = surface.get_height()
-    # numpy array view of the buffer
-    data = np.ndarray(
-        shape=(height, width, 4), dtype=np.uint8, buffer=surface.get_data()
-    )
+    stride = surface.get_stride()
+
+    # Get buffer and wrap it in a numpy array, accounting for stride
+    buf = surface.get_data()
+    data = np.frombuffer(buf, dtype=np.uint8).reshape(height, stride)
+    # Extract only the active pixel data (4 bytes per pixel for ARGB32)
+    data = data[:, : width * 4].reshape(height, width, 4)
 
     if region:
         x1, y1, x2, y2 = region
-        data = data[y1:y2, x1:x2, :]
+        # Ensure coordinates are within bounds
+        x1, y1 = max(0, x1), max(0, y1)
+        x2, y2 = min(width, x2), min(height, y2)
+        if x1 >= x2 or y1 >= y2:
+            return Image.new("RGB", (1, 1), (0, 0, 0))
+        # Use copy to detach from the potentially changing cairo buffer
+        data = data[y1:y2, x1:x2, :].copy()
+    else:
+        data = data.copy()
 
-    # BGRA -> RGB
+    # Cairo FORMAT_ARGB32 is BGRA in little-endian.
+    # We want RGB for PIL.
+    # data[:,:,0] is B, [1] is G, [2] is R
     img = Image.fromarray(data[:, :, :3], "RGB")
     b, g, r = img.split()
     return Image.merge("RGB", (r, g, b))
@@ -569,19 +582,25 @@ def _loop(
                 if x1 >= x2 or y1 >= y2:
                     continue
 
-                # Dirty Region を背景で修復
+                # 1. Dirty Region を背景で修復 (完全に初期化)
                 patch = background.crop((x1, y1, x2, y2))
                 frame_image.paste(patch, (x1, y1))
 
-                # その領域に関連するオブジェクトを再描画
+                # 2. その領域に関連するオブジェクトを再描画
                 draw = ImageDraw.Draw(frame_image)
                 for ball in balls:
+                    # マージンを含めた判定
                     bx1, by1, bx2, by2 = ball.bbox
-                    if not (bx2 < x1 or bx1 > x2 or by2 < y1 or by1 > y2):
+                    if not (bx2 < x1 - 2 or bx1 > x2 + 2 or by2 < y1 - 2 or by1 > y2 + 2):
                         ball.draw(draw)
 
-                # FPSテキストの再描画
+                # 3. FPSテキストの再描画
+                # (左上 100x40 領域と重なりがある場合のみ)
                 if x1 < 100 and y1 < 40:
+                    # 再描画前にテキスト領域を背景で確実にクリアする
+                    # (既に paste でクリアされているが、念のため明示)
+                    text_patch = background.crop((0, 0, 100, 40))
+                    frame_image.paste(text_patch, (0, 0))
                     draw_text(
                         draw,
                         fps_counter.fps_text,
@@ -648,18 +667,18 @@ def _loop(
                 if x1 >= x2 or y1 >= y2:
                     continue
 
+                # 1. Cairo側での描画
                 cairo_ctx.save()
                 cairo_ctx.rectangle(x1, y1, x2 - x1, y2 - y1)
                 cairo_ctx.clip()
 
-                # 背景描画
+                # 完全に背景で塗りつぶしてから描画 (重ね塗りを排除)
                 cairo_ctx.set_source_surface(background_surface, 0, 0)
                 cairo_ctx.paint()
 
-                # ボール描画
                 for ball in balls:
                     bx1, by1, bx2, by2 = ball.bbox
-                    if not (bx2 < x1 or bx1 > x2 or by2 < y1 or by1 > y2):
+                    if not (bx2 < x1 - 2 or bx1 > x2 + 2 or by2 < y1 - 2 or by1 > y2 + 2):
                         r, g, b = [c / 255.0 for c in ball.fill_color]
                         cairo_ctx.set_source_rgb(r, g, b)
                         cairo_ctx.arc(ball.cx, ball.cy, ball.radius, 0, TWO_PI)
@@ -667,21 +686,30 @@ def _loop(
 
                 cairo_ctx.restore()
 
-                # その領域を PIL画像に変換
+                # 2. その領域を PIL画像に変換して全画面バッファに反映
                 region_image = cairo_surface_to_pil(
                     cairo_surface, (x1, y1, x2, y2)
                 )
+                frame_image.paste(region_image, (x1, y1))
 
+                # 3. テキストの再描画 (領域内なら常に)
                 if x1 < 100 and y1 < 40:
-                    draw = ImageDraw.Draw(region_image)
-                    draw.text(
-                        (0 - x1, 0 - y1),
+                    # テキスト領域を一旦背景でクリア (重ね塗り防止)
+                    text_patch = background.crop((0, 0, 100, 40))
+                    frame_image.paste(text_patch, (0, 0))
+                    draw_text(
+                        ImageDraw.Draw(frame_image),
                         fps_counter.fps_text,
-                        font=font,
-                        fill=TEXT_COLOR,
+                        font,
+                        x="left",
+                        y="top",
+                        width=screen_width,
+                        height=screen_height,
+                        color=TEXT_COLOR,
                     )
 
-                lcd.display_region(region_image, x1, y1, x2, y2)
+                # 正しいシグネチャで呼び出し (全画面画像と、送信したい矩形を渡す)
+                lcd.display_region(frame_image, x1, y1, x2, y2)
 
             for ball in balls:
                 ball.record_current_bbox()
@@ -863,6 +891,11 @@ def ballanime(
             if tracker:
                 res = tracker.get_results()
                 print("\n--- Benchmark Results ---")
+                print(f"Mode: {mode}")
+                print(f"Num Balls: {num_balls}")
+                print(f"Target FPS: {fps}")
+                print(f"SPI Speed: {spi_mhz} MHz")
+                print("-" * 25)
                 print(f"Duration: {res['duration']:.2f}s")
                 print(f"Total Frames: {res['total_frames']}")
                 print(f"Avg FPS: {res['avg_fps']:.2f}")
@@ -871,6 +904,25 @@ def ballanime(
                 print(f"Avg Mem (ballanime): {res['avg_mem_ballanime']}")
                 print(f"Avg Mem (pigpiod): {res['avg_mem_pigpiod']}")
                 print("--------------------------\n")
+
+                # レポートの保存
+                report_file = "ballanime-report.md"
+                file_exists = os.path.exists(report_file)
+                with open(report_file, "a") as f:
+                    if not file_exists:
+                        f.write("# Ballanime Benchmark Report\n\n")
+                        f.write(
+                            "| Date | Mode | Balls | Target FPS | SPI | Avg FPS | CPU (App) | CPU (pigpiod) | Mem (App) |\n"
+                        )
+                        f.write(
+                            "|------|------|-------|------------|-----|---------|-----------|--------------|-----------|\n"
+                        )
+
+                    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+                    f.write(
+                        f"| {timestamp} | {mode} | {num_balls} | {fps} | {spi_mhz}M | {res['avg_fps']:.2f} | {res['avg_cpu']:.1f}% | {res['avg_pigpiod']:.1f}% | {res['avg_mem_ballanime']} |\n"
+                    )
+                __log.info(f"Report saved to {report_file}")
 
     except KeyboardInterrupt:
         __log.info("\n終了しました。\n")

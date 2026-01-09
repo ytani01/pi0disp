@@ -92,12 +92,16 @@ class Sprite(ABC):
     def get_dirty_region(self) -> Optional[Tuple[int, int, int, int]]:
         """
         Calculates the area that needs to be redrawn for the current frame.
-        If the sprite state hasn't changed since the last record_current_bbox call,
-        it returns None to skip redundant display updates.
+        Includes a small margin to account for anti-aliasing and sub-pixel shifts.
         """
         if not self._dirty and self.prev_bbox is not None:
             return None
-        return merge_bboxes(self.prev_bbox, self.bbox)
+        res = merge_bboxes(self.prev_bbox, self.bbox)
+        if res is None:
+            return None
+
+        # Add 2-pixel margin for anti-aliasing safety
+        return (res[0] - 2, res[1] - 2, res[2] + 2, res[3] + 2)
 
     def record_current_bbox(self):
         """

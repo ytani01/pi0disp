@@ -1,0 +1,8 @@
+{
+  "track_id": "ballanime_performance_optimization_20260109",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-01-09T23:30:00Z",
+  "updated_at": "2026-01-09T23:30:00Z",
+  "description": "ballanimeの改造と性能評価：複数最適化モード（Sprite, RegionOptimizer, Cairo）の実装と評価レポート生成"
+}

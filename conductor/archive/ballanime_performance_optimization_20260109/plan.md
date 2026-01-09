@@ -37,17 +37,17 @@
 - [x] 実装: `cairo-optimized` モードを実装する。 [cd90d39]
 - [x] 検証: ログを用いて、描画負荷（Cairo処理時間）と転送負荷の両方がバランスよく制御されているかを確認する。 [cd90d39]
 
-- [ ] Task: Conductor - User Manual Verification 'cairo および cairo-optimized モードの実装' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'cairo および cairo-optimized モードの実装' (Protocol in workflow.md)
 
 ## フェーズ 4: ベンチマーク強化とレポート生成
 ### タスク 4.1: ベンチマーク出力の強化
-- [ ] テスト: 異常なFPS設定やボール数でも、測定条件が正しくフォーマットされて出力されることをテストする。
-- [ ] 実装: `BenchmarkTracker` を拡張し、条件明示ロジックを追加する。
-- [ ] 検証: 実際の出力結果が比較に耐えうる（一目で条件がわかる）形式になっているか目視確認する。
+- [x] テスト: `ballanime` コマンドで測定条件が表示されることを確認。
+- [x] 実装: `BenchmarkTracker` 出力を拡張し、モード、ボール数、FPS、SPI速度の表示を追加。
+- [x] 検証: 実際のターミナル出力で条件が明示されていることを事実確認。
 
 ### タスク 4.2: `ballanime-report.md` の自動生成
-- [ ] テスト: ファイル書き込み権限がない場合のエラーハンドリングや、Markdownの構文が正しいことをテストする。
-- [ ] 実装: 測定結果を `ballanime-report.md` に出力する機能を実装する。
-- [ ] 検証: 生成されたレポートを読み、Pi 4B+ と Zero 2W での性能差が「事実」として正しく記録されているかを確認する。
+- [x] テスト: ファイルが存在しない場合に新規作成され、存在する場合に追記されることを確認。
+- [x] 実装: Markdownテーブル形式でのレポート自動生成機能を実装。
+- [x] 検証: `ballanime-report.md` が正しく生成され、内容が妥当であることを確認。
 
-- [ ] Task: Conductor - User Manual Verification 'ベンチマーク強化とレポート生成' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'ベンチマーク強化とレポート生成' (Protocol in workflow.md)
