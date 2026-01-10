@@ -61,15 +61,30 @@ def ballanime_process(request):
         "--fps",
         "30",
     ]
-    process = subprocess.Popen(cmd, preexec_fn=os.setsid)
+    process = subprocess.Popen(cmd, preexec_fn=os.setsid, stderr=subprocess.PIPE)
     log.info(f"Started ballanime --mode {mode} (PID: {process.pid})")
+
+    # Give it a moment to potentially fail
+    time.sleep(2)
+    poll_val = process.poll()
+    if poll_val is not None:
+        stderr = ""
+        if process.stderr:
+            stderr = process.stderr.read().decode()
+        raise RuntimeError(
+            f"Process terminated immediately with exit code {poll_val}. "
+            f"stderr: {stderr}"
+        )
+
     yield process, mode
     kill_proc_tree(process.pid)
     process.wait()
 
 
 @pytest.mark.parametrize(
-    "ballanime_process", ["simple", "fast"], indirect=True
+    "ballanime_process",
+    ["simple", "optimized", "cairo", "cairo-optimized"],
+    indirect=True,
 )
 def test_ballanime_performance_comparison(ballanime_process, duration):
     proc_obj, mode = ballanime_process

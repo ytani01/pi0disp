@@ -83,3 +83,4 @@ flycheck_*
 
 # Ignore dynaconf secret files
 .secrets.*
+ballanime-report.md
