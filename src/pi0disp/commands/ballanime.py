@@ -561,20 +561,19 @@ def _loop(
                 if region:
                     dirty_regions.append(region)
 
-            # FPSエリア (0, 0, 100, 40) との重なり判定
-            fps_area = (0, 0, 100, 40)
             fps_updated = fps_counter.update()
-            fps_area_overlap = any(
-                (rx < 100 and ry < 40 and rx + rw > 0 and ry + rh > 0)
-                for rx, ry, rw, rh in dirty_regions
-            )
-
-            if fps_updated or fps_area_overlap:
-                # FPS領域全体を更新対象に加える。
-                # これにより、ステップ1で背景が正しく復元される。
-                dirty_regions.append(fps_area)
+            if fps_updated:
+                # FPSテキスト領域 (左上)
+                dirty_regions.append((0, 0, 100, 40))
 
             merged_regions = RegionOptimizer.merge_regions(dirty_regions)
+
+            # 重要：マージ後の領域が FPS エリア (0, 0, 100, 40) と重なる場合、
+            # 背景復元でテキストが消えているため、再描画が必要。
+            fps_area_invaded = any(
+                (rx < 100 and ry < 40 and rx + rw > 0 and ry + rh > 0)
+                for rx, ry, rw, rh in merged_regions
+            )
 
             if merged_regions:
                 # 1. Dirty Region を背景で修復 (完全に初期化)
@@ -595,9 +594,7 @@ def _loop(
                     ball.draw(draw)
 
                 # 3. FPSテキストの再描画 (必要なら)
-                # 既にステップ1で背景復元、ステップ2でボール描画が完了しているため、
-                # ここではテキストを上書きするだけで良い。
-                if fps_updated or fps_area_overlap:
+                if fps_updated or fps_area_invaded:
                     draw_text(
                         draw,
                         fps_counter.fps_text,
@@ -672,20 +669,18 @@ def _loop(
                 if region:
                     dirty_regions.append(region)
 
-            # FPSエリア (0, 0, 100, 40) との重なり判定
-            fps_area = (0, 0, 100, 40)
             fps_updated = fps_counter.update()
-            fps_area_overlap = any(
-                (rx < 100 and ry < 40 and rx + rw > 0 and ry + rh > 0)
-                for rx, ry, rw, rh in dirty_regions
-            )
-
-            if fps_updated or fps_area_overlap:
-                # FPS領域全体を更新対象に加える。
-                # これにより、ステップ1で背景が正しく復元される。
-                dirty_regions.append(fps_area)
+            if fps_updated:
+                dirty_regions.append((0, 0, 100, 40))
 
             merged_regions = RegionOptimizer.merge_regions(dirty_regions)
+
+            # 重要：マージ後の領域が FPS エリア (0, 0, 100, 40) と重なる場合、
+            # 背景復元でテキストが消えているため、再描画が必要。
+            fps_area_invaded = any(
+                (rx < 100 and ry < 40 and rx + rw > 0 and ry + rh > 0)
+                for rx, ry, rw, rh in merged_regions
+            )
 
             if merged_regions:
                 for rx, ry, rw, rh in merged_regions:
@@ -724,7 +719,7 @@ def _loop(
 
                 # 3. テキストの再描画 (必要なら)
                 # 全てのリージョンの再描画が終わった後に、テキストを重ねる。
-                if fps_updated or fps_area_overlap:
+                if fps_updated or fps_area_invaded:
                     draw_text(
                         ImageDraw.Draw(frame_image),
                         fps_counter.fps_text,

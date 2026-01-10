@@ -11,9 +11,14 @@
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Automated Reproduction and Fact Finding' (Protocol in workflow.md)
 
 ## Phase 2: Implementation and Fix (Green Phase)
-- [ ] Task: `src/pi0disp/commands/ballanime.py` の `optimized` モードにおける Dirty Rectangle の判定と `fps_area_overlap` のロジックを再点検し、漏れなく再描画が行われるように修正する。
-- [ ] Task: `cairo-optimized` モードに対しても同様の修正を適用する。
-- [ ] Task: `tests/verify_fps_glitch.py` を再実行し、ボール重なり時も FPS 表示が維持され、テストがパスすることを事実として確認する。
+
+- [x] Task: `src/pi0disp/commands/ballanime.py` の `optimized` モードにおける Dirty Rectangle の判定と `fps_area_overlap` のロジックを再点検し、漏れなく再描画が行われるように修正する。 (057396f)
+
+- [x] Task: `cairo-optimized` モードに対しても同様の修正を適用する。 (057396f)
+
+- [x] Task: `tests/verify_fps_glitch.py` を再実行し、ボール重なり時も FPS 表示が維持され、テストがパスすることを事実として確認する。 (057396f)
+
+
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Implementation and Fix' (Protocol in workflow.md)
 
 ## Phase 3: Quality Gate and Cleanup
