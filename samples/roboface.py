@@ -70,7 +70,7 @@ class DisplayBase(ABC):
         return self._height
 
     @abstractmethod
-    def display(self, pil_image: Image.Image) -> None:
+    def display(self, pil_image: Image.Image, full: bool = False) -> None:
         """画面全体を表示"""
         pass
 
@@ -155,7 +155,7 @@ class CV2Disp(DisplayBase):
         if key == 27:  # ESC
             raise KeyboardInterrupt("ESC pressed")
 
-    def display(self, pil_image: Image.Image) -> None:
+    def display(self, pil_image: Image.Image, full: bool = False) -> None:
         self._show(pil_image)
 
     def display_regions(

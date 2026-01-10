@@ -11,8 +11,8 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Analysis and Reproduction' (Protocol in workflow.md)
 
 ## Phase 2: Implementation (Green Phase)
-- [ ] Task: `samples/roboface.py` の `DisplayBase.display` および `CV2Disp.display` のシグネチャを修正し、`full` 引数を受け取れるようにする
-- [ ] Task: 作成したテストを実行し、パスすることを確認する
+- [x] Task: `samples/roboface.py` の `DisplayBase.display` および `CV2Disp.display` のシグネチャを修正し、`full` 引数を受け取れるようにする
+- [~] Task: 作成したテストを実行し、パスすることを確認する
 - [ ] Task: `Lcd.display` の実装も確認し、一貫性が保たれているかチェックする（必要に応じて修正）
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Implementation' (Protocol in workflow.md)
 
