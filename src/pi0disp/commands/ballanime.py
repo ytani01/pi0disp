@@ -561,18 +561,22 @@ def _loop(
                 if region:
                     dirty_regions.append(region)
 
+            # FPSエリア (0, 0, 100, 40) との重なり判定
+            fps_area = (0, 0, 100, 40)
             fps_updated = fps_counter.update()
-            if fps_updated:
-                # FPSテキスト領域 (左上)
-                dirty_regions.append((0, 0, 100, 40))
+            fps_area_overlap = any(
+                (rx < 100 and ry < 40 and rx + rw > 0 and ry + rh > 0)
+                for rx, ry, rw, rh in dirty_regions
+            )
+
+            if fps_updated or fps_area_overlap:
+                # FPS領域全体を更新対象に加える。
+                # これにより、ステップ1で背景が正しく復元される。
+                dirty_regions.append(fps_area)
 
             merged_regions = RegionOptimizer.merge_regions(dirty_regions)
 
             if merged_regions:
-                __log.debug(
-                    f"Optimized: {len(merged_regions)} regions merged from {len(dirty_regions)}."
-                )
-
                 # 1. Dirty Region を背景で修復 (完全に初期化)
                 for rx, ry, rw, rh in merged_regions:
                     x1, y1 = max(0, rx), max(0, ry)
@@ -591,16 +595,9 @@ def _loop(
                     ball.draw(draw)
 
                 # 3. FPSテキストの再描画 (必要なら)
-                # 重要：いずれかの更新領域が FPS 表示エリア (0, 0, 100, 40) と重なる場合、
-                # 背景復元でテキストが消えている可能性があるため、再描画を強制する。
-                fps_area_overlap = any(
-                    (rx < 100 and ry < 40 and rx + rw > 0 and ry + rh > 0)
-                    for rx, ry, rw, rh in merged_regions
-                )
+                # 既にステップ1で背景復元、ステップ2でボール描画が完了しているため、
+                # ここではテキストを上書きするだけで良い。
                 if fps_updated or fps_area_overlap:
-                    # 再描画前にテキスト領域を背景で確実にクリアする (重ね塗り防止)
-                    text_patch = background.crop((0, 0, 100, 40))
-                    frame_image.paste(text_patch, (0, 0))
                     draw_text(
                         draw,
                         fps_counter.fps_text,
@@ -621,7 +618,7 @@ def _loop(
                     )
                     if x1 >= x2 or y1 >= y2:
                         continue
-                    
+
                     # 正しいシグネチャで呼び出し: display_region(image, x0, y0, x1, y1)
                     lcd.display_region(frame_image, x1, y1, x2, y2)
 
@@ -675,9 +672,18 @@ def _loop(
                 if region:
                     dirty_regions.append(region)
 
+            # FPSエリア (0, 0, 100, 40) との重なり判定
+            fps_area = (0, 0, 100, 40)
             fps_updated = fps_counter.update()
-            if fps_updated:
-                dirty_regions.append((0, 0, 100, 40))
+            fps_area_overlap = any(
+                (rx < 100 and ry < 40 and rx + rw > 0 and ry + rh > 0)
+                for rx, ry, rw, rh in dirty_regions
+            )
+
+            if fps_updated or fps_area_overlap:
+                # FPS領域全体を更新対象に加える。
+                # これにより、ステップ1で背景が正しく復元される。
+                dirty_regions.append(fps_area)
 
             merged_regions = RegionOptimizer.merge_regions(dirty_regions)
 
@@ -716,29 +722,29 @@ def _loop(
                     )
                     frame_image.paste(region_image, (x1, y1))
 
-                    # 3. テキストの再描画 (必要なら)
-                    # 重要：いずれかの更新領域が FPS 表示エリア (0, 0, 100, 40) と重なる場合、
-                    # 背景復元でテキストが消えている可能性があるため、再描画を強制する。
-                    fps_area_overlap = any(
-                        (rx < 100 and ry < 40 and rx + rw > 0 and ry + rh > 0)
-                        for rx, ry, rw, rh in merged_regions
+                # 3. テキストの再描画 (必要なら)
+                # 全てのリージョンの再描画が終わった後に、テキストを重ねる。
+                if fps_updated or fps_area_overlap:
+                    draw_text(
+                        ImageDraw.Draw(frame_image),
+                        fps_counter.fps_text,
+                        font,
+                        x="left",
+                        y="top",
+                        width=screen_width,
+                        height=screen_height,
+                        color=TEXT_COLOR,
                     )
-                    if fps_updated or fps_area_overlap:
-                        # テキスト領域を一旦背景でクリア (重ね塗り防止)
-                        text_patch = background.crop((0, 0, 100, 40))
-                        frame_image.paste(text_patch, (0, 0))
-                        draw_text(
-                            ImageDraw.Draw(frame_image),
-                            fps_counter.fps_text,
-                            font,
-                            x="left",
-                            y="top",
-                            width=screen_width,
-                            height=screen_height,
-                            color=TEXT_COLOR,
-                        )
 
-                    # 4. ディスプレイ更新
+                # 4. ディスプレイ更新
+                for rx, ry, rw, rh in merged_regions:
+                    x1, y1 = max(0, rx), max(0, ry)
+                    x2, y2 = (
+                        min(screen_width, rx + rw),
+                        min(screen_height, ry + rh),
+                    )
+                    if x1 >= x2 or y1 >= y2:
+                        continue
                     lcd.display_region(frame_image, x1, y1, x2, y2)
 
             for ball in balls:

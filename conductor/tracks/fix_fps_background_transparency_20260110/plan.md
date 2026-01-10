@@ -11,9 +11,9 @@
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Fact Finding and Analysis' (Protocol in workflow.md)
 
 ## Phase 2: Fix Implementation (Green Phase)
-- [ ] Task: `optimized` モードにおいて、FPS エリアの背景復元を他の Dirty Rectangle と同様に「描画の最初（ステップ1）」に移動し、テキスト描画直前の破壊的な `paste` を削除する
-- [ ] Task: `cairo-optimized` モードに対しても同様の修正（背景復元の統合と冗長なパッチ上書きの削除）を適用する
-- [ ] Task: 修正後、`ball-speed` 100 で実行し、ボールが FPS テキストの下を透過して（あるいは正しく重なって）スムーズに通過することをキャプチャ画像で事実として確認する
+- [x] Task: `optimized` モードにおいて、FPS エリアの背景復元を他の Dirty Rectangle と同様に「描画の最初（ステップ1）」に移動し、テキスト描画直前の破壊的な `paste` を削除する (f5f667c)
+- [x] Task: `cairo-optimized` モードに対しても同様の修正（背景復元の統合と冗長なパッチ上書きの削除）を適用する (f5f667c)
+- [x] Task: 修正後、`ball-speed` 100 で実行し、ボールが FPS テキストの下を透過して（あるいは正しく重なって）スムーズに通過することをキャプチャ画像で事実として確認する (f5f667c)
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Fix Implementation' (Protocol in workflow.md)
 
 ## Phase 3: Final Verification and Cleanup
