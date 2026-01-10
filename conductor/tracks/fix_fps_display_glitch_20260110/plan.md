@@ -6,7 +6,7 @@
 3. 可能な限り自動テスト（TDD）を実施する。
 
 ## Phase 1: Analysis and Reproduction (Red Phase)
-- [x] Task: 新しい作業ブランチ `fix-fps-display-glitch` を作成する (b6ef929)
+- [x] Task: 新しい作業ブランチ `fix-fps-display-glitch` を作成する (8880ed5)
 - [ ] Task: `ballanime` の `optimized` モードで `ball-speed` を 100 に設定し、FPS表示が欠ける瞬間のキャプチャ画像を取得して現状を事実として記録する
 - [ ] Task: 同様の調査を `cairo-optimized` モードでも実施し、差異や共通点を特定する
 - [ ] Task: `src/pi0disp/commands/ballanime.py` の `optimized` モード内の描画・更新ロジックに詳細ログを追加し、FPS描画領域 (`0, 0, 100, 40`) と `RegionOptimizer` が出力する矩形のマージ・上書きプロセスを事実に基いて分析する
