@@ -24,7 +24,9 @@ def test_sprite_dirty_logic():
 
     # Initially dirty (prev_bbox is None)
     # Added 2-pixel margin
-    assert sprite.get_dirty_region() == (8, 8, 32, 32)
+    # (10, 10, 30, 30) -> (8, 8, 32, 32)
+    # Format (x, y, w, h): (8, 8, 24, 24)
+    assert sprite.get_dirty_region() == (8, 8, 24, 24)
 
     sprite.record_current_bbox()
     # Now not dirty
@@ -34,11 +36,12 @@ def test_sprite_dirty_logic():
     sprite.x = 15
     # merged (10,10,30,30) and (15,10,35,30) = (10, 10, 35, 30)
     # plus 2-pixel margin = (8, 8, 37, 32)
+    # Format (x, y, w, h): (8, 8, 29, 24)
     assert sprite.get_dirty_region() == (
         8,
         8,
-        37,
-        32,
+        29,
+        24,
     )
 
     sprite.record_current_bbox()

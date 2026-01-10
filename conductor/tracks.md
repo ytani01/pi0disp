@@ -4,7 +4,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-## [~] Track: review_result.md の内容に従って、samples/roboface.py の OpenCV モードでのクラッシュを修正する
-*Link: [./conductor/tracks/fix_roboface_cv2_crash_20260110/](./conductor/tracks/fix_roboface_cv2_crash_20260110/)*
+## [~] Track: review_result.md の指摘事項に基づき、座標形式の修正と画像処理の最適化を行う
+*Link: [./conductor/tracks/fix_refactor_issues_20260110/](./conductor/tracks/fix_refactor_issues_20260110/)*
 
 
