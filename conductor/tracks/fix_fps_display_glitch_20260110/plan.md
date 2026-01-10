@@ -13,9 +13,9 @@
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Analysis and Reproduction' (Protocol in workflow.md)
 
 ## Phase 2: Implementation (Green Phase)
-- [ ] Task: 調査結果に基づき、`src/pi0disp/commands/ballanime.py` 内の Dirty Rectangle 処理（特に FPS 表示領域の保護または再描画順序）を修正する
-- [ ] Task: 修正後、`ball-speed` を 100 に設定して各モードでキャプチャ画像を取得し、FPS表示が欠けないことを事実として確認する
-- [ ] Task: 必要に応じて `optimized` モードと `cairo-optimized` モードの両方で一貫した修正を適用する
+- [x] Task: 調査結果に基づき、`src/pi0disp/commands/ballanime.py` 内の Dirty Rectangle 処理（特に FPS 表示領域の保護または再描画順序）を修正する (33aede8)
+- [x] Task: 修正後、`ball-speed` を 100 に設定して各モードでキャプチャ画像を取得し、FPS表示が欠けないことを事実として確認する (33aede8)
+- [x] Task: 必要に応じて `optimized` モードと `cairo-optimized` モードの両方で一貫した修正を適用する (33aede8)
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Implementation' (Protocol in workflow.md)
 
 ## Phase 3: Final Verification and Quality Gate
