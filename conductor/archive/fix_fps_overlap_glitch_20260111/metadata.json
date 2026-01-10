@@ -1,0 +1,8 @@
+{
+  "track_id": "fix_fps_overlap_glitch_20260111",
+  "type": "bug",
+  "status": "new",
+  "created_at": "2026-01-11T00:00:00Z",
+  "updated_at": "2026-01-11T00:00:00Z",
+  "description": "optimized, cairo-optimized モードにおいて、数字の部分にボールが重なると、重なった部分が消えてしまう問題を修正する"
+}

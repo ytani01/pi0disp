@@ -1,0 +1,8 @@
+{
+  "track_id": "investigate_fix_fps_artifacts_20260111",
+  "type": "bug",
+  "status": "new",
+  "created_at": "2026-01-11T06:30:00Z",
+  "updated_at": "2026-01-11T06:30:00Z",
+  "description": "ballanime の optimized, cairo-optimized モードにおける表示崩れ（残像・欠け）の原因調査のため、定期キャプチャ機能を追加し、事実に基づいて修正を行う"
+}

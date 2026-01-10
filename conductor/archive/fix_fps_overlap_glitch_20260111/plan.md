@@ -22,7 +22,12 @@
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Implementation and Fix' (Protocol in workflow.md)
 
 ## Phase 3: Quality Gate and Cleanup
-- [ ] Task: 既存の全てのテスト (`mise run test`) を実行し、デグレがないことを確認する。
-- [ ] Task: `mise run lint` を実行し、静的解析エラーがないことを確認する。
-- [ ] Task: 今回作成した検証スクリプトを必要に応じて永続的なテストケースとして整備するか、アーカイブする。
+
+- [x] Task: 既存の全てのテスト (`mise run test`) を実行し、デグレがないことを確認する。 (3ee8001)
+
+- [x] Task: `mise run lint` を実行し、静的解析エラーがないことを確認する。 (3ee8001)
+
+- [x] Task: 今回作成した検証スクリプトを必要に応じて永続的なテストケースとして整備するか、アーカイブする。 (3ee8001)
+
+
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Quality Gate and Cleanup' (Protocol in workflow.md)
