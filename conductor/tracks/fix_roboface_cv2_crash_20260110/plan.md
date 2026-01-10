@@ -17,6 +17,6 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Implementation' (Protocol in workflow.md)
 
 ## Phase 3: Quality Gate and Cleanup
-- [ ] Task: `ruff` および `mypy` を実行し、静的解析エラーがないことを確認する
+- [~] Task: `ruff` および `mypy` を実行し、静的解析エラーがないことを確認する
 - [ ] Task: プロジェクト全体のテストを実行し、デグレがないことを確認する
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Quality Gate and Cleanup' (Protocol in workflow.md)

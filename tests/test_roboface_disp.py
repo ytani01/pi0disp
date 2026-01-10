@@ -1,4 +1,3 @@
-import pytest
 from unittest.mock import MagicMock
 from PIL import Image
 from samples.roboface import CV2Disp, RobotFace, RfState
@@ -8,7 +7,7 @@ def test_cv2_disp_display_signature():
     Test that CV2Disp.display now accepts 'full' argument.
     """
     disp = CV2Disp(width=320, height=240)
-    disp._show = MagicMock()
+    disp._show = MagicMock()  # type: ignore[method-assign]
     img = Image.new("RGB", (320, 240))
     
     # This should NOT fail now
@@ -24,7 +23,7 @@ def test_robot_face_draw_with_cv2_no_crash():
     rf = RobotFace(face=state, size=240)
     
     disp = CV2Disp(width=320, height=240)
-    disp._show = MagicMock()
+    disp._show = MagicMock()  # type: ignore[method-assign]
     
     # RobotFace.draw calls disp.display(img, full=full)
     # This should NOT fail now

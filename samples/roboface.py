@@ -999,7 +999,7 @@ class RobotFace:
 
     def draw(
         self,
-        disp: Lcd,
+        disp: DisplayBase,
         bg_color: tuple | str,
         full: bool = False,
     ) -> None:
