@@ -18,8 +18,8 @@
 - [x] Task: `ballanime` コマンドのレポート出力処理を修正し、ヘッダーとデータ行の両方に `Mem (pig)` を追加する
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Implementation and Optimization' (Protocol in workflow.md)
 
-## Phase 3: Verification, Documentation, and Quality Gate
+## Phase 3: Verification, Documentation, and Quality Gate [checkpoint: 49a4760]
 - [x] Task: `ballanime` の各最適化モードを実行し、キャプチャ画像（`/tmp/debug_render.png` 等）を出力・確認して描画の正常性を事実として確認する
 - [x] Task: 修正内容に合わせて `docs/sprite-manual.md` および `docs/performance_core_manual.md` の記述を更新する
-- [~] Task: `mise run test` を実行し、全テストのパスおよびリンター（lint）の合格を確認する
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Verification, Documentation, and Quality Gate' (Protocol in workflow.md)
+- [x] Task: `mise run test` を実行し、全テストのパスおよびリンター（lint）の合格を確認する
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Verification, Documentation, and Quality Gate' (Protocol in workflow.md)
