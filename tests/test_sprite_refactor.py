@@ -3,7 +3,7 @@ import pytest
 from pi0disp.utils.sprite import Sprite
 
 
-class TestSprite(Sprite):
+class MockSprite(Sprite):
     __slots__ = ()
 
     def update(self, delta_t):
@@ -14,13 +14,13 @@ class TestSprite(Sprite):
 
 
 def test_sprite_slots():
-    sprite = TestSprite(0, 0, 10, 10)
+    sprite = MockSprite(0, 0, 10, 10)
     with pytest.raises(AttributeError):
         sprite.new_attr = 1  # type: ignore[attr-defined] # __slots__ should prevent this
 
 
 def test_sprite_dirty_logic():
-    sprite = TestSprite(10, 10, 20, 20)
+    sprite = MockSprite(10, 10, 20, 20)
 
     # Initially dirty (prev_bbox is None)
     # Added 2-pixel margin
@@ -46,7 +46,7 @@ def test_sprite_dirty_logic():
 
 
 def test_sprite_properties():
-    sprite = TestSprite(0, 0, 10, 10)
+    sprite = MockSprite(0, 0, 10, 10)
     sprite.x = 5
     sprite.y = 5
     sprite.width = 20
@@ -58,7 +58,7 @@ def test_sprite_properties():
 def test_circle_sprite():
     from pi0disp.utils.sprite import CircleSprite
 
-    class TestCircle(CircleSprite):
+    class MockCircle(CircleSprite):
         __slots__ = ()
 
         def update(self, delta_t):
@@ -67,7 +67,7 @@ def test_circle_sprite():
         def draw(self, draw):
             pass
 
-    circle = TestCircle(cx=100, cy=100, radius=20)
+    circle = MockCircle(cx=100, cy=100, radius=20)
     # bbox should be (80, 80, 120, 120)
     assert circle.bbox == (80, 80, 120, 120)
 
@@ -82,7 +82,7 @@ def test_circle_sprite():
 
 
 def test_sprite_no_change_no_dirty():
-    sprite = TestSprite(0, 0, 10, 10)
+    sprite = MockSprite(0, 0, 10, 10)
     sprite.record_current_bbox()
 
     # Setting the same value should not trigger dirty
