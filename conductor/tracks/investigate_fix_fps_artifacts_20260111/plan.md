@@ -19,8 +19,8 @@
 - [x] Task: 修正後、再度 `--capture-interval` を用いてキャプチャを取得し、全フレームで表示が正常であることを事実として確認する。 (2e49c82)
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Root Cause Analysis and Implementation' (Protocol in workflow.md)
 
-## Phase 3: Quality Gate and Finalization
-- [~] Task: `uv run pytest` を実行し、既存のテストおよびリンター（lint）に合格することを確認する。
-- [ ] Task: キャプチャ機能を（必要なら）デバッグフラグとして整理し、最終的なコードを提出する。
-- [ ] Task: 調査に使用したスクリプトおよびキャプチャ画像を削除する。
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Quality Gate and Finalization' (Protocol in workflow.md)
+## Phase 3: Quality Gate and Finalization [checkpoint: 8f9ed8a]
+- [x] Task: `uv run pytest` を実行し、既存のテストおよびリンター（lint）に合格することを確認する。 (8f9ed8a)
+- [x] Task: キャプチャ機能を（必要なら）デバッグフラグとして整理し、最終的なコードを提出する。 (8f9ed8a)
+- [x] Task: 調査に使用したスクリプトおよびキャプチャ画像を削除する。 (8f9ed8a)
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Quality Gate and Finalization' (Protocol in workflow.md)
