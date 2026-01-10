@@ -10,11 +10,11 @@
 - [x] Task: `TypeError` を再現するユニットテスト（モックを使用）を `tests/test_roboface_disp.py` として作成し、失敗（Red）を確認する
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Analysis and Reproduction' (Protocol in workflow.md)
 
-## Phase 2: Implementation (Green Phase)
+## Phase 2: Implementation (Green Phase) [checkpoint: 55a8e22]
 - [x] Task: `samples/roboface.py` の `DisplayBase.display` および `CV2Disp.display` のシグネチャを修正し、`full` 引数を受け取れるようにする
-- [~] Task: 作成したテストを実行し、パスすることを確認する
-- [ ] Task: `Lcd.display` の実装も確認し、一貫性が保たれているかチェックする（必要に応じて修正）
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Implementation' (Protocol in workflow.md)
+- [x] Task: 作成したテストを実行し、パスすることを確認する
+- [x] Task: `Lcd.display` の実装も確認し、一貫性が保たれているかチェックする（必要に応じて修正）
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Implementation' (Protocol in workflow.md)
 
 ## Phase 3: Quality Gate and Cleanup
 - [ ] Task: `ruff` および `mypy` を実行し、静的解析エラーがないことを確認する
