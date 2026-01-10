@@ -206,7 +206,11 @@ class ST7789V(DispSpi):
         )
         self.write_pixels(pixel_bytes)
 
-        self._last_image = image.copy()
+        # Update only the changed area in the cache
+        if self._last_image:
+            self._last_image.paste(region_img, diff_bbox[:2])
+        else:
+            self._last_image = image.copy()
 
     def display_region(
         self, image: Image.Image, x0: int, y0: int, x1: int, y1: int

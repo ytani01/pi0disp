@@ -439,9 +439,9 @@ def pil_to_cairo_surface(pil_image: Image.Image) -> cairo.ImageSurface:
         pil_image = pil_image.convert("RGBA")
 
     width, height = pil_image.size
-    r, g, b, a = pil_image.split()
-    bgra_image = Image.merge("RGBA", (b, g, r, a))
-    data = np.array(bgra_image)
+    data = np.array(pil_image)
+    # RGB(A) to BGRA
+    data = data[:, :, [2, 1, 0, 3]]
 
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
     buf = surface.get_data()
@@ -478,11 +478,8 @@ def cairo_surface_to_pil(
         target_data = data.copy()
 
     # Cairo FORMAT_ARGB32 is BGRA in little-endian.
-    # We want RGB for PIL.
-    # target_data[:,:,0] is B, [1] is G, [2] is R
-    img = Image.fromarray(target_data[:, :, :3], "RGB")
-    b, g, r = img.split()
-    return Image.merge("RGB", (r, g, b))
+    # BGRA to RGB: select channels 2, 1, 0
+    return Image.fromarray(target_data[:, :, [2, 1, 0]], "RGB")
 
 
 def _loop(
@@ -576,37 +573,26 @@ def _loop(
                     f"Optimized: {len(merged_regions)} regions merged from {len(dirty_regions)}."
                 )
 
-            for rx, ry, rw, rh in merged_regions:
-                x1, y1 = max(0, rx), max(0, ry)
-                x2, y2 = (
-                    min(screen_width, rx + rw),
-                    min(screen_height, ry + rh),
-                )
-                if x1 >= x2 or y1 >= y2:
-                    continue
-
                 # 1. Dirty Region を背景で修復 (完全に初期化)
-                patch = background.crop((x1, y1, x2, y2))
-                frame_image.paste(patch, (x1, y1))
+                for rx, ry, rw, rh in merged_regions:
+                    x1, y1 = max(0, rx), max(0, ry)
+                    x2, y2 = (
+                        min(screen_width, rx + rw),
+                        min(screen_height, ry + rh),
+                    )
+                    if x1 >= x2 or y1 >= y2:
+                        continue
+                    patch = background.crop((x1, y1, x2, y2))
+                    frame_image.paste(patch, (x1, y1))
 
-                # 2. その領域に関連するオブジェクトを再描画
+                # 2. その領域に関連するオブジェクトを再描画 (一括)
                 draw = ImageDraw.Draw(frame_image)
                 for ball in balls:
-                    # マージンを含めた判定
-                    bx1, by1, bx2, by2 = ball.bbox
-                    if not (
-                        bx2 < x1 - 2
-                        or bx1 > x2 + 2
-                        or by2 < y1 - 2
-                        or by1 > y2 + 2
-                    ):
-                        ball.draw(draw)
+                    ball.draw(draw)
 
-                # 3. FPSテキストの再描画
-                # (左上 100x40 領域と重なりがある場合のみ)
-                if x1 < 100 and y1 < 40:
-                    # 再描画前にテキスト領域を背景で確実にクリアする
-                    # (既に paste でクリアされているが、念のため明示)
+                # 3. FPSテキストの再描画 (必要なら)
+                if fps_updated:
+                    # テキスト領域を背景で確実にクリアする
                     text_patch = background.crop((0, 0, 100, 40))
                     frame_image.paste(text_patch, (0, 0))
                     draw_text(
@@ -620,8 +606,17 @@ def _loop(
                         color=TEXT_COLOR,
                     )
 
-                # 正しいシグネチャで呼び出し: display_region(image, x0, y0, x1, y1)
-                lcd.display_region(frame_image, x1, y1, x2, y2)
+                # 4. ディスプレイ更新
+                for rx, ry, rw, rh in merged_regions:
+                    x1, y1 = max(0, rx), max(0, ry)
+                    x2, y2 = (
+                        min(screen_width, rx + rw),
+                        min(screen_height, ry + rh),
+                    )
+                    if x1 >= x2 or y1 >= y2:
+                        continue
+                    # 正しいシグネチャで呼び出し: display_region(image, x0, y0, x1, y1)
+                    lcd.display_region(frame_image, x1, y1, x2, y2)
 
             for ball in balls:
                 ball.record_current_bbox()
@@ -679,32 +674,26 @@ def _loop(
 
             merged_regions = RegionOptimizer.merge_regions(dirty_regions)
 
-            for rx, ry, rw, rh in merged_regions:
-                x1, y1 = max(0, rx), max(0, ry)
-                x2, y2 = (
-                    min(screen_width, rx + rw),
-                    min(screen_height, ry + rh),
-                )
-                if x1 >= x2 or y1 >= y2:
-                    continue
+            if merged_regions:
+                for rx, ry, rw, rh in merged_regions:
+                    x1, y1 = max(0, rx), max(0, ry)
+                    x2, y2 = (
+                        min(screen_width, rx + rw),
+                        min(screen_height, ry + rh),
+                    )
+                    if x1 >= x2 or y1 >= y2:
+                        continue
 
-                # 1. Cairo側での描画
-                cairo_ctx.save()
-                cairo_ctx.rectangle(x1, y1, x2 - x1, y2 - y1)
-                cairo_ctx.clip()
+                    # 1. Cairo側での描画
+                    cairo_ctx.save()
+                    cairo_ctx.rectangle(x1, y1, x2 - x1, y2 - y1)
+                    cairo_ctx.clip()
 
-                # 完全に背景で塗りつぶしてから描画 (重ね塗りを排除)
-                cairo_ctx.set_source_surface(background_surface, 0, 0)
-                cairo_ctx.paint()
+                    # 完全に背景で塗りつぶしてから描画 (重ね塗りを排除)
+                    cairo_ctx.set_source_surface(background_surface, 0, 0)
+                    cairo_ctx.paint()
 
-                for ball in balls:
-                    bx1, by1, bx2, by2 = ball.bbox
-                    if not (
-                        bx2 < x1 - 2
-                        or bx1 > x2 + 2
-                        or by2 < y1 - 2
-                        or by1 > y2 + 2
-                    ):
+                    for ball in balls:
                         r, g, b = [c / 255.0 for c in ball.fill_color]
                         cairo_ctx.set_source_rgb(r, g, b)
                         cairo_ctx.arc(
@@ -712,32 +701,32 @@ def _loop(
                         )
                         cairo_ctx.fill()
 
-                cairo_ctx.restore()
+                    cairo_ctx.restore()
 
-                # 2. その領域を PIL画像に変換して全画面バッファに反映
-                region_image = cairo_surface_to_pil(
-                    cairo_surface, (x1, y1, x2, y2)
-                )
-                frame_image.paste(region_image, (x1, y1))
-
-                # 3. テキストの再描画 (領域内なら常に)
-                if x1 < 100 and y1 < 40:
-                    # テキスト領域を一旦背景でクリア (重ね塗り防止)
-                    text_patch = background.crop((0, 0, 100, 40))
-                    frame_image.paste(text_patch, (0, 0))
-                    draw_text(
-                        ImageDraw.Draw(frame_image),
-                        fps_counter.fps_text,
-                        font,
-                        x="left",
-                        y="top",
-                        width=screen_width,
-                        height=screen_height,
-                        color=TEXT_COLOR,
+                    # 2. その領域を PIL画像に変換して全画面バッファに反映
+                    region_image = cairo_surface_to_pil(
+                        cairo_surface, (x1, y1, x2, y2)
                     )
+                    frame_image.paste(region_image, (x1, y1))
 
-                # 正しいシグネチャで呼び出し (全画面画像と、送信したい矩形を渡す)
-                lcd.display_region(frame_image, x1, y1, x2, y2)
+                    # 3. テキストの再描画 (必要なら)
+                    if fps_updated and x1 < 100 and y1 < 40:
+                        # テキスト領域を一旦背景でクリア (重ね塗り防止)
+                        text_patch = background.crop((0, 0, 100, 40))
+                        frame_image.paste(text_patch, (0, 0))
+                        draw_text(
+                            ImageDraw.Draw(frame_image),
+                            fps_counter.fps_text,
+                            font,
+                            x="left",
+                            y="top",
+                            width=screen_width,
+                            height=screen_height,
+                            color=TEXT_COLOR,
+                        )
+
+                    # 4. ディスプレイ更新
+                    lcd.display_region(frame_image, x1, y1, x2, y2)
 
             for ball in balls:
                 ball.record_current_bbox()
@@ -940,15 +929,15 @@ def ballanime(
                     if not file_exists:
                         f.write("# Ballanime Benchmark Report\n\n")
                         f.write(
-                            "| Date | Mode | Balls | Target FPS | SPI | Avg FPS | CPU (App) | CPU (pigpiod) | Mem (App) |\n"
+                            "| Date | Mode | Balls | Target FPS | SPI | Avg FPS | CPU (App) | CPU (pigpiod) | Mem (App) | Mem (pig) |\n"
                         )
                         f.write(
-                            "|------|------|-------|------------|-----|---------|-----------|--------------|-----------|\n"
+                            "|------|------|-------|------------|-----|---------|-----------|--------------|-----------|-----------|\n"
                         )
 
                     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                     f.write(
-                        f"| {timestamp} | {mode} | {num_balls} | {fps} | {spi_mhz}M | {res['avg_fps']:.2f} | {res['avg_cpu']:.1f}% | {res['avg_pigpiod']:.1f}% | {res['avg_mem_ballanime']} |\n"
+                        f"| {timestamp} | {mode} | {num_balls} | {fps} | {spi_mhz}M | {res['avg_fps']:.2f} | {res['avg_cpu']:.1f}% | {res['avg_pigpiod']:.1f}% | {res['avg_mem_ballanime']} | {res['avg_mem_pigpiod']} |\n"
                     )
                 __log.info(f"Report saved to {report_file}")
 

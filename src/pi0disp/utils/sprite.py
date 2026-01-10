@@ -91,7 +91,7 @@ class Sprite(ABC):
 
     def get_dirty_region(self) -> Optional[Tuple[int, int, int, int]]:
         """
-        Calculates the area that needs to be redrawn for the current frame.
+        Calculates the area that needs to be redrawn in (x, y, w, h) format.
         Includes a small margin to account for anti-aliasing and sub-pixel shifts.
         """
         if not self._dirty and self.prev_bbox is not None:
@@ -101,7 +101,8 @@ class Sprite(ABC):
             return None
 
         # Add 2-pixel margin for anti-aliasing safety
-        return (res[0] - 2, res[1] - 2, res[2] + 2, res[3] + 2)
+        x0, y0, x1, y1 = res[0] - 2, res[1] - 2, res[2] + 2, res[3] + 2
+        return (x0, y0, x1 - x0, y1 - y0)
 
     def record_current_bbox(self):
         """
