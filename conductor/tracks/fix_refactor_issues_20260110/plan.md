@@ -5,10 +5,10 @@
 2. デバッグログ、print、およびキャプチャ画像を活用し、表示崩れや座標計算の事実を確認する。
 3. 可能な限り自動テスト（TDD）を実施する。
 
-## Phase 1: Analysis and Red Phase (Failing Tests)
+## Phase 1: Analysis and Red Phase (Failing Tests) [checkpoint: 3b7cfbb]
 - [x] Task: `tests/test_sprite_refactor.py` において、`get_dirty_region()` が `(x, y, w, h)` 形式を返すことを期待するテスト（現状は失敗するはず）を追加する
-- [~] Task: `tests/test_ballanime_cmd.py` または新規テストで、ベンチマークレポート出力に `Mem (pig)` 列が含まれることを検証する失敗テストを作成する
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Analysis and Red Phase' (Protocol in workflow.md)
+- [x] Task: `tests/test_ballanime_cmd.py` または新規テストで、ベンチマークレポート出力に `Mem (pig)` 列が含まれることを検証する失敗テストを作成する
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Analysis and Red Phase' (Protocol in workflow.md)
 
 ## Phase 2: Implementation and Optimization (Green Phase)
 - [ ] Task: `src/pi0disp/utils/sprite.py` の `get_dirty_region()` を修正し、期待される `(x, y, w, h)` 形式を返すようにする
