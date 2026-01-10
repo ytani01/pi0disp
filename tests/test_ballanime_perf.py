@@ -61,7 +61,9 @@ def ballanime_process(request):
         "--fps",
         "30",
     ]
-    process = subprocess.Popen(cmd, preexec_fn=os.setsid, stderr=subprocess.PIPE)
+    process = subprocess.Popen(
+        cmd, preexec_fn=os.setsid, stderr=subprocess.PIPE
+    )
     log.info(f"Started ballanime --mode {mode} (PID: {process.pid})")
 
     # Give it a moment to potentially fail

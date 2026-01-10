@@ -28,9 +28,10 @@ def test_ball_dirty_region():
     # prev: (80, 80, 120, 120)
     # current: (90, 85, 130, 125)
     # merged: (80, 80, 130, 125)
-    # Added 2-pixel margin for anti-aliasing safety
+    # Added 2-pixel margin for anti-aliasing safety -> (78, 78, 132, 127)
+    # Format (x, y, w, h): (78, 78, 54, 49)
     dirty = ball.get_dirty_region()
-    assert dirty == (78, 78, 132, 127)
+    assert dirty == (78, 78, 54, 49)
 
     # 記録更新
     ball.record_current_bbox()

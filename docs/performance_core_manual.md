@@ -20,7 +20,16 @@ RGB 形式のピクセルデータを、ST7789V ディスプレイがネイテ�
 
 ---
 
-## 2. `utils` モジュールの関連関数
+## 2. `performance_core.RegionOptimizer` クラス
+### 目的
+複数の「汚れ」領域（Dirty Rectangles）を、オーバーラップや近接度合いに基づいてマージし、SPI 転送の回数を最小限に抑えます。
+
+### 主な機能
+- **領域マージ**: `merge_regions(regions, area_threshold=1.5)` メソッドにより、指定された矩形リスト `(x, y, w, h)` を最適化された少ない数の矩形に統合します。
+
+---
+
+## 3. `utils` モジュールの関連関数
 ### `pil_to_rgb565_bytes(img, apply_gamma=False)`
 - **目的**: PIL (Pillow) の `Image` オブジェクトを直接 RGB565 のバイト列に変換します。内部で `ColorConverter` を利用しており、最も手軽で推奨される変換方法です。
 

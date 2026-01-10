@@ -69,7 +69,7 @@ class MySprite(Sprite):
 | `x`, `y` | 左上座標。変更すると自動で Dirty 判定されます。 |
 | `width`, `height` | サイズ。 |
 | `bbox` | 現在の境界ボックス `(x1, y1, x2, y2)`。 |
-| `get_dirty_region()` | 更新が必要な領域を返します。不要なら `None`。 |
+| `get_dirty_region()` | 更新が必要な領域を `(x, y, w, h)` 形式で返します。不要なら `None`。 |
 | `record_current_bbox()` | 現在の状態を確定させ、次フレームの準備をします。 |
 | `update(delta_t)` | 【抽象】状態（位置など）を更新する処理を記述します。 |
 | `draw(draw)` | 【抽象】Pillow を使用した描画処理を記述します。 |
