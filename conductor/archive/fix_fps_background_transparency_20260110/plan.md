@@ -17,6 +17,6 @@
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Fix Implementation' (Protocol in workflow.md)
 
 ## Phase 3: Final Verification and Cleanup
-- [ ] Task: `mise run test` を実行し、既存のテストおよびリンター（lint）に合格することを確認する
-- [ ] Task: 修正内容を反映した最終的な `ballanime-report.md` への追記を確認する
+- [x] Task: `mise run test` を実行し、既存のテストおよびリンター（lint）に合格することを確認する (07a4eeb)
+- [x] Task: 修正内容を反映した最終的な `ballanime-report.md` への追記を確認する (07a4eeb)
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Final Verification and Cleanup' (Protocol in workflow.md)

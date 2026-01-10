@@ -19,7 +19,7 @@
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Implementation' (Protocol in workflow.md)
 
 ## Phase 3: Final Verification and Quality Gate
-- [ ] Task: 既存の自動テスト (`tests/test_ballanime_*.py`) を実行し、デグレがないことを確認する
-- [ ] Task: `mise run lint` を実行し、静的解析エラーがないことを確認する
-- [ ] Task: 修正内容を反映したキャプチャ画像を最終エビデンスとして記録する
+- [x] Task: 既存の自動テスト (`tests/test_ballanime_*.py`) を実行し、デグレがないことを確認する (f5f667c)
+- [x] Task: `mise run lint` を実行し、静的解析エラーがないことを確認する (f5f667c)
+- [x] Task: 修正内容を反映したキャプチャ画像を最終エビデンスとして記録する (f5f667c)
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Final Verification and Quality Gate' (Protocol in workflow.md)
