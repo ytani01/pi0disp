@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import pytest
 from pi0disp.utils.performance_core import RegionOptimizer
+
 
 def test_region_optimizer_merge_overlapping():
     optimizer = RegionOptimizer()
@@ -10,6 +10,7 @@ def test_region_optimizer_merge_overlapping():
     assert len(merged) == 1
     assert merged[0] == (10, 10, 80, 80)
 
+
 def test_region_optimizer_merge_separate():
     optimizer = RegionOptimizer()
     # 離れた2つの矩形
@@ -17,13 +18,16 @@ def test_region_optimizer_merge_separate():
     merged = optimizer.merge_regions(regions)
     assert len(merged) == 2
 
+
 def test_region_optimizer_empty():
     optimizer = RegionOptimizer()
     assert optimizer.merge_regions([]) == []
 
+
 def test_region_optimizer_single():
     optimizer = RegionOptimizer()
     assert optimizer.merge_regions([(10, 10, 10, 10)]) == [(10, 10, 10, 10)]
+
 
 def test_region_optimizer_merge_with_threshold():
     optimizer = RegionOptimizer()

@@ -47,6 +47,8 @@ def test_ballanime_benchmark_cli():
             "avg_fps": 30.0,
             "avg_cpu": 10.0,
             "avg_pigpiod": 5.0,
+            "avg_mem_ballanime": "10.0 MB",
+            "avg_mem_pigpiod": "5.0 MB",
             "total_frames": 300,
         }
 
@@ -77,6 +79,8 @@ def test_ballanime_benchmark_cli():
             "avg_fps": 30.0,
             "avg_cpu": 10.0,
             "avg_pigpiod": 5.0,
+            "avg_mem_ballanime": "10.0 MB",
+            "avg_mem_pigpiod": "5.0 MB",
             "total_frames": 150,
         }
 

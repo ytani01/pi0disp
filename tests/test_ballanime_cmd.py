@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from click.testing import CliRunner
+
 from pi0disp.commands.ballanime import ballanime
+
 
 def test_ballanime_mode_option():
     runner = CliRunner()
@@ -11,6 +13,7 @@ def test_ballanime_mode_option():
     assert "simple" in result.output
     assert "optimized" in result.output
     assert "cairo" in result.output
+
 
 # 実際の分岐テストは、内部関数をパッチして行うのが望ましいが、
 # まずはオプションのパースが通ることを確認する。

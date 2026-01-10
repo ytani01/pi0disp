@@ -27,14 +27,13 @@ from .. import (
 )
 from ..disp.disp_spi import SpiPins
 from ..disp.st7789v import ST7789V
+from ..utils.performance_core import RegionOptimizer
 from ..utils.process_utils import (
     calculate_average_memory_usage,
     format_memory_usage,
     get_ballanime_pigpiod_pids,
 )
-from ..utils.performance_core import RegionOptimizer
 from ..utils.sprite import CircleSprite
-
 
 __log = get_logger(__name__)
 
@@ -461,9 +460,10 @@ def cairo_surface_to_pil(
 
     # Get buffer and wrap it in a numpy array, accounting for stride
     buf = surface.get_data()
-    data = np.frombuffer(buf, dtype=np.uint8).reshape(height, stride)
+    raw_data = np.frombuffer(buf, dtype=np.uint8).reshape(height, stride)
     # Extract only the active pixel data (4 bytes per pixel for ARGB32)
-    data = data[:, : width * 4].reshape(height, width, 4)
+    # and reshape to 3D (height, width, 4)
+    data = raw_data[:, : width * 4].reshape(height, width, 4)
 
     if region:
         x1, y1, x2, y2 = region
@@ -473,14 +473,14 @@ def cairo_surface_to_pil(
         if x1 >= x2 or y1 >= y2:
             return Image.new("RGB", (1, 1), (0, 0, 0))
         # Use copy to detach from the potentially changing cairo buffer
-        data = data[y1:y2, x1:x2, :].copy()
+        target_data = data[y1:y2, x1:x2, :].copy()
     else:
-        data = data.copy()
+        target_data = data.copy()
 
     # Cairo FORMAT_ARGB32 is BGRA in little-endian.
     # We want RGB for PIL.
-    # data[:,:,0] is B, [1] is G, [2] is R
-    img = Image.fromarray(data[:, :, :3], "RGB")
+    # target_data[:,:,0] is B, [1] is G, [2] is R
+    img = Image.fromarray(target_data[:, :, :3], "RGB")
     b, g, r = img.split()
     return Image.merge("RGB", (r, g, b))
 
@@ -578,7 +578,10 @@ def _loop(
 
             for rx, ry, rw, rh in merged_regions:
                 x1, y1 = max(0, rx), max(0, ry)
-                x2, y2 = min(screen_width, rx + rw), min(screen_height, ry + rh)
+                x2, y2 = (
+                    min(screen_width, rx + rw),
+                    min(screen_height, ry + rh),
+                )
                 if x1 >= x2 or y1 >= y2:
                     continue
 
@@ -591,7 +594,12 @@ def _loop(
                 for ball in balls:
                     # マージンを含めた判定
                     bx1, by1, bx2, by2 = ball.bbox
-                    if not (bx2 < x1 - 2 or bx1 > x2 + 2 or by2 < y1 - 2 or by1 > y2 + 2):
+                    if not (
+                        bx2 < x1 - 2
+                        or bx1 > x2 + 2
+                        or by2 < y1 - 2
+                        or by1 > y2 + 2
+                    ):
                         ball.draw(draw)
 
                 # 3. FPSテキストの再描画
@@ -619,6 +627,11 @@ def _loop(
                 ball.record_current_bbox()
 
         elif mode == "cairo":
+            # Cairoオブジェクトが初期化されていることを保証
+            assert cairo_ctx is not None
+            assert cairo_surface is not None
+            assert background_surface is not None
+
             # 背景描画
             cairo_ctx.set_source_surface(background_surface, 0, 0)
             cairo_ctx.paint()
@@ -649,6 +662,11 @@ def _loop(
             lcd.display(frame_image)
 
         elif mode == "cairo-optimized":
+            # Cairoオブジェクトが初期化されていることを保証
+            assert cairo_ctx is not None
+            assert cairo_surface is not None
+            assert background_surface is not None
+
             dirty_regions = []
             for ball in balls:
                 region = ball.get_dirty_region()
@@ -663,7 +681,10 @@ def _loop(
 
             for rx, ry, rw, rh in merged_regions:
                 x1, y1 = max(0, rx), max(0, ry)
-                x2, y2 = min(screen_width, rx + rw), min(screen_height, ry + rh)
+                x2, y2 = (
+                    min(screen_width, rx + rw),
+                    min(screen_height, ry + rh),
+                )
                 if x1 >= x2 or y1 >= y2:
                     continue
 
@@ -678,10 +699,17 @@ def _loop(
 
                 for ball in balls:
                     bx1, by1, bx2, by2 = ball.bbox
-                    if not (bx2 < x1 - 2 or bx1 > x2 + 2 or by2 < y1 - 2 or by1 > y2 + 2):
+                    if not (
+                        bx2 < x1 - 2
+                        or bx1 > x2 + 2
+                        or by2 < y1 - 2
+                        or by1 > y2 + 2
+                    ):
                         r, g, b = [c / 255.0 for c in ball.fill_color]
                         cairo_ctx.set_source_rgb(r, g, b)
-                        cairo_ctx.arc(ball.cx, ball.cy, ball.radius, 0, TWO_PI)
+                        cairo_ctx.arc(
+                            ball.cx, ball.cy, ball.radius, 0, TWO_PI
+                        )
                         cairo_ctx.fill()
 
                 cairo_ctx.restore()

@@ -16,14 +16,15 @@ class TestSprite(Sprite):
 def test_sprite_slots():
     sprite = TestSprite(0, 0, 10, 10)
     with pytest.raises(AttributeError):
-        sprite.new_attr = 1  # __slots__ should prevent this
+        sprite.new_attr = 1  # type: ignore[attr-defined] # __slots__ should prevent this
 
 
 def test_sprite_dirty_logic():
     sprite = TestSprite(10, 10, 20, 20)
 
     # Initially dirty (prev_bbox is None)
-    assert sprite.get_dirty_region() == (10, 10, 30, 30)
+    # Added 2-pixel margin
+    assert sprite.get_dirty_region() == (8, 8, 32, 32)
 
     sprite.record_current_bbox()
     # Now not dirty
@@ -31,12 +32,14 @@ def test_sprite_dirty_logic():
 
     # Move sprite
     sprite.x = 15
+    # merged (10,10,30,30) and (15,10,35,30) = (10, 10, 35, 30)
+    # plus 2-pixel margin = (8, 8, 37, 32)
     assert sprite.get_dirty_region() == (
-        10,
-        10,
-        35,
-        30,
-    )  # merged (10,10,30,30) and (15,10,35,30)
+        8,
+        8,
+        37,
+        32,
+    )
 
     sprite.record_current_bbox()
     assert sprite.get_dirty_region() is None

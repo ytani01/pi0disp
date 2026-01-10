@@ -50,7 +50,7 @@ extend-ignore = ["E203",]
 max-complexity = 10
 
 [tool.mypy]
-check_untyped_defs = false
+check_untyped_defs = true
 # disallow_untyped_defs = true
 # install_types = true # スタブのインストール
 # non_interactive = true # スタブのインストールを許可する
