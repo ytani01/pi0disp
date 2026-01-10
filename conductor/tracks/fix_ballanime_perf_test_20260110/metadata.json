@@ -1,0 +1,8 @@
+{
+  "track_id": "fix_ballanime_perf_test_20260110",
+  "type": "chore",
+  "status": "new",
+  "created_at": "2026-01-10T04:24:00Z",
+  "updated_at": "2026-01-10T04:24:00Z",
+  "description": "tests/test_ballanime_perf.py のパラメータを、実際に存在するモード（例: optimized や cairo-optimized）に変更し、無効な fast モードを修正する"
+}
