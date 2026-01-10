@@ -5,10 +5,10 @@
 2. デバッグログや print を活用し、効率的に原因を特定する。
 3. 可能な限り自動テストを実施する。
 
-## Phase 1: Analysis and Reproduction (Red Phase)
+## Phase 1: Analysis and Reproduction (Red Phase) [checkpoint: fe6caca]
 - [x] Task: `samples/roboface.py` の `DisplayBase` および `CV2Disp` の現在の実装を確認する
-- [~] Task: `TypeError` を再現するユニットテスト（モックを使用）を `tests/test_roboface_disp.py` として作成し、失敗（Red）を確認する
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Analysis and Reproduction' (Protocol in workflow.md)
+- [x] Task: `TypeError` を再現するユニットテスト（モックを使用）を `tests/test_roboface_disp.py` として作成し、失敗（Red）を確認する
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Analysis and Reproduction' (Protocol in workflow.md)
 
 ## Phase 2: Implementation (Green Phase)
 - [ ] Task: `samples/roboface.py` の `DisplayBase.display` および `CV2Disp.display` のシグネチャを修正し、`full` 引数を受け取れるようにする
