@@ -11,13 +11,16 @@
 - [x] Task: `cairo-optimized` モードでも同様にキャプチャを取得し、現象の共通点・相違点を事実として特定する。 (bd2d048)
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Capture Feature and Fact Finding' (Protocol in workflow.md)
 
-## Phase 2: Root Cause Analysis and Implementation (Green Phase)
-- [~] Task: キャプチャ画像とログを照らし合わせ、Dirty Rectangle が「前フレームの描画（特にFPSテキスト）」を正しくカバーしきれていない、あるいは背景復元の順序が不適切である等の根本原因を特定する。
-- [ ] Task: 特定した原因に基づき、描画フローおよび Dirty Rectangle の生成ロジックを修正する。
+## Phase 2: Root Cause Analysis and Implementation (Green Phase) [checkpoint: 2e49c82]
+- [x] Task: キャプチャ画像とログを照らし合わせ、Dirty Rectangle が「前フレームの描画（特にFPSテキスト）」を正しくカバーしきれていない、あるいは背景復元の順序が不適切である等の根本原因を特定する。 (2e49c82)
+- [x] Task: 特定した原因に基づき、描画フローおよび Dirty Rectangle の生成ロジックを修正する。 (3c8df55)
     - 修正方針: **FPS表示領域を全フレームで常にDirty領域として扱う**ことで、残像と欠損を完全に排除する。
     - 具体的な範囲: `(0, 0, 200, 50)` 程度の十分な広さを確保する。
+- [x] Task: 修正後、再度 `--capture-interval` を用いてキャプチャを取得し、全フレームで表示が正常であることを事実として確認する。 (2e49c82)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Root Cause Analysis and Implementation' (Protocol in workflow.md)
 
 ## Phase 3: Quality Gate and Finalization
-- [ ] Task: `mise run test` を実行し、既存のテストおよびリンター（lint）に合格することを確認する。
+- [~] Task: `uv run pytest` を実行し、既存のテストおよびリンター（lint）に合格することを確認する。
 - [ ] Task: キャプチャ機能を（必要なら）デバッグフラグとして整理し、最終的なコードを提出する。
+- [ ] Task: 調査に使用したスクリプトおよびキャプチャ画像を削除する。
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Quality Gate and Finalization' (Protocol in workflow.md)
