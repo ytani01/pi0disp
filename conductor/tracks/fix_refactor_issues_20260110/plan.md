@@ -10,13 +10,13 @@
 - [x] Task: `tests/test_ballanime_cmd.py` または新規テストで、ベンチマークレポート出力に `Mem (pig)` 列が含まれることを検証する失敗テストを作成する
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Analysis and Red Phase' (Protocol in workflow.md)
 
-## Phase 2: Implementation and Optimization (Green Phase)
+## Phase 2: Implementation and Optimization (Green Phase) [checkpoint: 33aede8]
 - [x] Task: `src/pi0disp/utils/sprite.py` の `get_dirty_region()` を修正し、期待される `(x, y, w, h)` 形式を返すようにする
 - [x] Task: `src/pi0disp/commands/ballanime.py` の Cairo/PIL 変換ロジックを NumPy スライス操作（`data[:, :, [2, 1, 0, 3]]` 等）に置き換えて最適化する
 - [x] Task: `src/pi0disp/commands/ballanime.py` の `optimized` モード等の描画ループを整理し、`ImageDraw` オブジェクトの冗長な作成を削減する
 - [x] Task: `src/pi0disp/disp/st7789v.py` の `display()` メソッドを、毎フレームの `image.copy()` ではなく差分パッチ適用方式に変更する
-- [~] Task: `ballanime` コマンドのレポート出力処理を修正し、ヘッダーとデータ行の両方に `Mem (pig)` を追加する
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Implementation and Optimization' (Protocol in workflow.md)
+- [x] Task: `ballanime` コマンドのレポート出力処理を修正し、ヘッダーとデータ行の両方に `Mem (pig)` を追加する
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Implementation and Optimization' (Protocol in workflow.md)
 
 ## Phase 3: Verification, Documentation, and Quality Gate
 - [ ] Task: `ballanime` の各最適化モードを実行し、キャプチャ画像（`/tmp/debug_render.png` 等）を出力・確認して描画の正常性を事実として確認する
