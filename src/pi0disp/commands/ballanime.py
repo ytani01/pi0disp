@@ -491,11 +491,13 @@ def _loop(
     target_fps: float,
     mode: str = "simple",
     tracker: Optional[BenchmarkTracker] = None,
+    capture_interval: Optional[float] = None,
 ):
     """Main animation loop."""
     target_duration = 1.0 / target_fps
     last_frame_time = time.time()
     frame_count = 0
+    last_capture_time = 0.0
 
     inv_substeps = 1.0 / PHYSICS_SUBSTEPS
     screen_width = lcd.size.width
@@ -758,6 +760,17 @@ def _loop(
             if tracker.should_stop():
                 break
 
+        # キャプチャ処理
+        if capture_interval is not None and capture_interval > 0:
+            if current_time - last_capture_time >= capture_interval:
+                timestamp = time.strftime("%Y%m%d_%H%M%S")
+                # ms単位の精度を追加
+                ms = int((current_time % 1) * 1000)
+                filename = f"capture_{timestamp}_{ms:03d}_{mode}.png"
+                frame_image.save(filename)
+                __log.info(f"Captured: {filename}")
+                last_capture_time = current_time
+
         wait_time = max(0, last_frame_time + target_duration - time.time())
         if wait_time > 0:
             time.sleep(wait_time)
@@ -816,6 +829,13 @@ def _loop(
     help="Optimization/Rendering mode",
 )
 @click.option(
+    "--capture-interval",
+    "-C",
+    type=float,
+    default=None,
+    help="Capture frame image every N seconds.",
+)
+@click.option(
     "--rst", type=int, default=25, show_default=True, help="RST PIN"
 )
 @click.option("--dc", type=int, default=24, show_default=True, help="DC PIN")
@@ -829,6 +849,7 @@ def ballanime(
     ball_speed: float,
     benchmark: Optional[int],
     mode: str,
+    capture_interval: Optional[float],
     rst,
     dc,
     bl,
@@ -837,13 +858,14 @@ def ballanime(
     """物理ベースのアニメーションデモを実行する。"""
     __log = get_logger(__name__, debug)
     __log.debug(
-        "spi_mhz=%s, fps=%s, num_balls=%s, ball_speed=%s, benchmark=%s, mode=%s",
+        "spi_mhz=%s, fps=%s, num_balls=%s, ball_speed=%s, benchmark=%s, mode=%s, capture_interval=%s",
         spi_mhz,
         fps,
         num_balls,
         ball_speed,
         benchmark,
         mode,
+        capture_interval,
     )
     __log.debug("rst=%s, dc=%s, bl=%s", rst, dc, bl)
 
@@ -917,6 +939,7 @@ def ballanime(
                 fps,
                 mode,
                 tracker,
+                capture_interval,
             )
 
             if tracker:
