@@ -557,25 +557,16 @@ def _loop(
             lcd.display(frame_image)
 
         elif mode == "optimized":
-            dirty_regions = []
+            # FPS領域 (左上) は常に Dirty として扱う (残像防止のため)
+            dirty_regions = [(0, 0, 200, 50)]
+            
             for ball in balls:
                 region = ball.get_dirty_region()
                 if region:
                     dirty_regions.append(region)
 
-            fps_updated = fps_counter.update()
-            if fps_updated:
-                # FPSテキスト領域 (左上)
-                dirty_regions.append((0, 0, 100, 40))
-
+            fps_counter.update()
             merged_regions = RegionOptimizer.merge_regions(dirty_regions)
-
-            # 重要：マージ後の領域が FPS エリア (0, 0, 100, 40) と重なる場合、
-            # 背景復元でテキストが消えているため、再描画が必要。
-            fps_area_invaded = any(
-                (rx < 100 and ry < 40 and rx + rw > 0 and ry + rh > 0)
-                for rx, ry, rw, rh in merged_regions
-            )
 
             if merged_regions:
                 # 1. Dirty Region を背景で修復 (完全に初期化)
@@ -595,18 +586,17 @@ def _loop(
                 for ball in balls:
                     ball.draw(draw)
 
-                # 3. FPSテキストの再描画 (必要なら)
-                if fps_updated or fps_area_invaded:
-                    draw_text(
-                        draw,
-                        fps_counter.fps_text,
-                        font,
-                        x="left",
-                        y="top",
-                        width=screen_width,
-                        height=screen_height,
-                        color=TEXT_COLOR,
-                    )
+                # 3. FPSテキストの再描画 (常に実行)
+                draw_text(
+                    draw,
+                    fps_counter.fps_text,
+                    font,
+                    x="left",
+                    y="top",
+                    width=screen_width,
+                    height=screen_height,
+                    color=TEXT_COLOR,
+                )
 
                 # 4. ディスプレイ更新
                 for rx, ry, rw, rh in merged_regions:
@@ -665,24 +655,16 @@ def _loop(
             assert cairo_surface is not None
             assert background_surface is not None
 
-            dirty_regions = []
+            # FPS領域 (左上) は常に Dirty として扱う (残像防止のため)
+            dirty_regions = [(0, 0, 200, 50)]
+            
             for ball in balls:
                 region = ball.get_dirty_region()
                 if region:
                     dirty_regions.append(region)
 
-            fps_updated = fps_counter.update()
-            if fps_updated:
-                dirty_regions.append((0, 0, 100, 40))
-
+            fps_counter.update()
             merged_regions = RegionOptimizer.merge_regions(dirty_regions)
-
-            # 重要：マージ後の領域が FPS エリア (0, 0, 100, 40) と重なる場合、
-            # 背景復元でテキストが消えているため、再描画が必要。
-            fps_area_invaded = any(
-                (rx < 100 and ry < 40 and rx + rw > 0 and ry + rh > 0)
-                for rx, ry, rw, rh in merged_regions
-            )
 
             if merged_regions:
                 for rx, ry, rw, rh in merged_regions:
@@ -719,19 +701,17 @@ def _loop(
                     )
                     frame_image.paste(region_image, (x1, y1))
 
-                # 3. テキストの再描画 (必要なら)
-                # 全てのリージョンの再描画が終わった後に、テキストを重ねる。
-                if fps_updated or fps_area_invaded:
-                    draw_text(
-                        ImageDraw.Draw(frame_image),
-                        fps_counter.fps_text,
-                        font,
-                        x="left",
-                        y="top",
-                        width=screen_width,
-                        height=screen_height,
-                        color=TEXT_COLOR,
-                    )
+                # 3. テキストの再描画 (常に実行)
+                draw_text(
+                    ImageDraw.Draw(frame_image),
+                    fps_counter.fps_text,
+                    font,
+                    x="left",
+                    y="top",
+                    width=screen_width,
+                    height=screen_height,
+                    color=TEXT_COLOR,
+                )
 
                 # 4. ディスプレイ更新
                 for rx, ry, rw, rh in merged_regions:
