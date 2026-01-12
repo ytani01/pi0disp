@@ -3,10 +3,10 @@
 ## Phase 1: Base Infrastructure & Diagnostic Logging
 `RfGazeManager` を `RfAnimationEngine` にリネーム・拡張し、憶測を排除するための詳細なログ出力とステータス監視を実装する。
 
-- [x] Task 1: Create Test Suite for Sub-thread Mechanism
-- [x] Task 2: Implement Diagnostic Logging & Renaming
-- [x] Task 3: Implement Status Monitoring API
-- [x] Task 4: Implement Resilient Error Handling
+- [x] Task 1: Create Test Suite for Sub-thread Mechanism d911270
+- [x] Task 2: Implement Diagnostic Logging & Renaming d911270
+- [x] Task 3: Implement Status Monitoring API d911270
+- [x] Task 4: Implement Resilient Error Handling d911270
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Base Infrastructure & Diagnostic Logging' (Protocol in workflow.md)
 
 ## Phase 2: Mode Integration & Concurrency Verification
