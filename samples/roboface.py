@@ -1116,11 +1116,39 @@ class AppMode(ABC):
         initial_face = self.parser.parse(RfConfig.FACE_WORDS["neutral"])
         # 画面の高さに合わせて顔のサイズを決定
         face_size = self._disp_dev.height
-        self._robot_face = RobotFace(initial_face, size=face_size)
+        self._robot_face = RobotFace(initial_face, size=face_size, debug=debug)
 
         now = time.time()
         self._next_face_time = now + self.FACE_INTERVAL_MIN
         self._next_gaze_time = now + RfConfig.ANIMATION["gaze_loop_duration"]
+
+    @property
+    def status(self) -> dict:
+        """モードおよびエンジンの状態を取得"""
+        return {
+            "mode": self.__class__.__name__,
+            "engine": self._robot_face.animation_engine_status
+        }
+
+    def start(self) -> None:
+        """エンジンスレッドを開始"""
+        self._log.debug("Starting AppMode...")
+        self._robot_face.start()
+
+    def stop(self) -> None:
+        """エンジンスレッドを停止"""
+        self._log.debug("Stopping AppMode...")
+        self._robot_face.stop()
+        # スレッドの終了を待機する
+        self._robot_face.animation_engine.join(timeout=2.0)
+        if self._robot_face.animation_engine.is_alive():
+            self._log.warning("Animation engine did not stop in time.")
+        else:
+            self._log.debug("AppMode stopped cleanly.")
+
+    def enqueue_face(self, face: str) -> None:
+        """表情指示をキューに投入"""
+        self._robot_face.enqueue_face(face)
 
     def _new_face(self, now: float, face: str = ""):
         """New face.
@@ -1181,7 +1209,7 @@ class RandomMode(AppMode):
         bg_color,
         debug: bool = False,
     ):
-        """Constractor."""
+        """Constructor."""
         super().__init__(
             disp_dev,
             bg_color,
@@ -1190,24 +1218,23 @@ class RandomMode(AppMode):
 
     def run(self) -> None:
         self.show_face_outline()
-        self._robot_face.start()
+        self.start()
 
         fps = RfConfig.ANIMATION.get("fps", 10.0)
         interval = 1.0 / fps
 
         try:
-            # change face parts
             while True:
                 now = time.time()
                 if now > self._next_face_time:
                     self._new_face(now)
 
-                # 視線はスレッド(RfGazeManager)が自律的に更新するため、ここでは表情のみ更新
+                # 表情アニメーションの進行と描画
                 self.update_face_and_show()
 
                 time.sleep(interval)
         finally:
-            self._robot_face.stop()
+            self.stop()
 
 
 class InteractiveMode(AppMode):
@@ -1237,11 +1264,12 @@ class InteractiveMode(AppMode):
 
             # 表情文字列を分割してキューに投入
             for face in user_input.split():
-                self._new_face(time.time(), face)
+                self.enqueue_face(face)
 
             # 履歴に追加
             try:
                 if (
+                    # pyright: ignore[reportUndefinedVariable]
                     readline.get_current_history_length() == 0
                     or readline.get_history_item(
                         readline.get_current_history_length()
@@ -1257,27 +1285,27 @@ class InteractiveMode(AppMode):
         self.show_face_outline()
         self._running = True
 
-        # 視線・表情更新スレッドを開始
-        self._robot_face.start()
+        # エンジンスレッドを開始
+        self.start()
 
         # 入力スレッドを開始
         input_thread = threading.Thread(target=self._input_loop, daemon=True)
         input_thread.start()
 
         # 初期表情
-        self._new_face(time.time(), "_OO_")
+        self.enqueue_face("_OO_")
 
         fps = RfConfig.ANIMATION.get("fps", 10.0)
         interval = 1.0 / fps
 
         try:
-            # メインスレッドで描画ループを回す (OpenCVのGUIスレッド要件に対応)
+            # メインスレッドで描画ループを回す
             while self._running:
                 self.update_face_and_show()
                 time.sleep(interval)
         finally:
             self._running = False
-            self._robot_face.stop()
+            self.stop()
             # input_thread は input() でブロックされているため join できないが、
             # daemon=True かつプロセス終了により回収される。
 

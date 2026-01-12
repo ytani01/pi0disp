@@ -7,15 +7,15 @@
 - [x] Task 2: Implement Diagnostic Logging & Renaming d911270
 - [x] Task 3: Implement Status Monitoring API d911270
 - [x] Task 4: Implement Resilient Error Handling d911270
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Base Infrastructure & Diagnostic Logging' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Base Infrastructure & Diagnostic Logging' (Protocol in workflow.md)
 
 ## Phase 2: Mode Integration & Concurrency Verification
 `AppMode` 派生クラスを新エンジンに対応させ、スレッド間の競合がないことをログと実測値で確認する。
 
-- [ ] Task 1: Update `AppMode` to host `RfAnimationEngine`
-- [ ] Task 2: Update `RandomMode` & `InteractiveMode`
-- [ ] Task 3: Ensure Clean Shutdown
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Mode Integration & Concurrency Verification' (Protocol in workflow.md)
+- [x] Task 1: Update `AppMode` to host `RfAnimationEngine` 6d8eba6
+- [x] Task 2: Update `RandomMode` & `InteractiveMode` 6d8eba6
+- [x] Task 3: Ensure Clean Shutdown 6d8eba6
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Mode Integration & Concurrency Verification' (Protocol in workflow.md)
 
 ## Phase 3: Visual Validation & Performance Fact-finding
 実機（またはOpenCV）での動作確認に加え、フレームキャプチャを用いて描画の正確性を「証拠」に基づいて検証する。
