@@ -104,7 +104,7 @@ class Lcd(DisplayBase):
 
         try:
             self.lcd = ST7789V(
-                rotation=270, bgr=False, invert=True, debug=debug
+                bgr=False, invert=True, debug=debug
             )
         except Exception as e:
             self.__log.error(errmsg(e))
