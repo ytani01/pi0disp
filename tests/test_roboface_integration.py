@@ -23,24 +23,33 @@ class TestRobofaceIntegration(CLITestBase):
             assert session.expect("Animation engine thread started.", timeout=10.0)
             print("Fact: Animation engine started correctly.")
 
-            # 2. エラー耐性の事実確認
+            # 2. エラー耐性の事実確認 (単発)
             session.send_key("12345\n")
             assert session.expect("Face string must be 4 characters long", timeout=5.0)
-            print("Fact: Error message caught correctly.")
+            print("Fact: Single error message caught correctly.")
+
+            # 3. エラー耐性の事実確認 (連続・混在)
+            # 正常 -> 異常 -> 正常 の順で送る
+            session.send_key("happy\n")
+            assert session.expect("Applying new expression: happy", timeout=5.0)
             
-            # 3. 終了の事実確認
+            session.send_key("bad\n") # 3文字でエラー
+            assert session.expect("Face string must be 4 characters long", timeout=5.0)
+            
+            session.send_key("sad\n")
+            assert session.expect("Applying new expression: sad", timeout=5.0)
+            print("Fact: Continued processing correctly after multiple errors.")
+            
+            # 4. 終了の事実確認
             session.send_key("q\n")
-            # プロンプトが閉じるのが早すぎて I/O Error になる可能性があるため、
-            # ログ確認は試行するが、失敗してもプロセス終了を優先確認する。
             try:
                 session.expect("Animation engine thread stopped.", timeout=2.0)
             except Exception:
                 pass
             
         finally:
-            # プロセスが正常終了(0)することを最終的な「事実」として確認
-            # 既に終了している場合は terminate_flag=False で close
             ret = session.close(terminate_flag=False)
             print(f"Fact: Process exited with return code {ret}")
             assert ret == 0
+
 
