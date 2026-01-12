@@ -418,26 +418,27 @@ class RfAnimationEngine(threading.Thread):
                 break
 
             # 3. ペンディングされている表情があれば、アニメーション終了を待って適用
-            if (
-                pending_expr
-                and isinstance(pending_expr, str)
-                and self.updater
-                and self.parser
-                and not self.updater.is_changing
-            ):
-                try:
-                    self.__log.info("Applying new expression: %s", pending_expr)
-                    target_face = self.parser.parse(pending_expr)
-                    self.updater.start_change(target_face)
-                    self.__log.debug("Animation started for: %s", pending_expr)
-                except Exception as e:
-                    self._last_error = e
-                    self.__log.error(
-                        "Failed to parse expression %s: %s",
-                        pending_expr,
-                        errmsg(e),
-                    )
-                pending_expr = None  # 処理完了（成功・失敗問わず）
+            if pending_expr is not None and not self.updater.is_changing:
+                if isinstance(pending_expr, str):
+                    try:
+                        self.__log.info("Applying new expression: %s", pending_expr)
+                        target_face = self.parser.parse(pending_expr)
+                        self.updater.start_change(target_face)
+                        self.__log.debug("Animation started for: %s", pending_expr)
+                    except Exception as e:
+                        self._last_error = e
+                        self.__log.error(
+                            "Failed to parse expression %s: %s",
+                            pending_expr,
+                            errmsg(e),
+                        )
+                else:
+                    # 文字列以外が投入された場合（無限ループ防止）
+                    msg = f"Invalid command type: {type(pending_expr).__name__} (expected str)"
+                    self._last_error = ValueError(msg)
+                    self.__log.error(msg)
+
+                pending_expr = None  # 処理完了（成功・失敗・不正データ問わず確実にリセット）
 
             now = time.time()
 
@@ -529,6 +530,8 @@ class RfUpdater:
         self.__log = get_logger(self.__class__.__name__, self.__debug)
         self.__log.debug("face=%s", face)
 
+        self._lock = threading.Lock()
+
         self._change_duration = RfConfig.ANIMATION["face_change_duration"]
         self._change_start_time = 0.0
 
@@ -550,11 +553,12 @@ class RfUpdater:
             duration = RfConfig.ANIMATION["face_change_duration"]
             self.__log.debug(" ==> duration=%s", duration)
 
-        self._change_duration = duration  # 表情変化にかかる時間
-        self.target_face = target_face.copy()  # ターゲットの表情
-        self.start_face = self.current_face.copy()  # 変化前の顔を保存
-        self._change_start_time = time.time()  # 変化開始時間
-        self._is_changing = True
+        with self._lock:
+            self._change_duration = duration  # 表情変化にかかる時間
+            self.target_face = target_face.copy()  # ターゲットの表情
+            self.start_face = self.current_face.copy()  # 変化前の顔を保存
+            self._change_start_time = time.time()  # 変化開始時間
+            self._is_changing = True
 
         self.__log.debug(
             "start_time=%.2f,duration=%.2f",
@@ -607,28 +611,29 @@ class RfUpdater:
         )
 
     def update(self) -> None:
-        if not self._is_changing:
-            # 表情変化がない場合は、ここでリターン
-            return
+        with self._lock:
+            if not self._is_changing:
+                # 表情変化がない場合は、ここでリターン
+                return
 
-        #
-        # Update Face
-        #
-        p_rate = self.progress_rate()
-        self.__log.debug(
-            "elapsed time:%.2f,progress_rate=%.2f",
-            self.elapsed_time(),
-            p_rate,
-        )
+            #
+            # Update Face
+            #
+            p_rate = self.progress_rate()
+            self.__log.debug(
+                "elapsed time:%.2f,progress_rate=%.2f",
+                self.elapsed_time(),
+                p_rate,
+            )
 
-        self._update_brow(p_rate)
-        self._update_eyes(p_rate)
-        self._update_mouth(p_rate)
+            self._update_brow(p_rate)
+            self._update_eyes(p_rate)
+            self._update_mouth(p_rate)
 
-        if p_rate >= 1.0:
-            self._is_changing = False
-            self.current_face = self.target_face.copy()
-            self.__log.debug("Face change completed: %a", self.current_face)
+            if p_rate >= 1.0:
+                self._is_changing = False
+                self.current_face = self.target_face.copy()
+                self.__log.debug("Face change completed: %a", self.current_face)
 
     def set_gaze(self, x: float) -> None:
         """Set gaze."""

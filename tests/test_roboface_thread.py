@@ -54,6 +54,34 @@ class TestRfAnimationEngine:
         
         engine.stop()
         engine.join()
+
+    def test_infinite_loop_bug_reproduction(self):
+        """不正なデータ(int)投入時に無限ループに陥らず、次の指示を処理できるか"""
+        parser = RfParser()
+        updater = RfUpdater(parser.parse("neutral"))
+        engine = RfAnimationEngine(updater=updater, parser=parser)
+        engine.start()
+        
+        # 1. 不正なデータ(int)を投入
+        engine.queue.put(123) 
+        time.sleep(0.2)
+        
+        # 2. その後、正常なコマンドを投入
+        engine.queue.put("happy")
+        
+        # 正常に処理されれば、一定時間内にアニメーションが開始されるはず
+        # (無限ループバグがある場合、ここで 'happy' が永遠に取り出されない)
+        success = False
+        start_time = time.time()
+        while time.time() - start_time < 2.0:
+            if engine.is_animating or engine.queue_size == 0:
+                # 少なくともキューから取り出されていれば、ループは回っている
+                success = True
+                break
+            time.sleep(0.1)
             
-        engine.stop()
-        engine.join()
+        try:
+            assert success, "Engine is likely stuck in an infinite loop due to non-string input"
+        finally:
+            engine.stop()
+            engine.join(timeout=1.0)
