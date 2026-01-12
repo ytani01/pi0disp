@@ -340,7 +340,7 @@ def lerp(a: float, b: float, t: float) -> float:
 # ====================================================================
 # クラス定義
 # ====================================================================
-class RfGazeManager(threading.Thread):
+class RfAnimationEngine(threading.Thread):
     """視線の移動と表情変更をサブスレッドで自律的に制御するクラス。"""
 
     def __init__(
@@ -352,6 +352,7 @@ class RfGazeManager(threading.Thread):
         super().__init__(name=self.__class__.__name__, daemon=True)
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
+        self.__log.debug("Initializing RfAnimationEngine")
 
         self.updater = updater
         self.parser = parser
@@ -361,15 +362,35 @@ class RfGazeManager(threading.Thread):
         self.target_x: float = 0.0
         self._running = False
         self._next_move_time = 0.0
+        self._last_error: Exception | None = None
+
+    @property
+    def last_error(self) -> Exception | None:
+        """最後に発生したエラーを取得"""
+        return self._last_error
+
+    @property
+    def queue_size(self) -> int:
+        """キュー内の未処理タスク数"""
+        return self.queue.qsize()
+
+    @property
+    def is_animating(self) -> bool:
+        """アニメーション中かどうか"""
+        if self.updater:
+            return self.updater.is_changing
+        return False
 
     def stop(self) -> None:
-        """スレッドの停止フラグを立てる"""
+        """スレッドの停止フラグを立て、キューに終了信号を送る"""
+        self.__log.debug("Stop requested")
         self._running = False
+        self.queue.put("exit")
 
     def run(self) -> None:
         """スレッドのメインループ"""
         self._running = True
-        self.__log.debug("Gaze thread started.")
+        self.__log.info("Animation engine thread started.")
 
         fps = RfConfig.ANIMATION.get("fps", 10.0)
         interval = 1.0 / fps
@@ -382,7 +403,9 @@ class RfGazeManager(threading.Thread):
             if pending_expr is None:
                 try:
                     cmd = self.queue.get_nowait()
+                    self.__log.debug("Queue get: %s", cmd)
                     if cmd == "exit":
+                        self.__log.info("Received exit command")
                         self._running = False
                     else:
                         pending_expr = cmd
@@ -403,18 +426,18 @@ class RfGazeManager(threading.Thread):
                 and not self.updater.is_changing
             ):
                 try:
+                    self.__log.info("Applying new expression: %s", pending_expr)
                     target_face = self.parser.parse(pending_expr)
                     self.updater.start_change(target_face)
-                    self.__log.debug(
-                        "Expression changed to: %s", pending_expr
-                    )
+                    self.__log.debug("Animation started for: %s", pending_expr)
                 except Exception as e:
+                    self._last_error = e
                     self.__log.error(
                         "Failed to parse expression %s: %s",
                         pending_expr,
                         errmsg(e),
                     )
-                pending_expr = None  # 処理完了
+                pending_expr = None  # 処理完了（成功・失敗問わず）
 
             now = time.time()
 
@@ -428,7 +451,7 @@ class RfGazeManager(threading.Thread):
                 )
                 self._next_move_time = now + duration
                 self.__log.debug(
-                    "New target_x: %.2f (next move in %.2f s)",
+                    "Gaze move: target_x=%.2f, next_in=%.2f s",
                     self.target_x,
                     duration,
                 )
@@ -438,7 +461,7 @@ class RfGazeManager(threading.Thread):
 
             time.sleep(interval)
 
-        self.__log.debug("Gaze thread stopped.")
+        self.__log.info("Animation engine thread stopped.")
 
 
 class RfParser:
@@ -936,7 +959,7 @@ class RobotFace:
             face=face,
             debug=debug,
         )
-        self.gaze_manager = RfGazeManager(
+        self.animation_engine = RfAnimationEngine(
             updater=self.updater, parser=self.parser, debug=debug
         )
         self.renderer = RfRenderer(
@@ -948,20 +971,29 @@ class RobotFace:
         self._last_state: RfState | None = None
         self._last_gaze_x: float | None = None
 
+    @property
+    def animation_engine_status(self) -> dict:
+        """エンジンの現在の状態を辞書で取得"""
+        return {
+            "is_alive": self.animation_engine.is_alive(),
+            "is_animating": self.animation_engine.is_animating,
+            "queue_size": self.animation_engine.queue_size,
+            "last_error": str(self.animation_engine.last_error) if self.animation_engine.last_error else None
+        }
+
     def start(self) -> None:
         """スレッドを開始する。"""
-        self.__log.debug("Starting gaze manager thread...")
-        self.gaze_manager.start()
+        self.__log.debug("Starting animation engine thread...")
+        self.animation_engine.start()
 
     def stop(self) -> None:
         """スレッドを停止する。"""
-        self.__log.debug("Stopping gaze manager thread...")
-        self.gaze_manager.queue.put("exit")
-        self.gaze_manager.stop()
+        self.__log.debug("Stopping animation engine thread...")
+        self.animation_engine.stop()
 
     def enqueue_face(self, face_str: str) -> None:
         """表情文字列をサブスレッドのキューに投入する。"""
-        self.gaze_manager.queue.put(face_str)
+        self.animation_engine.queue.put(face_str)
 
     @property
     def change_start_time(self):
@@ -1005,7 +1037,7 @@ class RobotFace:
     ) -> None:
         """現在の顔の状態をディスプレイに描画・出力する。"""
         current_state = self.updater.current_face
-        current_gaze_x = self.gaze_manager.current_x
+        current_gaze_x = self.animation_engine.current_x
 
         t0 = time.perf_counter()
         # 常にパーツを含んだイメージを取得する
@@ -1044,7 +1076,7 @@ class RobotFace:
     ):
         return self.renderer.render_parts(
             self.updater.current_face,
-            self.gaze_manager.current_x,
+            self.animation_engine.current_x,
             screen_width,
             screen_height,
             bg_color,
