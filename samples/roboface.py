@@ -1024,7 +1024,7 @@ class RobotFace:
 
     def set_gaze(self, x: float) -> None:
         """視線の目標値を手動で設定する（スレッドに反映）。"""
-        self.gaze_manager.target_x = x
+        self.animation_engine.target_x = x
 
     def update(self) -> None:
         self.updater.update()
