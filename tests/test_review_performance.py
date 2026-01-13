@@ -3,42 +3,52 @@ import time
 from samples.roboface import RfRenderer, RfState
 
 
-def test_render_parts_baseline_performance():
+def test_render_parts_performance_improvement():
     """
-    RfRenderer.render_parts の実行時間を計測する。
-    修正前は毎フレーム ImageOps.pad() と copy() が実行されるため、一定の時間がかかる。
+    RfRenderer.render_parts の改善率を検証する。
+    キャッシュなし（パラメータ変更）とキャッシュありの状態を比較し、
+    キャッシュによる高速化が有意であることを確認する。
     """
     size = 240
     screen_width = 320
     screen_height = 240
-    bg_color = "black"
-
-    renderer = RfRenderer(size=size)
     face = RfState()
     gaze_x = 0.0
+    iterations = 100
 
-    # 初回描画（キャッシュ生成等の影響を排除するため1回実行）
+    renderer = RfRenderer(size=size)
+
+    # 1. キャッシュなし (毎回 bg_color を変えて再生成を強制)
+    start_time = time.perf_counter()
+    bg_color: str | tuple[int, int, int]
+    for i in range(iterations):
+        # わずかに色を変えてキャッシュを無効化
+        bg_color = (0, 0, i % 256)
+        renderer.render_parts(face, gaze_x, screen_width, screen_height, bg_color)
+    no_cache_duration = time.perf_counter() - start_time
+    avg_no_cache = (no_cache_duration / iterations) * 1000
+
+    # 2. キャッシュあり (同じパラメータで継続)
+    # 初回でキャッシュを生成
+    bg_color = "black"
     renderer.render_parts(face, gaze_x, screen_width, screen_height, bg_color)
 
-    # 複数回実行して平均時間を計測
-    iterations = 100
     start_time = time.perf_counter()
     for _ in range(iterations):
-        renderer.render_parts(
-            face, gaze_x, screen_width, screen_height, bg_color
-        )
-    end_time = time.perf_counter()
+        renderer.render_parts(face, gaze_x, screen_width, screen_height, bg_color)
+    cached_duration = time.perf_counter() - start_time
+    avg_cached = (cached_duration / iterations) * 1000
 
-    avg_duration_ms = ((end_time - start_time) / iterations) * 1000
-    print(
-        f"\n[Baseline] Average render_parts duration: {avg_duration_ms:.4f} ms"
-    )
+    improvement_ratio = avg_no_cache / avg_cached if avg_cached > 0 else float("inf")
 
-    # 修正後のパフォーマンス検証
-    # 背景キャッシュとオフセット描画により、大幅に高速化されているはず
-    print(
-        f"\n[Verification] Average render_parts duration: {avg_duration_ms:.4f} ms"
-    )
-    assert avg_duration_ms < 0.8, (
-        f"Performance goal missed: {avg_duration_ms:.4f} ms (Target: < 0.8 ms)"
+    print("\n[Performance Comparison]")
+    print(f"  Avg No-Cache: {avg_no_cache:.4f} ms")
+    print(f"  Avg Cached:   {avg_cached:.4f} ms")
+    print(f"  Improvement:  {improvement_ratio:.2f}x faster")
+
+    # キャッシュにより少なくとも 1.5倍 (50%改善) 以上高速化されていることを期待
+    # 環境によって差はあるが、ImageOps.pad と copy の差は歴然なはず
+    assert improvement_ratio > 1.5, (
+        f"Performance improvement too small: {improvement_ratio:.2f}x "
+        f"(Cached: {avg_cached:.4f}ms, No-Cache: {avg_no_cache:.4f}ms)"
     )

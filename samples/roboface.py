@@ -20,7 +20,7 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from logging import Logger
-from typing import ClassVar
+from typing import Any, ClassVar
 
 # from typing import Callable
 import click
@@ -227,7 +227,7 @@ class RfConfig:
     }
 
     # レイアウト定数 (顔のパーツの相対座標)
-    LAYOUT: ClassVar[dict[str, int]] = {
+    LAYOUT: ClassVar[dict[str, Any]] = {
         # 眉
         "brow_offset_y": -15,  # 目のY座標からのオフセット
         "brow_offset_x": 10,
@@ -279,12 +279,8 @@ class RfConfig:
     ]
 
     # インスタンス変数 (必要に応じてオーバーライド可能)
-    face_words: dict[str, str] = field(
-        default_factory=lambda: RfConfig.FACE_WORDS
-    )
-    brow_map: dict[str, int] = field(
-        default_factory=lambda: RfConfig.BROW_MAP
-    )
+    face_words: dict[str, str] = field(default_factory=lambda: RfConfig.FACE_WORDS)
+    brow_map: dict[str, int] = field(default_factory=lambda: RfConfig.BROW_MAP)
     eye_map: dict[str, dict[str, float]] = field(
         default_factory=lambda: RfConfig.EYE_MAP
     )
@@ -426,9 +422,7 @@ class RfAnimationEngine(threading.Thread):
                 if not self.updater.is_changing:
                     if isinstance(pending_expr, str):
                         try:
-                            self.__log.info(
-                                "Applying new expression: %s", pending_expr
-                            )
+                            self.__log.info("Applying new expression: %s", pending_expr)
                             if self.parser is not None:
                                 target_face = self.parser.parse(pending_expr)
                                 self.updater.start_change(target_face)
@@ -450,7 +444,9 @@ class RfAnimationEngine(threading.Thread):
                         self._last_error = ValueError(msg)
                         self.__log.error(msg)
 
-                    pending_expr = None  # 処理完了（成功・失敗・不正データ問わず確実にリセット）
+                    pending_expr = (
+                        None  # 処理完了（成功・失敗・不正データ問わず確実にリセット）
+                    )
 
             now = time.perf_counter()
 
@@ -476,9 +472,7 @@ class RfAnimationEngine(threading.Thread):
             exponent = safe_interval * 10.0
             adjusted_lerp_factor = 1.0 - math.pow(1.0 - lerp_factor, exponent)
 
-            self.current_x = lerp(
-                self.current_x, self.target_x, adjusted_lerp_factor
-            )
+            self.current_x = lerp(self.current_x, self.target_x, adjusted_lerp_factor)
 
             time.sleep(interval)
 
@@ -503,9 +497,7 @@ class RfParser:
             self.__log.debug(" ==>  face_str=%a", face_str)
 
         if len(face_str) != 4:
-            raise ValueError(
-                f"{face_str}: Face string must be 4 characters long"
-            )
+            raise ValueError(f"{face_str}: Face string must be 4 characters long")
 
         brow_char = face_str[0]
         left_eye_char = face_str[1]
@@ -653,9 +645,7 @@ class RfUpdater:
             if p_rate >= 1.0:
                 self._is_changing = False
                 self.current_face = self.target_face.copy()
-                self.__log.debug(
-                    "Face change completed: %a", self.current_face
-                )
+                self.__log.debug("Face change completed: %a", self.current_face)
 
     def set_gaze(self, x: float) -> None:
         """Set gaze."""
@@ -767,8 +757,9 @@ class RfRenderer:
         final_img = ImageOps.pad(
             img,
             (screen_width, screen_height),
-                            color=pad_color,
-                            centering=RfConfig.LAYOUT["face_centering"],        )
+            color=pad_color,
+            centering=RfConfig.LAYOUT["face_centering"],
+        )
         return final_img
 
     def _draw_brows(self, draw, left_cx, right_cx, eye_y, brow_tilt):
@@ -925,9 +916,7 @@ class RfRenderer:
         mouth_color = RfConfig.COLORS["mouth_line"]
         mouth_width = self._scale_width(5)
 
-        self._draw_bezier_curve(
-            draw, p0, p1, p2, color=mouth_color, width=mouth_width
-        )
+        self._draw_bezier_curve(draw, p0, p1, p2, color=mouth_color, width=mouth_width)
 
     def render_parts(
         self,
@@ -983,9 +972,7 @@ class RfRenderer:
 
         return final_img
 
-    def _draw_eyes_offset(
-        self, draw, face, gaze_offset_x, x_offset, y_offset
-    ):
+    def _draw_eyes_offset(self, draw, face, gaze_offset_x, x_offset, y_offset):
         eye_y = RfConfig.LAYOUT["eye_y"]
         eye_x1 = RfConfig.LAYOUT["eye_offset"]
         eye_x2 = 100 - eye_x1
@@ -1265,9 +1252,7 @@ class RobotFace:
         screen_height: int,
         bg_color: tuple | str,
     ):
-        return self.renderer.render_outline(
-            screen_width, screen_height, bg_color
-        )
+        return self.renderer.render_outline(screen_width, screen_height, bg_color)
 
     def get_parts_image(
         self,
@@ -1317,9 +1302,7 @@ class AppMode(ABC):
         initial_face = self.parser.parse(RfConfig.FACE_WORDS["neutral"])
         # 画面の高さに合わせて顔のサイズを決定
         face_size = self._disp_dev.height
-        self._robot_face = RobotFace(
-            initial_face, size=face_size, debug=debug
-        )
+        self._robot_face = RobotFace(initial_face, size=face_size, debug=debug)
 
         now = time.perf_counter()
         self._next_face_time = now + self.FACE_INTERVAL_MIN
@@ -1380,9 +1363,7 @@ class AppMode(ABC):
         self._robot_face.set_gaze(gaze)
 
         # duration = RfConfig.ANIMATION["gaze_loop_duration"]
-        duration = random.uniform(
-            self.GAZE_INTERVAL_MIN, self.GAZE_INTERVAL_MAX
-        )
+        duration = random.uniform(self.GAZE_INTERVAL_MIN, self.GAZE_INTERVAL_MAX)
 
         self._log.debug("gaze=%.2f, duration=%.2f", gaze, duration)
         self._next_gaze_time = now + duration
@@ -1477,9 +1458,7 @@ class InteractiveMode(AppMode):
                 if (
                     # pyright: ignore[reportUndefinedVariable]
                     readline.get_current_history_length() == 0
-                    or readline.get_history_item(
-                        readline.get_current_history_length()
-                    )
+                    or readline.get_history_item(readline.get_current_history_length())
                     != user_input
                 ):
                     readline.add_history(user_input)
