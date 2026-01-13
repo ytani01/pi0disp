@@ -549,7 +549,7 @@ class RfUpdater:
         """変形開始."""
         self.__log.debug("duration=%s,target_face=%s", duration, target_face)
 
-        if not duration:
+        if duration is None:
             duration = RfConfig.ANIMATION["face_change_duration"]
             self.__log.debug(" ==> duration=%s", duration)
 
@@ -668,6 +668,8 @@ class RfUpdater:
         """Prograss rate."""
         if not self._is_changing:
             return 1.0
+        if self.change_duration == 0.0:
+            return 1.0
         return min(1.0, max(0.0, self.elapsed_time() / self.change_duration))
 
 
@@ -686,6 +688,7 @@ class RfRenderer:
         self.size = size
         self.scale = size / 100.0
         self._base_face_img: Image.Image | None = None
+        self._cached_bg_color = None
 
     def _scale_xy(self, x: float, y: float) -> tuple[int, int]:
         return (round(x * self.scale), round(y * self.scale))
@@ -736,8 +739,7 @@ class RfRenderer:
 
         self._draw_background(draw)
 
-        # 背景色が文字列の場合はRGBタプルに変換（念のため）
-        pad_color = bg_color if isinstance(bg_color, tuple) else (0, 0, 0)
+        pad_color = bg_color
 
         final_img = ImageOps.pad(
             img,
@@ -920,12 +922,13 @@ class RfRenderer:
             bg_color,
         )
 
-        # 背景の描画をキャッシュ
-        if self._base_face_img is None:
+        # 背景の描画をキャッシュ (背景色が変わった場合は再生成)
+        if self._base_face_img is None or self._cached_bg_color != bg_color:
             base_img = Image.new("RGB", (self.size, self.size), bg_color)
             base_draw = ImageDraw.Draw(base_img)
             self._draw_background(base_draw)
             self._base_face_img = base_img
+            self._cached_bg_color = bg_color
 
         # キャッシュされた背景をコピー
         img = self._base_face_img.copy()
@@ -934,8 +937,7 @@ class RfRenderer:
         self._draw_eyes(draw, face, gaze_offset_x)
         self._draw_mouth(draw, face)
 
-        # 背景色が文字列の場合はRGBタプルに変換（念のため）
-        pad_color = bg_color if isinstance(bg_color, tuple) else (0, 0, 0)
+        pad_color = bg_color
 
         final_img = ImageOps.pad(
             img,
