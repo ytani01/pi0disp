@@ -1,8 +1,6 @@
-import pytest
 import time
 import os
-from samples.roboface import RfParser, RfState, RobotFace, RfUpdater, RfRenderer
-from PIL import Image
+from samples.roboface import RfParser, RfState, RfUpdater, RfRenderer
 
 TMP_DIR = "/home/ytani/.gemini/tmp/c033fec850cc00bf431a0c373ea26cfd3e25f22f3dee519ec8caf7bbf9303d54"
 
@@ -33,11 +31,8 @@ def test_bg_color_string_fix():
     
     # 320x240 の画面に描画。背景色は "white" (255, 255, 255)
     img = renderer.render_parts(state, 0.0, 320, 240, "white")
-    img.save(os.path.join(TMP_DIR, "task1_2_bug.png"))
+    img.save(os.path.join(TMP_DIR, "test_bg_color_string.png"))
     
-    # 現状のバグでは pad_color が (0, 0, 0) になるため、
-    # 画面の端（例えば (319, 239)）は黒いはず。
-    # 期待値は白。
     pixel = img.getpixel((319, 239))
     assert pixel == (255, 255, 255)
 
@@ -48,14 +43,25 @@ def test_bg_cache_fix():
     
     # 最初は黒で描画
     img1 = renderer.render_parts(state, 0.0, 240, 240, (0, 0, 0))
-    # 顔の角（丸角の外側）が背景色になっていることを確認
     assert img1.getpixel((0, 0)) == (0, 0, 0)
     
     # 次に赤で描画
     img2 = renderer.render_parts(state, 0.0, 240, 240, (255, 0, 0))
-    img2.save(os.path.join(TMP_DIR, "task1_3_bug.png"))
+    img2.save(os.path.join(TMP_DIR, "test_bg_cache_update.png"))
     
-    # 現状のバグではキャッシュされた黒い背景が使われるため、
-    # 赤に変更しても (0, 0, 0) のままになるはず。
-    # 期待値は (255, 0, 0)。
     assert img2.getpixel((0, 0)) == (255, 0, 0)
+
+def test_very_short_duration():
+    """非常に短い duration でも動作することを確認する"""
+    parser = RfParser()
+    initial_face = parser.parse("_OO_")
+    target_face = parser.parse("vOOv")
+    updater = RfUpdater(initial_face)
+    
+    # 非常に短い duration (1ms)
+    updater.start_change(target_face, duration=0.001)
+    time.sleep(0.002)
+    updater.update()
+    
+    assert updater.progress_rate() == 1.0
+    assert updater.is_changing is False
