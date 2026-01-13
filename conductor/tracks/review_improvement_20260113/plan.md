@@ -11,7 +11,7 @@
     - 長時間（100フレーム分等）のループを実行し、目標時間と実際の終了時間の乖離を計測するテストを記述。
 - [x] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
 
-## Phase 2: ロジックの修正と自動テストのパス (Green Phase)
+## Phase 2: ロジックの修正と自動テスト의パス (Green Phase) [checkpoint: 39da856]
 指摘事項を修正し、Phase 1 で作成したテストがパスするようにします。
 
 - [x] **Task 2.1: 背景キャッシュの実装 (RfRenderer)**
