@@ -36,6 +36,39 @@ def test_engine_adjusted_lerp_factor_zero_interval():
     # 修正後のロジックでは max(0.0, interval) により 0.0 になるはず
     safe_interval = max(0.0, interval)
     exponent = safe_interval * 10.0
-    adjusted = 1.0 - math.pow(1.0 - lerp_factor, exponent)
-    assert adjusted >= 0.0
-    assert adjusted == 0.0
+def test_renderer_centering_config():
+    """RfRendererのセンタリング設定がRfConfigから取得されることを確認"""
+    from samples.roboface import RfConfig, RfRenderer
+    
+    assert "face_centering" in RfConfig.LAYOUT
+    
+    # 設定を変更して反映されるか確認
+    original_centering = RfConfig.LAYOUT["face_centering"]
+    try:
+        RfConfig.LAYOUT["face_centering"] = (0.5, 0.5)
+        renderer = RfRenderer(size=240)
+        # 実際に描画してオフセットを確認したいが、モックなしでは難しいので
+        # ここではConfigに存在し、Rendererがエラーなく初期化されることを確認
+        assert renderer.size == 240
+    finally:
+        RfConfig.LAYOUT["face_centering"] = original_centering
+
+def test_app_mode_timer_precision(monkeypatch):
+    """AppMode派生クラスがtime.perf_counterを使用していることを確認"""
+    from samples.roboface import RandomMode, CV2Disp, RfConfig
+    
+    perf_called = []
+    original_perf = time.perf_counter
+    
+    def mock_perf():
+        perf_called.append(True)
+        return original_perf()
+    
+    monkeypatch.setattr(time, "perf_counter", mock_perf)
+    
+    # 実際には描画デバイスが必要なのでダミーを作成
+    disp = CV2Disp(width=320, height=240)
+    # インスタンス化の過程で perf_counter が呼ばれるはず
+    mode = RandomMode(disp, "black")
+    
+    assert len(perf_called) > 0

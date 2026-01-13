@@ -242,6 +242,7 @@ class RfConfig:
         "mouth_width": 30,
         "mouth_open_radius_factor": 8,
         "mouth_curve_half_width": 15,
+        "face_centering": (0.1, 0.5),
     }
 
     # アニメーション定数
@@ -451,7 +452,7 @@ class RfAnimationEngine(threading.Thread):
 
                     pending_expr = None  # 処理完了（成功・失敗・不正データ問わず確実にリセット）
 
-            now = time.time()
+            now = time.perf_counter()
 
             # ランダムに目標値を更新
             if now > self._next_move_time:
@@ -576,7 +577,7 @@ class RfUpdater:
             self._change_duration = duration  # 表情変化にかかる時間
             self.target_face = target_face.copy()  # ターゲットの表情
             self.start_face = self.current_face.copy()  # 変化前の顔を保存
-            self._change_start_time = time.time()  # 変化開始時間
+            self._change_start_time = time.perf_counter()  # 変化開始時間
             self._is_changing = True
 
         self.__log.debug(
@@ -682,7 +683,7 @@ class RfUpdater:
     def elapsed_time(self) -> float:
         """Elapsed time."""
         if self._is_changing:
-            return time.time() - self.change_start_time
+            return time.perf_counter() - self.change_start_time
         return 0.0
 
     def progress_rate(self) -> float:
@@ -766,9 +767,8 @@ class RfRenderer:
         final_img = ImageOps.pad(
             img,
             (screen_width, screen_height),
-            color=pad_color,
-            centering=(0.1, 0.5),  # 元の左寄せに戻す
-        )
+                            color=pad_color,
+                            centering=RfConfig.LAYOUT["face_centering"],        )
         return final_img
 
     def _draw_brows(self, draw, left_cx, right_cx, eye_y, brow_tilt):
@@ -959,7 +959,7 @@ class RfRenderer:
                 base_img,
                 (screen_width, screen_height),
                 color=bg_color,
-                centering=(0.1, 0.5),
+                centering=RfConfig.LAYOUT["face_centering"],
             )
             self._cached_bg_color = bg_color
 
@@ -967,12 +967,13 @@ class RfRenderer:
         final_img = self._cached_padded_bg.copy()
         draw = ImageDraw.Draw(final_img)
 
-        # パーツの描画（パディングによる左寄せ 0.1 オフセットを考慮）
-        # ImageOps.pad(centering=(0.1, 0.5)) の場合、
-        # x_offset = (screen_width - self.size) * 0.1
-        # y_offset = (screen_height - self.size) * 0.5
-        x_offset = int((screen_width - self.size) * 0.1)
-        y_offset = int((screen_height - self.size) * 0.5)
+        # パーツの描画（パディングによるオフセットを考慮）
+        # centering=(cx, cy) の場合、
+        # x_offset = (screen_width - self.size) * cx
+        # y_offset = (screen_height - self.size) * cy
+        cx, cy = RfConfig.LAYOUT["face_centering"]
+        x_offset = int((screen_width - self.size) * cx)
+        y_offset = int((screen_height - self.size) * cy)
 
         # 描画位置をオフセットさせるためのラッパー draw を作成するか、描画関数にオフセットを渡す
         # ここでは描画関数を修正せずに済むよう、一時的な座標変換を検討するが、
@@ -1320,7 +1321,7 @@ class AppMode(ABC):
             initial_face, size=face_size, debug=debug
         )
 
-        now = time.time()
+        now = time.perf_counter()
         self._next_face_time = now + self.FACE_INTERVAL_MIN
         self._next_gaze_time = now + RfConfig.ANIMATION["gaze_loop_duration"]
 
@@ -1425,10 +1426,10 @@ class RandomMode(AppMode):
         fps = RfConfig.ANIMATION.get("fps", 10.0)
         interval = 1.0 / fps
 
-        next_tick = time.time()
+        next_tick = time.perf_counter()
         try:
             while True:
-                now = time.time()
+                now = time.perf_counter()
                 if now > self._next_face_time:
                     self._new_face(now)
 
@@ -1437,7 +1438,7 @@ class RandomMode(AppMode):
 
                 next_tick += interval
                 # 累積誤差を補正した待機
-                time.sleep(max(0, next_tick - time.time()))
+                time.sleep(max(0, next_tick - time.perf_counter()))
         finally:
             self.stop()
 
@@ -1503,14 +1504,14 @@ class InteractiveMode(AppMode):
         fps = RfConfig.ANIMATION.get("fps", 10.0)
         interval = 1.0 / fps
 
-        next_tick = time.time()
+        next_tick = time.perf_counter()
         try:
             # メインスレッドで描画ループを回す
             while self._running:
                 self.update_face_and_show()
                 next_tick += interval
                 # 累積誤差を補正した待機
-                time.sleep(max(0, next_tick - time.time()))
+                time.sleep(max(0, next_tick - time.perf_counter()))
         finally:
             self._running = False
             self.stop()
