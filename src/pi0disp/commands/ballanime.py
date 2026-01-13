@@ -559,7 +559,7 @@ def _loop(
         elif mode == "optimized":
             # FPS領域 (左上) は常に Dirty として扱う (残像防止のため)
             dirty_regions = [(0, 0, 200, 50)]
-            
+
             for ball in balls:
                 region = ball.get_dirty_region()
                 if region:
@@ -657,7 +657,7 @@ def _loop(
 
             # FPS領域 (左上) は常に Dirty として扱う (残像防止のため)
             dirty_regions = [(0, 0, 200, 50)]
-            
+
             for ball in balls:
                 region = ball.get_dirty_region()
                 if region:

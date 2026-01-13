@@ -103,9 +103,7 @@ class Lcd(DisplayBase):
             raise RuntimeError(msg)
 
         try:
-            self.lcd = ST7789V(
-                bgr=False, invert=True, debug=debug
-            )
+            self.lcd = ST7789V(bgr=False, invert=True, debug=debug)
         except Exception as e:
             self.__log.error(errmsg(e))
             raise RuntimeError(errmsg(e))
@@ -377,7 +375,7 @@ class RfAnimationEngine(threading.Thread):
     @property
     def is_animating(self) -> bool:
         """アニメーション中かどうか"""
-        if self.updater:
+        if self.updater is not None:
             return self.updater.is_changing
         return False
 
@@ -418,13 +416,24 @@ class RfAnimationEngine(threading.Thread):
                 break
 
             # 3. ペンディングされている表情があれば、アニメーション終了を待って適用
-            if pending_expr is not None and not self.updater.is_changing:
+            if (
+                pending_expr is not None
+                and self.updater is not None
+                and not self.updater.is_changing
+            ):
                 if isinstance(pending_expr, str):
                     try:
-                        self.__log.info("Applying new expression: %s", pending_expr)
-                        target_face = self.parser.parse(pending_expr)
-                        self.updater.start_change(target_face)
-                        self.__log.debug("Animation started for: %s", pending_expr)
+                        self.__log.info(
+                            "Applying new expression: %s", pending_expr
+                        )
+                        if self.parser is not None:
+                            target_face = self.parser.parse(pending_expr)
+                            self.updater.start_change(target_face)
+                            self.__log.debug(
+                                "Animation started for: %s", pending_expr
+                            )
+                        else:
+                            self.__log.error("Parser is not initialized.")
                     except Exception as e:
                         self._last_error = e
                         self.__log.error(
@@ -460,7 +469,9 @@ class RfAnimationEngine(threading.Thread):
             # 線形補間 (経過時間を考慮)
             # 元の 10fps で lerp_factor を適用した場合と同等の速度にする
             # 1 - (1 - f)^n (n は 10fps に対する倍率)
-            adjusted_lerp_factor = 1.0 - (1.0 - lerp_factor) ** (interval * 10.0)
+            adjusted_lerp_factor = 1.0 - (1.0 - lerp_factor) ** (
+                interval * 10.0
+            )
             self.current_x = lerp(
                 self.current_x, self.target_x, adjusted_lerp_factor
             )
@@ -638,7 +649,9 @@ class RfUpdater:
             if p_rate >= 1.0:
                 self._is_changing = False
                 self.current_face = self.target_face.copy()
-                self.__log.debug("Face change completed: %a", self.current_face)
+                self.__log.debug(
+                    "Face change completed: %a", self.current_face
+                )
 
     def set_gaze(self, x: float) -> None:
         """Set gaze."""
@@ -693,7 +706,8 @@ class RfRenderer:
         self.size = size
         self.scale = size / 100.0
         self._base_face_img: Image.Image | None = None
-        self._cached_bg_color = None
+        self._cached_bg_color: str | tuple | None = None
+        self._cached_padded_bg: Image.Image | None = None
 
     def _scale_xy(self, x: float, y: float) -> tuple[int, int]:
         return (round(x * self.scale), round(y * self.scale))
@@ -929,7 +943,7 @@ class RfRenderer:
 
         # パディング済みの背景画像をキャッシュ (背景色や画面サイズが変わった場合は再生成)
         if (
-            not hasattr(self, "_cached_padded_bg")
+            self._cached_padded_bg is None
             or self._cached_bg_color != bg_color
             or self._cached_padded_bg.size != (screen_width, screen_height)
         ):
@@ -1159,7 +1173,9 @@ class RobotFace:
             "is_alive": self.animation_engine.is_alive(),
             "is_animating": self.animation_engine.is_animating,
             "queue_size": self.animation_engine.queue_size,
-            "last_error": str(self.animation_engine.last_error) if self.animation_engine.last_error else None
+            "last_error": str(self.animation_engine.last_error)
+            if self.animation_engine.last_error
+            else None,
         }
 
     def start(self) -> None:
@@ -1297,7 +1313,9 @@ class AppMode(ABC):
         initial_face = self.parser.parse(RfConfig.FACE_WORDS["neutral"])
         # 画面の高さに合わせて顔のサイズを決定
         face_size = self._disp_dev.height
-        self._robot_face = RobotFace(initial_face, size=face_size, debug=debug)
+        self._robot_face = RobotFace(
+            initial_face, size=face_size, debug=debug
+        )
 
         now = time.time()
         self._next_face_time = now + self.FACE_INTERVAL_MIN
@@ -1308,7 +1326,7 @@ class AppMode(ABC):
         """モードおよびエンジンの状態を取得"""
         return {
             "mode": self.__class__.__name__,
-            "engine": self._robot_face.animation_engine_status
+            "engine": self._robot_face.animation_engine_status,
         }
 
     def start(self) -> None:
