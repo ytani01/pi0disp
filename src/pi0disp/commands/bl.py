@@ -48,13 +48,9 @@ def bl_cmd(ctx, val, bl, debug):
             pi.set_mode(bl, pigpio.OUTPUT)
             pi.set_PWM_dutycycle(bl, val)
             val2 = pi.get_PWM_dutycycle(bl)
-            __log.info(
-                "bl[GPIO%s]: backlight brightness: %s --> %s", bl, val1, val2
-            )
+            __log.info("bl[GPIO%s]: backlight brightness: %s --> %s", bl, val1, val2)
         else:
-            raise RuntimeError(
-                "Could not connect to pigpio daemon. Is it running?"
-            )
+            raise RuntimeError("Could not connect to pigpio daemon. Is it running?")
 
     except Exception as e:
         __log.error("%s: %s", type(e).__name__, e)

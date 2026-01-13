@@ -5,15 +5,11 @@ from tests._testbase_cli import CLITestBase
 
 class TestRobofaceIntegration(CLITestBase):
     # 継承元の汎用テストメソッドが pytest に拾われないようにする
-    @pytest.mark.skip(
-        reason="Base class generic tests are not applicable here"
-    )
+    @pytest.mark.skip(reason="Base class generic tests are not applicable here")
     def test_command(self, *args, **kwargs):
         pass
 
-    @pytest.mark.skip(
-        reason="Base class generic tests are not applicable here"
-    )
+    @pytest.mark.skip(reason="Base class generic tests are not applicable here")
     def test_interactive(self, *args, **kwargs):
         pass
 
@@ -30,42 +26,30 @@ class TestRobofaceIntegration(CLITestBase):
 
         try:
             # 1. 起動の事実確認
-            assert session.expect(
-                "Animation engine thread started.", timeout=10.0
-            )
+            assert session.expect("Animation engine thread started.", timeout=10.0)
             print("Fact: Animation engine started correctly.")
 
             # 2. エラー耐性の事実確認 (単発)
             session.send_key("12345\n")
-            assert session.expect(
-                "Face string must be 4 characters long", timeout=5.0
-            )
+            assert session.expect("Face string must be 4 characters long", timeout=5.0)
             print("Fact: Single error message caught correctly.")
 
             # 3. エラー耐性の事実確認 (連続・混在)
             # 正常 -> 異常 -> 正常 の順で送る
             session.send_key("happy\n")
-            assert session.expect(
-                "Applying new expression: happy", timeout=5.0
-            )
+            assert session.expect("Applying new expression: happy", timeout=5.0)
 
             session.send_key("bad\n")  # 3文字でエラー
-            assert session.expect(
-                "Face string must be 4 characters long", timeout=5.0
-            )
+            assert session.expect("Face string must be 4 characters long", timeout=5.0)
 
             session.send_key("sad\n")
             assert session.expect("Applying new expression: sad", timeout=5.0)
-            print(
-                "Fact: Continued processing correctly after multiple errors."
-            )
+            print("Fact: Continued processing correctly after multiple errors.")
 
             # 4. 終了の事実確認
             session.send_key("q\n")
             try:
-                session.expect(
-                    "Animation engine thread stopped.", timeout=2.0
-                )
+                session.expect("Animation engine thread stopped.", timeout=2.0)
             except Exception:
                 pass
 

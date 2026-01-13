@@ -43,9 +43,7 @@ def test_init_success(mock_pi_constructor, mock_logger, mock_pi_instance):
     assert disp_base._rotation == DEFAULT_ROTATION
 
 
-def test_init_with_debug_true(
-    mock_pi_constructor, mock_logger, mock_pi_instance
-):
+def test_init_with_debug_true(mock_pi_constructor, mock_logger, mock_pi_instance):
     """debug=TrueでDispBaseをインスタンス化した場合にロガーがデバッグログを出力することをテスト."""
     disp_base = create_disp_base_instance(
         size=DEFAULT_SIZE, rotation=DEFAULT_ROTATION, debug=True
@@ -67,9 +65,7 @@ def test_init_pigpio_connection_error(mock_pi_constructor, mock_pi_instance):
     mock_pi_instance.connected = False
 
     with pytest.raises(RuntimeError) as excinfo:
-        create_disp_base_instance(
-            size=DEFAULT_SIZE, rotation=DEFAULT_ROTATION
-        )
+        create_disp_base_instance(size=DEFAULT_SIZE, rotation=DEFAULT_ROTATION)
     assert "Could not connect to pigpio daemon" in str(excinfo.value)
     mock_pi_constructor.assert_called_once()
 
@@ -240,9 +236,7 @@ def test_init_with_conf_size(mock_pi_constructor, mock_pi_instance):
         # size=None で初期化
         # create_disp_base_instance ヘルパーは size=None だと DEFAULT_SIZE を設定してしまうので、
         # 設定ファイルからの読み込みをテストする場合は直接 DispBase を呼ぶ必要がある
-        disp_base = DispBase(
-            size=None, rotation=DEFAULT_ROTATION, debug=False
-        )
+        disp_base = DispBase(size=None, rotation=DEFAULT_ROTATION, debug=False)
 
         assert disp_base.size.width == 100
         assert disp_base.size.height == 200
@@ -320,9 +314,7 @@ def test_context_manager_with_exception(
 
 def test_properties(mock_pi_instance):
     """プロパティのテスト."""
-    disp_base = create_disp_base_instance(
-        size=DispSize(100, 200), rotation=90
-    )
+    disp_base = create_disp_base_instance(size=DispSize(100, 200), rotation=90)
 
     # native_size
     assert disp_base.native_size == DispSize(100, 200)
@@ -394,9 +386,7 @@ def test_get_display_info_with_debug_true(mock_pi_constructor, mock_logger):
     with patch("pi0disp.disp.disp_base.MyConf") as MockMyConf:
         mock_conf_instance = MockMyConf.return_value
         mock_data = MagicMock()
-        mock_data.get.return_value = (
-            None  # ログ出力のみを確認するため、値はNoneでよい
-        )
+        mock_data.get.return_value = None  # ログ出力のみを確認するため、値はNoneでよい
         mock_conf_instance.data = mock_data
 
         get_display_info(debug=True)
@@ -404,9 +394,7 @@ def test_get_display_info_with_debug_true(mock_pi_constructor, mock_logger):
         MockMyConf.assert_called_once_with(debug=True)
         # ロガーが呼び出され、"read config file" がログ出力されたことを確認
         mock_logger.assert_called_once_with("get_display_info", True)
-        mock_logger_instance.debug.assert_any_call(
-            "設定ファイルを読み込みます。"
-        )
+        mock_logger_instance.debug.assert_any_call("設定ファイルを読み込みます。")
         # ログメッセージの引数を確認
         mock_logger_instance.debug.assert_any_call(
             "width=%s, height=%s, rotation=%s", None, None, None

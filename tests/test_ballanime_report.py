@@ -42,9 +42,7 @@ def test_ballanime_report_columns():
         }
 
         # Invoke command with benchmark option
-        result = runner.invoke(
-            ballanime, ["--benchmark", "1", "--mode", "simple"]
-        )
+        result = runner.invoke(ballanime, ["--benchmark", "1", "--mode", "simple"])
         if result.exit_code != 0:
             print(result.output)
             if result.exception:

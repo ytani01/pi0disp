@@ -52,6 +52,4 @@ class TestAdvancedCommands:
         inout = {"in": input_name, "out": expected}
         print("* test_interactive(...)")
         print(f"* inout={inout}")
-        cli_runner.test_interactive(
-            cmdline, in_out=inout, terminate_flag=False
-        )
+        cli_runner.test_interactive(cmdline, in_out=inout, terminate_flag=False)

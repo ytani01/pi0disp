@@ -51,12 +51,8 @@ def draw_test_pattern(draw, w, h, invert, bgr, index):
     draw.text((15, bh * 3 + 45), conf_text, fill="cyan", font=f_mid)
 
     # 下部にガイド
-    draw.text(
-        (15, h - 55), "If R/G/B & Black look OK,", fill="gray", font=f_sm
-    )
-    draw.text(
-        (15, h - 35), "Use these values in TOML.", fill="yellow", font=f_sm
-    )
+    draw.text((15, h - 55), "If R/G/B & Black look OK,", fill="gray", font=f_sm)
+    draw.text((15, h - 35), "Use these values in TOML.", fill="yellow", font=f_sm)
 
 
 def main():

@@ -5,16 +5,12 @@ from pi0disp.utils.sprite import CircleSprite
 
 def test_ball_inheritance():
     # BallがCircleSpriteを継承しているか
-    ball = Ball(
-        x=100, y=100, radius=20, speed=100, angle=0, fill_color=(255, 0, 0)
-    )
+    ball = Ball(x=100, y=100, radius=20, speed=100, angle=0, fill_color=(255, 0, 0))
     assert isinstance(ball, CircleSprite)
 
 
 def test_ball_dirty_region():
-    ball = Ball(
-        x=100, y=100, radius=20, speed=100, angle=0, fill_color=(255, 0, 0)
-    )
+    ball = Ball(x=100, y=100, radius=20, speed=100, angle=0, fill_color=(255, 0, 0))
 
     # 初回描画
     ball.record_current_bbox()

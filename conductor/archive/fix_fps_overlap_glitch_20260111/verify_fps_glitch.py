@@ -5,9 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from PIL import Image, ImageFont
 
-sys.path.append(
-    os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
-)
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
 from pi0disp.commands.ballanime import _loop
 
@@ -56,9 +54,7 @@ def verify_mode(mode: str):
     with (
         patch("time.sleep"),
         patch("pi0disp.commands.ballanime._handle_ball_collisions_optimized"),
-        patch(
-            "pi0disp.commands.ballanime.RegionOptimizer.merge_regions"
-        ) as mock_merge,
+        patch("pi0disp.commands.ballanime.RegionOptimizer.merge_regions") as mock_merge,
     ):
         # Frame 1: Return original regions (Separated from FPS)
         # Frame 2: Return a merged region that covers FPS area (0,0,100,40)

@@ -167,9 +167,7 @@ class ST7789V(DispSpi):
             self.pi.spi_write(self.spi_handle, pixel_bytes)
         else:
             for i in range(0, data_len, self.CHUNK_SIZE):
-                self.pi.spi_write(
-                    self.spi_handle, pixel_bytes[i : i + self.CHUNK_SIZE]
-                )
+                self.pi.spi_write(self.spi_handle, pixel_bytes[i : i + self.CHUNK_SIZE])
         self._set_cs_level(1)
 
     def display(self, image: Image.Image, full: bool = False):
@@ -201,9 +199,7 @@ class ST7789V(DispSpi):
         region_arr = np.array(region_img)
         pixel_bytes = self._color_converter.convert(region_arr)
 
-        self.set_window(
-            diff_bbox[0], diff_bbox[1], diff_bbox[2] - 1, diff_bbox[3] - 1
-        )
+        self.set_window(diff_bbox[0], diff_bbox[1], diff_bbox[2] - 1, diff_bbox[3] - 1)
         self.write_pixels(pixel_bytes)
 
         # Update only the changed area in the cache
@@ -212,13 +208,9 @@ class ST7789V(DispSpi):
         else:
             self._last_image = image.copy()
 
-    def display_region(
-        self, image: Image.Image, x0: int, y0: int, x1: int, y1: int
-    ):
+    def display_region(self, image: Image.Image, x0: int, y0: int, x1: int, y1: int):
         """部分更新"""
-        region = clamp_region(
-            (x0, y0, x1, y1), self.size.width, self.size.height
-        )
+        region = clamp_region((x0, y0, x1, y1), self.size.width, self.size.height)
         if region[2] <= region[0] or region[3] <= region[1]:
             return
         region_img = image.crop(region)

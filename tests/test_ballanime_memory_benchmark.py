@@ -80,9 +80,7 @@ def test_get_process_pid_no_cmdline_pattern():
 
 def test_get_process_pid_not_found():
     """get_process_pid がプロセスを見つけられない場合にNoneを返すかテスト"""
-    with patch(
-        "psutil.process_iter", return_value=[MockProcess(300, "apache")]
-    ):
+    with patch("psutil.process_iter", return_value=[MockProcess(300, "apache")]):
         pid = get_process_pid("non_existent_process")
         assert pid is None
 
@@ -195,9 +193,7 @@ def test_ballanime_benchmark_memory_display():
             "total_frames": 30,
         }
 
-        result = runner.invoke(
-            ballanime, ["--benchmark", "1", "--num-balls", "1"]
-        )
+        result = runner.invoke(ballanime, ["--benchmark", "1", "--num-balls", "1"])
 
         assert result.exit_code == 0
         assert "--- Benchmark Results ---" in result.output

@@ -82,9 +82,7 @@ def generate_rgb_circles(
     default=2.0,
     help="Duration to display the image in seconds.",
 )
-@click.option(
-    "--rst", type=int, default=25, show_default=True, help="RST PIN"
-)
+@click.option("--rst", type=int, default=25, show_default=True, help="RST PIN")
 @click.option("--dc", type=int, default=24, show_default=True, help="DC PIN")
 @click.option("--bl", type=int, default=23, show_default=True, help="BL PIN")
 @click_common_opts(__version__)
@@ -123,13 +121,9 @@ def rgb(ctx, duration, rst, dc, bl, debug):
                     if debug:
                         output_filename = "/tmp/rgb_circles_command.png"
                         rgb_circles_image.save(output_filename)
-                        __log.debug(
-                            "RGB circles image saved to %s", output_filename
-                        )
+                        __log.debug("RGB circles image saved to %s", output_filename)
 
-                    __log.debug(
-                        "Displaying RGB circles for %s seconds...", duration
-                    )
+                    __log.debug("Displaying RGB circles for %s seconds...", duration)
                     lcd.display(rgb_circles_image)
                     time.sleep(duration)
 

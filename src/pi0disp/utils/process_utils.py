@@ -20,9 +20,7 @@ def get_process_pid(
                     # proc_cmdline が空の場合に IndexError を防ぐ
                     if proc_cmdline:
                         matched = False
-                        for i in range(
-                            len(proc_cmdline) - len(cmdline_pattern) + 1
-                        ):
+                        for i in range(len(proc_cmdline) - len(cmdline_pattern) + 1):
                             if (
                                 proc_cmdline[i : i + len(cmdline_pattern)]
                                 == cmdline_pattern
@@ -48,9 +46,7 @@ def get_ballanime_pigpiod_pids() -> Tuple[Optional[int], Optional[int]]:
     """
     ballanime と pigpiod のPIDを取得する。
     """
-    ballanime_pid = get_process_pid(
-        "python", ["uv", "run", "pi0disp", "ballanime"]
-    )
+    ballanime_pid = get_process_pid("python", ["uv", "run", "pi0disp", "ballanime"])
     pigpiod_pid = get_process_pid("pigpiod")
     return ballanime_pid, pigpiod_pid
 

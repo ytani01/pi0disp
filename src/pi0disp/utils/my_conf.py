@@ -31,17 +31,13 @@ class MyConf:
 
         self._settings_files = [
             os.path.expandvars(
-                os.path.expanduser(
-                    f"{p}/{self._conf_filename}.{self.SETTINGS_EXT}"
-                )
+                os.path.expanduser(f"{p}/{self._conf_filename}.{self.SETTINGS_EXT}")
             )
             for p in self.SETTINGS_PATH
         ]
         self.__log.debug("_settings_files=%s", self._settings_files)
 
-        self._data: Optional[Dynaconf] = self.load(
-            self._settings_files, self._pkg_name
-        )
+        self._data: Optional[Dynaconf] = self.load(self._settings_files, self._pkg_name)
 
     @property
     def pkg_name(self):
@@ -70,9 +66,7 @@ class MyConf:
         if not pkg_name:
             pkg_name = self._pkg_name
 
-        self.__log.debug(
-            "settings_files=%s, pkg_name=%s", settings_files, pkg_name
-        )
+        self.__log.debug("settings_files=%s, pkg_name=%s", settings_files, pkg_name)
 
         try:
             return Dynaconf(settings_files=settings_files).get(pkg_name)

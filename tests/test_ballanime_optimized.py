@@ -16,9 +16,7 @@ def test_optimized_mode_calls_display_region():
     bg = Image.new("RGB", (320, 240), (0, 0, 0))
 
     # ボール (1つ)
-    ball = Ball(
-        x=100, y=100, radius=20, speed=100, angle=0, fill_color=(255, 0, 0)
-    )
+    ball = Ball(x=100, y=100, radius=20, speed=100, angle=0, fill_color=(255, 0, 0))
     balls = [ball]
 
     # FPSカウンター
@@ -59,9 +57,7 @@ def test_cairo_optimized_mode_calls_display_region():
     bg = Image.new("RGB", (320, 240), (0, 0, 0))
 
     # ボール (1つ)
-    ball = Ball(
-        x=100, y=100, radius=20, speed=100, angle=0, fill_color=(255, 0, 0)
-    )
+    ball = Ball(x=100, y=100, radius=20, speed=100, angle=0, fill_color=(255, 0, 0))
     balls = [ball]
 
     # FPSカウンター

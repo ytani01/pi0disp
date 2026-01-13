@@ -52,9 +52,7 @@ def test_ballanime_benchmark_cli():
             "total_frames": 300,
         }
 
-        result = runner.invoke(
-            ballanime, ["--benchmark", "1", "--num-balls", "1"]
-        )
+        result = runner.invoke(ballanime, ["--benchmark", "1", "--num-balls", "1"])
 
         assert result.exit_code == 0
         assert "--- Benchmark Results ---" in result.output
@@ -84,9 +82,7 @@ def test_ballanime_benchmark_cli():
             "total_frames": 150,
         }
 
-        result = runner.invoke(
-            ballanime, ["--benchmark", "5", "--num-balls", "1"]
-        )
+        result = runner.invoke(ballanime, ["--benchmark", "5", "--num-balls", "1"])
         assert result.exit_code == 0
         # BenchmarkTracker(duration=5) が呼ばれたことを確認
         MockTracker.assert_called_with(duration=5)

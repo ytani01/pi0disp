@@ -68,9 +68,7 @@ class Coltest:
         canvas_h = int(height * 0.8)
         offset_x = (width - canvas_w) // 2
         offset_y = (height - canvas_h) // 2
-        img_np[
-            offset_y : offset_y + canvas_h, offset_x : offset_x + canvas_w
-        ] = 0
+        img_np[offset_y : offset_y + canvas_h, offset_x : offset_x + canvas_w] = 0
 
         # 3. Create layers for R, G, B circles within the canvas area
         radius = int(min(canvas_w / 3.5, canvas_h / 3.299))
@@ -95,9 +93,7 @@ class Coltest:
 
         # Combine circle layers
         layers = np.zeros((canvas_h, canvas_w, 3), dtype=np.uint16)
-        for i, (val, pos) in enumerate(
-            zip([self.r, self.g, self.b], positions)
-        ):
+        for i, (val, pos) in enumerate(zip([self.r, self.g, self.b], positions)):
             mask_img = Image.new("L", (canvas_w, canvas_h), 0)
             ImageDraw.Draw(mask_img).ellipse(
                 (
@@ -108,14 +104,12 @@ class Coltest:
                 ),
                 fill=255,
             )
-            layers[:, :, i] = (
-                np.array(mask_img).astype(np.uint16) * val
-            ) // 255
+            layers[:, :, i] = (np.array(mask_img).astype(np.uint16) * val) // 255
 
         combined = np.clip(layers, 0, 255).astype(np.uint8)
-        img_np[
-            offset_y : offset_y + canvas_h, offset_x : offset_x + canvas_w
-        ] = combined
+        img_np[offset_y : offset_y + canvas_h, offset_x : offset_x + canvas_w] = (
+            combined
+        )
         return Image.fromarray(img_np, "RGB")
 
     def print_help(self):
@@ -178,9 +172,7 @@ class Coltest:
 
 
 @click.command(help="Interactive Color Test")
-@click.option(
-    "--rst", type=int, default=25, show_default=True, help="RST PIN"
-)
+@click.option("--rst", type=int, default=25, show_default=True, help="RST PIN")
 @click.option("--dc", type=int, default=24, show_default=True, help="DC PIN")
 @click.option("--bl", type=int, default=23, show_default=True, help="BL PIN")
 @click_common_opts(__version__)
@@ -193,9 +185,7 @@ def coltest(ctx, rst, dc, bl, debug):
         with ST7789V(
             pin=SpiPins(rst=rst, dc=dc, bl=bl), brightness=255, debug=debug
         ) as lcd:
-            __log.debug(
-                "Display initialized: %sx%s", lcd.size.width, lcd.size.height
-            )
+            __log.debug("Display initialized: %sx%s", lcd.size.width, lcd.size.height)
             session = Coltest(lcd, __log)
             session.run()
     except Exception as e:

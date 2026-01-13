@@ -28,9 +28,7 @@ def test_visual_capture():
         # 保存
         file_path = f"{output_dir}/frame_{i}.png"
         img.save(file_path)
-        print(
-            f"Captured: {file_path} (progress: {robot.updater.progress_rate():.2f})"
-        )
+        print(f"Captured: {file_path} (progress: {robot.updater.progress_rate():.2f})")
 
         time.sleep(0.1)
 

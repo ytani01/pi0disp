@@ -124,15 +124,11 @@ class ImageProcessor:
         else:
             raise ValueError(f"Unknown fit_mode: {fit_mode}")
 
-        resized = img.resize(
-            (new_width, new_height), Image.Resampling.LANCZOS
-        )
+        resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
         if fit_mode == "contain":
             # Create a black canvas and paste the resized image in the center
-            result = Image.new(
-                "RGB", (target_width, target_height), (0, 0, 0)
-            )
+            result = Image.new("RGB", (target_width, target_height), (0, 0, 0))
             paste_x = (target_width - new_width) // 2
             paste_y = (target_height - new_height) // 2
             result.paste(resized, (paste_x, paste_y))
@@ -144,9 +140,7 @@ class ImageProcessor:
             (crop_x, crop_y, crop_x + target_width, crop_y + target_height)
         )
 
-    def apply_gamma(
-        self, img: Image.Image, gamma: float = 2.2
-    ) -> Image.Image:
+    def apply_gamma(self, img: Image.Image, gamma: float = 2.2) -> Image.Image:
         """
         Applies gamma correction to an image.
         """
@@ -230,9 +224,7 @@ def draw_text(
         elif x == "right":
             final_x = width - text_width - padding - actual_bbox[0]
         else:
-            log.warning(
-                f"Invalid keyword for x: '{x}'. Defaulting to 'left'."
-            )
+            log.warning(f"Invalid keyword for x: '{x}'. Defaulting to 'left'.")
             final_x = padding - actual_bbox[0]
     else:
         final_x = x - actual_bbox[0]  # Adjust for textbbox offset
