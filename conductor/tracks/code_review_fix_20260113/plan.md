@@ -13,18 +13,18 @@
     - テスト実行時に不具合状態の画像をファイルとして保存し、目視でも「事実」を確認可能にする。
 - [x] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
 
-## Phase 2: 不具合の修正と自動テストのパス (Green Phase)
+## Phase 2: 不具合の修正と自動テストのパス (Green Phase) [checkpoint: 57c2471]
 特定した根本原因を修正し、自動テストがすべてパスする状態にします。
 
-- [ ] **Task 2.1: `RfUpdater.start_change` の判定ロジック修正 (L552)**
+- [x] **Task 2.1: `RfUpdater.start_change` の判定ロジック修正 (L552)** (57c2471)
     - `if not duration:` を `if duration is None:` に修正。
-- [ ] **Task 2.2: パディング色の継承ロジック修正 (L740, L938)**
-    - `pad_color` の三項演算子を削除し、`bg_color` を直接渡すよう修正。
-- [ ] **Task 2.3: `RfRenderer` のキャッシュ無効化実装 (L924)**
-    - `_cached_bg_color` を導入し、色変更を検知してキャッシュを再生成するロジックを追加。
-- [ ] **Task 2.4: 自動テストによる一括検証**
-    - Phase 1 で作成したテストがすべてパスすることを確認。
-- [ ] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
+- [x] **Task 2.2: パディング色の継承ロジック修正 (L740, L938)** (57c2471)
+    - `pad_color` の三項演算子を削除し、`bg_color` を直接渡すよう修正.
+- [x] **Task 2.3: `RfRenderer` のキャッシュ無効化実装 (L924)** (57c2471)
+    - `_cached_bg_color` を導入し、色変更を検知してキャッシュを再生成するロジックを追加.
+- [x] **Task 2.4: 自動テストによる一括検証** (57c2471)
+    - Phase 1 で作成したテストがすべてパスすることを確認.
+- [x] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
 
 ## Phase 3: 品質向上とリファクタリング (Refactor Phase)
 テストの保護下でコードを整理し、最終的な品質を確認します。
