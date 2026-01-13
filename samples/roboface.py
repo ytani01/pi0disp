@@ -457,8 +457,13 @@ class RfAnimationEngine(threading.Thread):
                     duration,
                 )
 
-            # 線形補間
-            self.current_x = lerp(self.current_x, self.target_x, lerp_factor)
+            # 線形補間 (経過時間を考慮)
+            # 元の 10fps で lerp_factor を適用した場合と同等の速度にする
+            # 1 - (1 - f)^n (n は 10fps に対する倍率)
+            adjusted_lerp_factor = 1.0 - (1.0 - lerp_factor) ** (interval * 10.0)
+            self.current_x = lerp(
+                self.current_x, self.target_x, adjusted_lerp_factor
+            )
 
             time.sleep(interval)
 
@@ -922,30 +927,199 @@ class RfRenderer:
             bg_color,
         )
 
-        # 背景の描画をキャッシュ (背景色が変わった場合は再生成)
-        if self._base_face_img is None or self._cached_bg_color != bg_color:
+        # パディング済みの背景画像をキャッシュ (背景色や画面サイズが変わった場合は再生成)
+        if (
+            not hasattr(self, "_cached_padded_bg")
+            or self._cached_bg_color != bg_color
+            or self._cached_padded_bg.size != (screen_width, screen_height)
+        ):
+            self.__log.debug("Regenerating padded background cache")
             base_img = Image.new("RGB", (self.size, self.size), bg_color)
             base_draw = ImageDraw.Draw(base_img)
             self._draw_background(base_draw)
-            self._base_face_img = base_img
+
+            self._cached_padded_bg = ImageOps.pad(
+                base_img,
+                (screen_width, screen_height),
+                color=bg_color,
+                centering=(0.1, 0.5),
+            )
             self._cached_bg_color = bg_color
 
-        # キャッシュされた背景をコピー
-        img = self._base_face_img.copy()
-        draw = ImageDraw.Draw(img)
+        # キャッシュされたパディング済み背景をコピー
+        final_img = self._cached_padded_bg.copy()
+        draw = ImageDraw.Draw(final_img)
 
-        self._draw_eyes(draw, face, gaze_offset_x)
-        self._draw_mouth(draw, face)
+        # パーツの描画（パディングによる左寄せ 0.1 オフセットを考慮）
+        # ImageOps.pad(centering=(0.1, 0.5)) の場合、
+        # x_offset = (screen_width - self.size) * 0.1
+        # y_offset = (screen_height - self.size) * 0.5
+        x_offset = int((screen_width - self.size) * 0.1)
+        y_offset = int((screen_height - self.size) * 0.5)
 
-        pad_color = bg_color
+        # 描画位置をオフセットさせるためのラッパー draw を作成するか、描画関数にオフセットを渡す
+        # ここでは描画関数を修正せずに済むよう、一時的な座標変換を検討するが、
+        # すべての _draw_* メソッドにオフセットを渡すのが確実
+        self._draw_eyes_offset(draw, face, gaze_offset_x, x_offset, y_offset)
+        self._draw_mouth_offset(draw, face, x_offset, y_offset)
 
-        final_img = ImageOps.pad(
-            img,
-            (screen_width, screen_height),
-            color=pad_color,
-            centering=(0.1, 0.5),  # 元の左寄せに戻す
-        )
         return final_img
+
+    def _draw_eyes_offset(
+        self, draw, face, gaze_offset_x, x_offset, y_offset
+    ):
+        eye_y = RfConfig.LAYOUT["eye_y"]
+        eye_x1 = RfConfig.LAYOUT["eye_offset"]
+        eye_x2 = 100 - eye_x1
+
+        self._draw_one_eye_offset(
+            draw,
+            [face.left_eye.size, face.left_eye.open, face.left_eye.curve],
+            [eye_x1, eye_y, int(gaze_offset_x)],
+            x_offset,
+            y_offset,
+        )
+        self._draw_one_eye_offset(
+            draw,
+            [face.right_eye.size, face.right_eye.open, face.right_eye.curve],
+            [eye_x2, eye_y, int(gaze_offset_x)],
+            x_offset,
+            y_offset,
+        )
+        self._draw_brows_offset(
+            draw, eye_x1, eye_x2, eye_y, face.brow.tilt, x_offset, y_offset
+        )
+
+    def _draw_one_eye_offset(self, draw, state, pos, x_offset, y_offset):
+        [eye_size, eye_open, eye_curve] = state
+        [eye_x, eye_y, gaze_offset_x] = pos
+
+        eye_w = eye_size * self.scale
+        eye_h = eye_w * eye_open
+        eye_cx = eye_x + gaze_offset_x
+
+        if eye_h >= RfConfig.ANIMATION["eye_open_threshold"]:
+            cx, cy = self._scale_xy(eye_cx, eye_y)
+            cx += x_offset
+            cy += y_offset
+            draw.ellipse(
+                [cx - eye_w, cy - eye_h, cx + eye_w, cy + eye_h],
+                outline=RfConfig.COLORS["eye_outline"],
+                fill=RfConfig.COLORS["eye_fill"],
+                width=self._scale_width(12),
+            )
+            return
+
+        OFFSET_X = RfConfig.LAYOUT["eye_line_offset_x"]
+        x1 = eye_cx - OFFSET_X
+        x2 = eye_cx + OFFSET_X
+        color = RfConfig.COLORS["line"]
+        width = self._scale_width(4)
+
+        if eye_curve == 0:
+            p1 = self._scale_xy(x1, eye_y)
+            p2 = self._scale_xy(x2, eye_y)
+            draw.line(
+                [
+                    (p1[0] + x_offset, p1[1] + y_offset),
+                    (p2[0] + x_offset, p2[1] + y_offset),
+                ],
+                fill=color,
+                width=width,
+            )
+            return
+
+        OFFSET_Y = RfConfig.LAYOUT["eye_bezier_offset_y"]
+        y1 = eye_y + OFFSET_Y * eye_curve / 2
+        y2 = eye_y - OFFSET_Y * eye_curve
+        p0 = self._scale_xy(x1, y1)
+        p1 = self._scale_xy(eye_cx, y2)
+        p2 = self._scale_xy(x2, y1)
+        self._draw_bezier_curve_offset(
+            draw, p0, p1, p2, color, width, x_offset, y_offset
+        )
+
+    def _draw_brows_offset(
+        self, draw, left_cx, right_cx, eye_y, brow_tilt, x_offset, y_offset
+    ):
+        if abs(brow_tilt) <= 1:
+            return
+        offset_x = RfConfig.LAYOUT["brow_offset_x"]
+        brow_y = eye_y + RfConfig.LAYOUT["brow_offset_y"]
+        offset_y_factor = RfConfig.LAYOUT["brow_offset_y_factor"]
+        offset_y = math.tan(math.radians(brow_tilt)) * offset_y_factor
+        color = RfConfig.COLORS["brow"]
+        width = self._scale_width(5)
+
+        p1_l = self._scale_xy(left_cx - offset_x, brow_y - offset_y)
+        p2_l = self._scale_xy(left_cx + offset_x, brow_y + offset_y)
+        draw.line(
+            [
+                (p1_l[0] + x_offset, p1_l[1] + y_offset),
+                (p2_l[0] + x_offset, p2_l[1] + y_offset),
+            ],
+            fill=color,
+            width=width,
+        )
+
+        p1_r = self._scale_xy(right_cx - offset_x, brow_y + offset_y)
+        p2_r = self._scale_xy(right_cx + offset_x, brow_y - offset_y)
+        draw.line(
+            [
+                (p1_r[0] + x_offset, p1_r[1] + y_offset),
+                (p2_r[0] + x_offset, p2_r[1] + y_offset),
+            ],
+            fill=color,
+            width=width,
+        )
+
+    def _draw_mouth_offset(self, draw, face, x_offset, y_offset):
+        mouth_cx = 50
+        mouth_cy = RfConfig.LAYOUT["mouth_cy"]
+        open_threshold = RfConfig.ANIMATION["mouth_open_threshold"]
+
+        if face.mouth.open > open_threshold:
+            factor = (face.mouth.open - open_threshold) * 2
+            r_factor = RfConfig.LAYOUT["mouth_open_radius_factor"]
+            r = r_factor * self.scale * factor
+            if r > 1:
+                cx, cy = self._scale_xy(mouth_cx, mouth_cy)
+                cx += x_offset
+                cy += y_offset
+                aspect = RfConfig.ANIMATION["mouth_aspect_ratio"]
+                draw.ellipse(
+                    [cx - r, cy - r * aspect, cx + r, cy + r * aspect],
+                    outline=RfConfig.COLORS["mouth_line"],
+                    fill=RfConfig.COLORS["mouth_fill"],
+                    width=self._scale_width(4),
+                )
+                return
+
+        dx = RfConfig.LAYOUT["mouth_curve_half_width"]
+        p0 = self._scale_xy(mouth_cx - dx, mouth_cy)
+        p2 = self._scale_xy(mouth_cx + dx, mouth_cy)
+        p1 = self._scale_xy(mouth_cx, mouth_cy + face.mouth.curve)
+        self._draw_bezier_curve_offset(
+            draw,
+            p0,
+            p1,
+            p2,
+            RfConfig.COLORS["mouth_line"],
+            self._scale_width(5),
+            x_offset,
+            y_offset,
+        )
+
+    def _draw_bezier_curve_offset(
+        self, draw, p0, p1, p2, color, width, x_offset, y_offset, steps=5
+    ):
+        points = []
+        for i in range(steps + 1):
+            t = i / steps
+            bx = (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t**2 * p2[0]
+            by = (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t**2 * p2[1]
+            points.append((bx + x_offset, by + y_offset))
+        draw.line(points, fill=color, width=width, joint="curve")
 
 
 class RobotFace:
@@ -1230,6 +1404,7 @@ class RandomMode(AppMode):
         fps = RfConfig.ANIMATION.get("fps", 10.0)
         interval = 1.0 / fps
 
+        next_tick = time.time()
         try:
             while True:
                 now = time.time()
@@ -1239,7 +1414,9 @@ class RandomMode(AppMode):
                 # 表情アニメーションの進行と描画
                 self.update_face_and_show()
 
-                time.sleep(interval)
+                next_tick += interval
+                # 累積誤差を補正した待機
+                time.sleep(max(0, next_tick - time.time()))
         finally:
             self.stop()
 
@@ -1305,11 +1482,14 @@ class InteractiveMode(AppMode):
         fps = RfConfig.ANIMATION.get("fps", 10.0)
         interval = 1.0 / fps
 
+        next_tick = time.time()
         try:
             # メインスレッドで描画ループを回す
             while self._running:
                 self.update_face_and_show()
-                time.sleep(interval)
+                next_tick += interval
+                # 累積誤差を補正した待機
+                time.sleep(max(0, next_tick - time.time()))
         finally:
             self._running = False
             self.stop()

@@ -20,9 +20,12 @@ def test_gaze_movement_fps_dependency():
         interval = 1.0 / fps
         steps = int(fps * duration_sec)
         
+        # 修正後のロジック: 経過時間を考慮した調整
+        # 基準は 10fps
+        adjusted_lerp_factor = 1.0 - (1.0 - lerp_factor) ** (interval * 10.0)
+        
         for _ in range(steps):
-            # 現状のロジック: current_x = lerp(current_x, target_x, lerp_factor)
-            current_x = current_x + (target_x - current_x) * lerp_factor
+            current_x = current_x + (target_x - current_x) * adjusted_lerp_factor
         return current_x
 
     duration = 0.5
@@ -30,10 +33,10 @@ def test_gaze_movement_fps_dependency():
     x_30fps = simulate_gaze(30.0, duration)
     
     diff = abs(x_10fps - x_30fps)
-    print(f"\n[Baseline] Gaze position after {duration}s:")
+    print(f"\n[Verification] Gaze position after {duration}s:")
     print(f"  10fps: {x_10fps:.4f}")
     print(f"  30fps: {x_30fps:.4f}")
     print(f"  Diff: {diff:.4f}")
     
-    # 修正前は大きく異なる（0.5秒で10fpsは5回、30fpsは15回 lerp するため）
-    assert diff > 0.5, f"Gaze movement should be FPS dependent before fix (Diff: {diff:.4f})"
+    # 修正後は差異が非常に小さくなるはず
+    assert diff < 0.01, f"Gaze movement should be FPS independent (Diff: {diff:.4f})"
