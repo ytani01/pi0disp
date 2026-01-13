@@ -10,7 +10,7 @@
 - [x] Task: レンダリング設定の外部化と `time.perf_counter()` への移行 (Green)
 - [x] Task: Conductor - User Manual Verification 'Phase 2: 設定の外部化とタイマー精度の改善' (Protocol in workflow.md)
 
-## Phase 3: テスト環境の信頼性向上 (Test Infrastructure)
-- [ ] Task: パフォーマンス評価テストのリファクタリング
-- [ ] Task: 全テストの実行と最終確認
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: テスト環境の信頼性向上' (Protocol in workflow.md)
+## Phase 3: テスト環境の信頼性向上 (Test Infrastructure) [checkpoint: ec9334c]
+- [x] Task: パフォーマンス評価テストのリファクタリング
+- [x] Task: 全テストの実行と最終確認
+- [x] Task: Conductor - User Manual Verification 'Phase 3: テスト環境の信頼性向上' (Protocol in workflow.md)
