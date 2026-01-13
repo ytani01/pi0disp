@@ -416,38 +416,40 @@ class RfAnimationEngine(threading.Thread):
                 break
 
             # 3. ペンディングされている表情があれば、アニメーション終了を待って適用
-            if (
-                pending_expr is not None
-                and self.updater is not None
-                and not self.updater.is_changing
-            ):
-                if isinstance(pending_expr, str):
-                    try:
-                        self.__log.info(
-                            "Applying new expression: %s", pending_expr
-                        )
-                        if self.parser is not None:
-                            target_face = self.parser.parse(pending_expr)
-                            self.updater.start_change(target_face)
-                            self.__log.debug(
-                                "Animation started for: %s", pending_expr
-                            )
-                        else:
-                            self.__log.error("Parser is not initialized.")
-                    except Exception as e:
-                        self._last_error = e
-                        self.__log.error(
-                            "Failed to parse expression %s: %s",
-                            pending_expr,
-                            errmsg(e),
-                        )
-                else:
-                    # 文字列以外が投入された場合（無限ループ防止）
-                    msg = f"Invalid command type: {type(pending_expr).__name__} (expected str)"
-                    self._last_error = ValueError(msg)
-                    self.__log.error(msg)
+            if pending_expr is not None:
+                if self.updater is None:
+                    self.__log.error("Updater is not initialized.")
+                    pending_expr = None  # スキップしてリセット
+                    continue
 
-                pending_expr = None  # 処理完了（成功・失敗・不正データ問わず確実にリセット）
+                if not self.updater.is_changing:
+                    if isinstance(pending_expr, str):
+                        try:
+                            self.__log.info(
+                                "Applying new expression: %s", pending_expr
+                            )
+                            if self.parser is not None:
+                                target_face = self.parser.parse(pending_expr)
+                                self.updater.start_change(target_face)
+                                self.__log.debug(
+                                    "Animation started for: %s", pending_expr
+                                )
+                            else:
+                                self.__log.error("Parser is not initialized.")
+                        except Exception as e:
+                            self._last_error = e
+                            self.__log.error(
+                                "Failed to parse expression %s: %s",
+                                pending_expr,
+                                errmsg(e),
+                            )
+                    else:
+                        # 文字列以外が投入された場合（無限ループ防止）
+                        msg = f"Invalid command type: {type(pending_expr).__name__} (expected str)"
+                        self._last_error = ValueError(msg)
+                        self.__log.error(msg)
+
+                    pending_expr = None  # 処理完了（成功・失敗・不正データ問わず確実にリセット）
 
             now = time.time()
 
@@ -469,9 +471,10 @@ class RfAnimationEngine(threading.Thread):
             # 線形補間 (経過時間を考慮)
             # 元の 10fps で lerp_factor を適用した場合と同等の速度にする
             # 1 - (1 - f)^n (n は 10fps に対する倍率)
-            adjusted_lerp_factor = 1.0 - (1.0 - lerp_factor) ** (
-                interval * 10.0
-            )
+            safe_interval = max(0.0, interval)
+            exponent = safe_interval * 10.0
+            adjusted_lerp_factor = 1.0 - math.pow(1.0 - lerp_factor, exponent)
+
             self.current_x = lerp(
                 self.current_x, self.target_x, adjusted_lerp_factor
             )
