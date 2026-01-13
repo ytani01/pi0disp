@@ -1,8 +1,5 @@
 import time
-import pytest
-import queue
 from samples.roboface import (
-    RfState,
     RfParser,
     RfUpdater,
     RfAnimationEngine,

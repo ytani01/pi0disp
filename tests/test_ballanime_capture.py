@@ -1,13 +1,7 @@
 
-import pytest
-from click.testing import CliRunner
 from pi0disp.commands.ballanime import ballanime
 from unittest.mock import patch, MagicMock
 
-import pytest
-from click.testing import CliRunner
-from pi0disp.commands.ballanime import ballanime
-from unittest.mock import patch, MagicMock
 
 def test_ballanime_multiple_captures(cli_mock_env):
     runner, mock_pi, _ = cli_mock_env

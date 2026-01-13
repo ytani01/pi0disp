@@ -29,8 +29,8 @@
 ## Phase 3: 品質向上とリファクタリング (Refactor Phase)
 テストの保護下でコードを整理し、最終的な品質を確認します。
 
-- [ ] **Task 3.1: テストコードの整理と検証項目の強化**
+- [x] **Task 3.1: テストコードの整理と検証項目の強化** (57c2471)
     - テスト用の画像保存ロジックを整理し、境界条件（非常に短い duration など）のテストを追加。
-- [ ] **Task 3.2: リンターと型チェックの実行**
-    - `mise run lint` を実行し、コード品質を確保。
-- [ ] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)
+- [x] **Task 3.2: リンターと型チェックの実行** (57c2471)
+    - `ruff check` を実行し、コード品質を確保。
+- [x] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)

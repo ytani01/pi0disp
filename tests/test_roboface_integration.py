@@ -1,6 +1,4 @@
-import pytest
-import time
-from tests._testbase_cli import CLITestBase, InteractiveSession
+from tests._testbase_cli import CLITestBase
 
 class TestRobofaceIntegration(CLITestBase):
     # 継承元の汎用テストメソッドが pytest に拾われないようにする

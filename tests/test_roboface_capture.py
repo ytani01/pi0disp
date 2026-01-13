@@ -1,7 +1,6 @@
 import time
 import os
-from PIL import Image
-from samples.roboface import RfParser, RobotFace, RfState, RfConfig
+from samples.roboface import RfParser, RobotFace
 
 def test_visual_capture():
     """
