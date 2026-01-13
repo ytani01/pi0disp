@@ -24,7 +24,7 @@
     - Phase 1 のテストをすべてパスさせ、改善効果を数値で確認する.
 - [x] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
 
-## Phase 3: 品質確保とリファクタリング (Refactor Phase) [checkpoint: 04e9c61]
+## Phase 3: 品質確保とリファクタリング (Refactor Phase) [checkpoint: c201564]
 コードを整理し、最終的な品質基準を満たしていることを確認します.
 
 - [x] **Task 3.1: テストコードの整理とカバレッジ確認**
