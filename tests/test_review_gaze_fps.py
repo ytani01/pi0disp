@@ -1,6 +1,4 @@
-import time
-import pytest
-from samples.roboface import RfAnimationEngine, RfUpdater, RfState, RfConfig
+from samples.roboface import RfConfig
 
 def test_gaze_movement_fps_dependency():
     """

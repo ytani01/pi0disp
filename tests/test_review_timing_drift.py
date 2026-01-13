@@ -1,5 +1,4 @@
 import time
-import pytest
 
 def test_timing_drift_baseline():
     """

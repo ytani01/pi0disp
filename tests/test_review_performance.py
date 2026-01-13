@@ -1,7 +1,5 @@
 import time
-import pytest
-from PIL import Image
-from samples.roboface import RfRenderer, RfState, RfConfig
+from samples.roboface import RfRenderer, RfState
 
 def test_render_parts_baseline_performance():
     """
