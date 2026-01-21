@@ -24,9 +24,9 @@
 ## Phase 3: Hardware Drivers (ST7789V)
 複雑な演算と設定値が絡む `st7789v.py` の修正。
 
-- [ ] Task: `src/pi0disp/disp/st7789v.py` の修正
-    - [ ] 調査：演算エラー（`+` で `None` が混入）が発生する具体的パラメータの特定
-    - [ ] 修正：設定ファイル（`pi0disp.toml`）との整合性を考慮した堅牢な実装への変更
+- [x] Task: `src/pi0disp/disp/st7789v.py` の修正 (9cb9a83)
+    - [x] 調査：演算エラー（`+` で `None` が混入）が発生する具体的パラメータの特定
+    - [x] 修正：設定ファイル（`pi0disp.toml`）との整合性を考慮した堅牢な実装への変更
 - [ ] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)
 
 ## Phase 4: Full Validation
