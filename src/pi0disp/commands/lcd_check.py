@@ -17,7 +17,6 @@ from ..utils.lcd_test_pattern import (
     WIZARD_COLORS,
     determine_lcd_settings,
     draw_lcd_test_pattern,
-    draw_orientation_pattern,
 )
 from ..utils.my_conf import update_toml_settings
 from ..utils.mylogger import get_logger
@@ -38,15 +37,16 @@ def run_orientation_wizard(disp, debug=False):
     __log = get_logger(__name__, debug)
     current_rot = disp.rotation
     
-    print("\n--- Orientation Adjustment ---")
-    print("実機のLCDを見ながら、表示が正しく（矢印が上向きに）見えるよう調整してください。")
+    print("\n--- Step 1: Orientation Adjustment ---")
+    print("実機のLCDを見ながら、赤色の帯が一番上にくるように調整してください。")
     print("  a: 0°, b: 90°, c: 180°, d: 270°")
     print("  ENTER: 確定, q: 中断")
-    print("------------------------------")
+    print("---------------------------------------")
     
     while True:
-        # Draw current orientation
-        img = draw_orientation_pattern(disp.size.width, disp.size.height, current_rot)
+        # Use standard test pattern (fixed settings for orientation check)
+        # invert=False, bgr=False as baseline
+        img = draw_lcd_test_pattern(disp.size.width, disp.size.height, False, False)
         disp.display(img)
         
         print(f"\r現在の回転角: {current_rot}° (a/b/c/d で切り替え, ENTERで決定) ", end="", flush=True)
@@ -61,8 +61,7 @@ def run_orientation_wizard(disp, debug=False):
         elif c == "d":
             current_rot = 270
         elif c in ["\r", "\n"]:
-            print("\n確定しました。")
-            # ここで一旦設定を保存する (Phase 3の要件)
+            print("\n回転角を確定しました。")
             update_toml_settings({"rotation": current_rot}, "pi0disp.toml")
             break
         elif c == "q":
