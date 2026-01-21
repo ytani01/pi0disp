@@ -1,0 +1,8 @@
+{
+  "track_id": "lcd_wizard_20260121",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-01-21T12:00:00Z",
+  "updated_at": "2026-01-21T12:00:00Z",
+  "description": "「シミュレーション画像生成 ＋ 対話型ウィザード」で設定値を特定するウィザードオプションを作成する。 - pi0disp.tomlを書き換えるかどうかも選択できるようにする。"
+}
