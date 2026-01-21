@@ -7,4 +7,9 @@ This file tracks all major tracks for the project. Each track has its own detail
 ## [x] Track: コードレビューに基づくアニメーションとパフォーマンスの改善
 *Link: [./conductor/archive/review_improvement_20260113/](./conductor/archive/review_improvement_20260113/)*
 
+---
+
+- [~] **Track: mise run lintが全て通るようにしたい。**
+*Link: [./tracks/lint_fix_20260121/](./tracks/lint_fix_20260121/)*
+
 
