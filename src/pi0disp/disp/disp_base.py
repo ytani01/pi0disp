@@ -60,7 +60,8 @@ class DispBase(metaclass=ABCMeta):
 
         # size
         if size is None:
-            if self._conf.data.get("width") and self._conf.data.get("height"):
+            if self._conf.data is not None and \
+               self._conf.data.get("width") and self._conf.data.get("height"):
                 size = DispSize(self._conf.data.width, self._conf.data.height)
                 self._log.debug("size=%s [conf]", size)
             else:
@@ -71,13 +72,17 @@ class DispBase(metaclass=ABCMeta):
 
         # rotation
         if rotation is None:
-            if self._conf.data.get("rotation"):
+            if self._conf.data is not None and self._conf.data.get("rotation"):
                 rotation = self._conf.data.rotation
                 self._log.debug("rotation=%s [conf]", rotation)
             else:
                 rotation = self.DEF_ROTATION
                 self._log.debug("rotation=%s [DEF_ROTATION]", rotation)
         self._rotation = rotation
+
+        # Ensure rotation is int (for basedpyright)
+        if rotation is None:
+            rotation = self.DEF_ROTATION
         self.rotation = rotation
 
         # Initialize pigpio
@@ -202,6 +207,10 @@ def get_display_info(debug=False) -> dict:
     log.debug("設定ファイルを読み込みます。")
 
     conf = MyConf(debug=debug)
+    if conf.data is None:
+        log.warning("Configuration data not found.")
+        return {"width": None, "height": None, "rotation": None}
+
     width = conf.data.get("width")
     height = conf.data.get("height")
     rotation = conf.data.get("rotation")
