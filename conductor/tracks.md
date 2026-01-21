@@ -6,6 +6,9 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Archived Tracks
 
+- [x] **Track: pyproject.toml の tool.uv.workspace は、今は不要なのでは？** (2026-01-21)
+*Link: [./archive/remove_unused_workspace_20260121/](./archive/remove_unused_workspace_20260121/)*
+
 - [x] **Track: 'uv run pi0disp lcd-check --wizard' で、最初に画面の向きをインタラクティブに設定できるようにする。** (2026-01-21)
 *Link: [./archive/lcd_orientation_20260121/](./archive/lcd_orientation_20260121/)*
 
@@ -23,5 +26,3 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [x] **Track: pyproject.toml の tool.uv.workspace は、今は不要なのでは？**
-*Link: [./tracks/remove_unused_workspace_20260121/](./tracks/remove_unused_workspace_20260121/)*

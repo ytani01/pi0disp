@@ -1,0 +1,8 @@
+{
+  "track_id": "remove_unused_workspace_20260121",
+  "type": "chore",
+  "status": "new",
+  "created_at": "2026-01-21T14:45:00Z",
+  "updated_at": "2026-01-21T14:45:00Z",
+  "description": "pyproject.toml の tool.uv.workspace は、今は不要なのでは？"
+}
