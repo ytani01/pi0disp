@@ -2,7 +2,7 @@
 
 `src` ディレクトリ配下の `basedpyright` エラーを解消し、型安全性を確保する。各修正において、設定ファイルや関連コードの挙動をファクトチェックし、根本解決を図る。
 
-## Phase 1: Utility & Configuration Foundations
+## Phase 1: Utility & Configuration Foundations [checkpoint: 6493405]
 設定取得（Dynaconf）に関連する基盤部分の修正。
 
 - [x] Task: `src/pi0disp/utils/my_conf.py` の修正 (ee6691b)
@@ -10,7 +10,7 @@
     - [x] 修正：デフォルト値の設定またはガード節の追加
 - [x] Task: `src/pi0disp/disp/disp_conf.py` の修正 (b0f7765)
 - [x] Task: `src/pi0disp/commands/bl.py` の修正 (678eb7e)
-- [ ] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
 
 ## Phase 2: Core Display Logic Verification
 `DispBase`, `DispSpi` など、ハードウェア制御の根幹となるクラスの型修正。
