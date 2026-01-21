@@ -43,7 +43,7 @@ def update_toml_settings(
 class MyConf:
     """Display Configuration."""
 
-    SETTINGS_PATH = ["/etc", "~", "."]
+    SETTINGS_PATH = [".", "~", "/etc"]
     SETTINGS_EXT = "toml"
 
     def __init__(self, conf_filename: str | None = None, debug: bool = False):

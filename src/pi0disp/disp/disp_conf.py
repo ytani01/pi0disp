@@ -16,7 +16,7 @@ class DispConf:
     設定ファイルを読み込み、アクセスを提供する。
     """
 
-    SETTINGS_PATH = ["/etc", "~", "."]
+    SETTINGS_PATH = [".", "~", "/etc"]
     SETTINGS_EXT = "toml"
 
     def __init__(self, conf_filename: str | None = None, debug: bool = False):

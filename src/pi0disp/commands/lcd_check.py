@@ -74,6 +74,9 @@ def run_wizard(disp, rotation, conf=None, debug=False):
         print("正しく表示されましたか？（背景が黒、上から赤・緑・青）")
         if click.confirm("正解の場合、設定を保存しますか？", default=True):
             # 保存先の決定
+            # 優先順位:
+            # 1. すでに存在している設定ファイルの中で、優先度が高い順
+            # 2. どこにもなければカレントディレクトリの pi0disp.toml
             save_path = "pi0disp.toml"
             if conf and conf.settings_files:
                 for p in conf.settings_files:
@@ -81,6 +84,7 @@ def run_wizard(disp, rotation, conf=None, debug=False):
                         save_path = p
                         break
             
+            __log.info("Saving settings to: %s", save_path)
             update_toml_settings({"bgr": res_bgr, "invert": res_inv}, save_path)
             print(f"設定を保存しました: {save_path}")
             return {"bgr": res_bgr, "invert": res_inv}
