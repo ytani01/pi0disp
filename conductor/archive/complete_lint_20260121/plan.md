@@ -21,3 +21,8 @@
     - [x] `ruff`, `basedpyright`, `mypy` の全パスを確認
 - [x] Task: 既存機能のデグレード確認 (162 PASSED, 6 hardware-related failures expected)
 - [x] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
+
+---
+**Track Completed on 2026-01-21**
+`samples` ディレクトリを含め、プロジェクト全体で型チェックとリンティングが完全にパスする状態を達成しました。
+環境変数 `VIRTUAL_ENV` の干渉により `mise run lint` が失敗するケースがありましたが、`uv sync` と個別の `uv run` コマンドにより正常動作を確認しました。
