@@ -17,3 +17,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 - [x] **Track: コードレビューに基づくアニメーションとパフォーマンスの改善**
 *Link: [./archive/review_improvement_20260113/](./archive/review_improvement_20260113/)*
+
+---
+
+- [~] **Track: 'uv run pi0disp lcd-check --wizard' で、最初に画面の向きをインタラクティブに設定できるようにする。**
+*Link: [./tracks/lcd_orientation_20260121/](./tracks/lcd_orientation_20260121/)*

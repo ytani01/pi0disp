@@ -9,8 +9,10 @@ y_offset = 0
 # y_offset = 34 # モジュールによって異なる場合があります
 
 # 色設定 (色が正しくない場合に調整してください)
-invert = true   # 背景を黒にする場合は true
-rgb = true      # 赤と青が逆の場合は false (bgr=true) に設定
+#invert = true   # 背景を黒にする場合は true
+#bgr = false     # 赤と青が逆の場合は false (bgr=true) に設定
+bgr = false
+invert = true
 
 [pi0disp.spi]
 cs = 8
