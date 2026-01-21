@@ -60,8 +60,11 @@ class DispBase(metaclass=ABCMeta):
 
         # size
         if size is None:
-            if self._conf.data is not None and \
-               self._conf.data.get("width") and self._conf.data.get("height"):
+            if (
+                self._conf.data is not None
+                and self._conf.data.get("width")
+                and self._conf.data.get("height")
+            ):
                 size = DispSize(self._conf.data.width, self._conf.data.height)
                 self._log.debug("size=%s [conf]", size)
             else:
@@ -72,7 +75,9 @@ class DispBase(metaclass=ABCMeta):
 
         # rotation
         if rotation is None:
-            if self._conf.data is not None and self._conf.data.get("rotation"):
+            if self._conf.data is not None and self._conf.data.get(
+                "rotation"
+            ):
                 rotation = self._conf.data.rotation
                 self._log.debug("rotation=%s [conf]", rotation)
             else:

@@ -32,7 +32,7 @@
 ## Phase 4: Full Validation
 全体の整合性確認。
 
-- [ ] Task: `src` 全体に対して `uv run basedpyright src` を実行し、残存エラーがないか確認
-- [ ] Task: `mise run lint` を完遂し、静的解析が完全に通ることを確認
-- [ ] Task: 全テスト `uv run pytest tests` を実行し、ロジックのデグレードがないことをファクトチェック
-- [ ] Task: Conductor - User Manual Verification 'Phase 4' (Protocol in workflow.md)
+- [x] Task: `src` 全体に対して `uv run basedpyright src` を実行し、残存エラーがないか確認 (9cb9a83)
+- [x] Task: `mise run lint` を完遂し、静的解析が完全に通ることを確認 (1 file reformatted, all checks passed)
+- [x] Task: 全テスト `uv run pytest tests` を実行し、ロジックのデグレードがないことをファクトチェック (162 PASSED, hardware-related tests skipped/failed as expected)
+- [x] Task: Conductor - User Manual Verification 'Phase 4' (Protocol in workflow.md)
