@@ -16,9 +16,8 @@
 ## Phase 2: Project-wide Integration and Final Pass
 全ディレクトリ（src, samples）を統合した最終検証。
 
-- [ ] Task: `mise run lint` の完遂
-    - [ ] 依存タスク `upgradeproject` を含む全工程の実行
-    - [ ] `ruff`, `basedpyright`, `mypy` の全パスを確認
-- [ ] Task: 既存機能のデグレード確認
-    - [ ] `uv run pytest tests` を実行し、全テストのパスを確認（ハードウェア依存分を除く）
-- [ ] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
+- [x] Task: `mise run lint` の完遂 (3355133)
+    - [x] 依存タスク `upgradeproject` を含む全工程の実行
+    - [x] `ruff`, `basedpyright`, `mypy` の全パスを確認
+- [x] Task: 既存機能のデグレード確認 (162 PASSED, 6 hardware-related failures expected)
+- [x] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
