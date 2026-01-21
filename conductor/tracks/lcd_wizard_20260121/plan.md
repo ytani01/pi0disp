@@ -22,14 +22,14 @@ Click を使用して対話型インターフェースを構築します。
     - [x] 質問の順序と各質問に対するバリデーションを実装する。
 - [x] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md) (f760f3f)
 
-## Phase 3: 設定ファイルの自動更新機能
+## Phase 3: 設定ファイルの自動更新機能 [checkpoint: f5e1342]
 判定結果を `pi0disp.toml` に反映する機能を実装します。
 
-- [ ] Task: 設定ファイル更新ロジックのテスト (TDD)
-    - [ ] `pi0disp.toml` が存在する場合/しない場合、既存の値を上書きする場合のテストを記述する。
-- [ ] Task: 設定保存機能の実装
-    - [ ] ユーザーに保存の確認 (`[y/N]`) を行い、許可された場合のみ `pi0disp.toml` を更新する。
-- [ ] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)
+- [x] Task: 設定ファイル更新ロジックのテスト (TDD) (f5e1342)
+    - [x] `pi0disp.toml` が存在する場合/しない場合、既存の値を上書きする場合のテストを記述する。
+- [x] Task: 設定保存機能の実装 (f5e1342)
+    - [x] ユーザーに保存の確認 (`[y/N]`) を行い、許可された場合のみ `pi0disp.toml` を更新する。
+- [x] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md) (f5e1342)
 
 ## Phase 4: 最終統合テストとドキュメント更新
 - [ ] Task: 統合テストの実施
