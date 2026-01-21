@@ -14,5 +14,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [~] **Track: samples/lcd_check.py を 'uv run pi0disp'のサブコマンドにする。**
+- [x] **Track: samples/lcd_check.py を 'uv run pi0disp'のサブコマンドにする。**
 *Link: [./tracks/lcd_check_20260121/](./tracks/lcd_check_20260121/)*
