@@ -2,7 +2,7 @@
 
 このプランは、`pi0disp lcd-check --wizard` の冒頭に、キー入力で画面の向きをリアルタイムに調整し、`pi0disp.toml` に保存するフェーズを追加するものです。
 
-## Phase 1: 向き確認用パターンの実装とスケーリング
+## Phase 1: 向き確認用パターンの実装とスケーリング [checkpoint: 6d42d4d]
 縦長・横長どちらでも正しく表示される確認用パターンを実装します。
 
 - [x] Task: 確認用パターンの描画ロジック実装 (src/pi0disp/utils/lcd_test_pattern.py) [44fcbf3]
