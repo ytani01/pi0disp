@@ -12,15 +12,15 @@
     - [x] 判定ロジック本体を実装する。
 - [x] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md) (43e4838)
 
-## Phase 2: ウィザード UI (CLI) の実装
+## Phase 2: ウィザード UI (CLI) の実装 [checkpoint: f760f3f]
 Click を使用して対話型インターフェースを構築します。
 
-- [ ] Task: 対話型プロンプトのテスト (tests/test_23_lcd_check_cmd.py)
-    - [ ] `click.testing.CliRunner` を使い、入力に対するモック応答をシミュレートするテストを記述する。
-- [ ] Task: `lcd-check --wizard` オプションの追加と実装
-    - [ ] `src/pi0disp/commands/lcd_check.py` に `--wizard` オプションを追加する。
-    - [ ] 質問の順序と各質問に対するバリデーションを実装する。
-- [ ] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
+- [x] Task: 対話型プロンプトのテスト (tests/test_23_lcd_check_cmd.py) (f760f3f)
+    - [x] `click.testing.CliRunner` を使い、入力に対するモック応答をシミュレートするテストを記述する。
+- [x] Task: `lcd-check --wizard` オプションの追加と実装 (f760f3f)
+    - [x] `src/pi0disp/commands/lcd_check.py` に `--wizard` オプションを追加する。
+    - [x] 質問の順序と各質問に対するバリデーションを実装する。
+- [x] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md) (f760f3f)
 
 ## Phase 3: 設定ファイルの自動更新機能
 判定結果を `pi0disp.toml` に反映する機能を実装します。
