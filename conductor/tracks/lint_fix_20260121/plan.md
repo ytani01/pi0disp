@@ -21,13 +21,13 @@
 - [x] Task: `src/pi0disp/disp/disp_spi.py` の修正 (d71d6a0)
 - [x] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
 
-## Phase 3: Hardware Drivers (ST7789V)
+## Phase 3: Hardware Drivers (ST7789V) [checkpoint: f65f4cb]
 複雑な演算と設定値が絡む `st7789v.py` の修正。
 
 - [x] Task: `src/pi0disp/disp/st7789v.py` の修正 (9cb9a83)
     - [x] 調査：演算エラー（`+` で `None` が混入）が発生する具体的パラメータの特定
     - [x] 修正：設定ファイル（`pi0disp.toml`）との整合性を考慮した堅牢な実装への変更
-- [ ] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)
 
 ## Phase 4: Full Validation
 全体の整合性確認。
