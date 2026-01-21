@@ -1,4 +1,4 @@
-# Track lint_fix_20260121 Context
+# Track complete_lint_20260121 Context
 
 - [Specification](./spec.md)
 - [Implementation Plan](./plan.md)
