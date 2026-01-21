@@ -11,3 +11,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 - [x] **Track: コードレビューに基づくアニメーションとパフォーマンスの改善**
 *Link: [./archive/review_improvement_20260113/](./archive/review_improvement_20260113/)*
+
+---
+
+- [~] **Track: samples/lcd_check.py を 'uv run pi0disp'のサブコマンドにする。**
+*Link: [./tracks/lcd_check_20260121/](./tracks/lcd_check_20260121/)*

@@ -181,11 +181,34 @@ uv run pi0disp ball_anime
 
 #### ディスプレイをオフにする
 
-ディスプレイをスリープモードに移行させ、バックライトを消灯します。
-
 ```sh
 uv run pi0disp off
 ```
+
+#### LCD設定の確認: `lcd-check`
+
+ディスプレイの正しい色反転（invert）や色順序（BGR）の設定を特定するためのテストパターンを表示します。
+
+```sh
+uv run pi0disp lcd-check
+```
+
+表示されるパターン（背景が黒、上から赤・緑・青）が正しく見える設定を特定し、その値を設定ファイル（`pi0disp.toml`）の `invert` および `bgr` に反映してください。
+
+**オプション例:**
+
+- 90度回転で実行:
+  ```sh
+  uv run pi0disp lcd-check --rotation 90
+  ```
+- 2秒ごとに自動でパターンを切り替える:
+  ```sh
+  uv run pi0disp lcd-check --wait 2
+  ```
+- 特定の設定（invert=True, BGR=True）のみを表示確認:
+  ```sh
+  uv run pi0disp lcd-check --invert --bgr
+  ```
 
 
 ## パフォーマンス・ベンチマーク
