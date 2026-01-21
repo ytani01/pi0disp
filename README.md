@@ -210,6 +210,12 @@ uv run pi0disp lcd-check
   uv run pi0disp lcd-check --invert --bgr
   ```
 
+- **対話型ウィザードによる自動設定 (推奨)**:
+  質問に答えるだけで最適な設定を特定し、`pi0disp.toml` に保存します。
+  ```sh
+  uv run pi0disp lcd-check --wizard
+  ```
+
 
 ## パフォーマンス・ベンチマーク
 
