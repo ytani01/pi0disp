@@ -15,10 +15,10 @@
 ## Phase 2: Core Display Logic Verification
 `DispBase`, `DispSpi` など、ハードウェア制御の根幹となるクラスの型修正。
 
-- [ ] Task: `src/pi0disp/disp/disp_base.py` の修正
-    - [ ] 調査：`rotation` 等のプロパティが `None` を受け入れた場合のハードウェアへの影響を確認
-    - [ ] 修正：適切な型制約の導入と、初期化フローの整合性確保
-- [ ] Task: `src/pi0disp/disp/disp_spi.py` の修正
+- [x] Task: `src/pi0disp/disp/disp_base.py` の修正 (14e6ab9)
+    - [x] 調査：`rotation` 等のプロパティが `None` を受け入れた場合のハードウェアへの影響を確認
+    - [x] 修正：適切な型制約の導入と、初期化フローの整合性確保
+- [x] Task: `src/pi0disp/disp/disp_spi.py` の修正 (d71d6a0)
 - [ ] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
 
 ## Phase 3: Hardware Drivers (ST7789V)
