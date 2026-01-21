@@ -160,3 +160,87 @@ def determine_lcd_settings(
     is_panel_bgr = (color_without_inv == "blue") ^ current_bgr
 
     return is_panel_bgr, is_panel_inverted
+
+
+def draw_orientation_pattern(
+    width: int,
+    height: int,
+    rotation: int,
+) -> Image.Image:
+    """
+    Draws a test pattern for LCD orientation verification.
+    Displays a large arrow and "UP" text, scaled to fit the screen.
+
+    Args:
+        width: Display width.
+        height: Display height.
+        rotation: Current rotation angle (0, 90, 180, 270).
+
+    Returns:
+        A PIL Image object containing the orientation pattern.
+    """
+    img = Image.new("RGB", (width, height), "black")
+    draw = ImageDraw.Draw(img)
+
+    # 1. Scaling calculation
+    # Use 80% of the smaller dimension as our base "unit"
+    base_size = min(width, height) * 0.8
+    
+    # 2. Get font
+    # "UP" text size should be about 1/4 of base_size
+    font_size = int(base_size / 4)
+    font = get_font(font_size)
+
+    # 3. Draw Arrow
+    # Arrow should point "Up" relative to the current rotation.
+    # We draw it at the center.
+    cx, cy = width // 2, height // 2
+    
+    # Arrow path (pointing Up)
+    #   A (top)
+    #  / \
+    # B---C
+    #   |
+    #   D
+    
+    # Lengths
+    head_h = base_size * 0.3
+    head_w = base_size * 0.4
+    stem_h = base_size * 0.4
+    stem_w = base_size * 0.1
+    
+    # Vertices (relative to center)
+    # Since we want to display "Up", and the LCD itself might be rotated,
+    # we just draw a static "Up" arrow on the image. 
+    # The image will be rotated by the driver later, or we can rotate it here.
+    # In 'lcd-check --wizard', the user's task is to find the rotation where 
+    # THIS arrow points to the physical top of the device.
+    
+    # Coordinates for an "Up" arrow
+    points = [
+        (cx, cy - base_size / 2),                     # Top point
+        (cx - head_w / 2, cy - base_size / 2 + head_h), # Left head
+        (cx - stem_w / 2, cy - base_size / 2 + head_h), # Left shoulder
+        (cx - stem_w / 2, cy + base_size / 2 - font_size), # Bottom left
+        (cx + stem_w / 2, cy + base_size / 2 - font_size), # Bottom right
+        (cx + stem_w / 2, cy - base_size / 2 + head_h), # Right shoulder
+        (cx + head_w / 2, cy - base_size / 2 + head_h), # Right head
+    ]
+    
+    draw.polygon(points, fill="white", outline="cyan")
+    
+    # 4. Draw "UP" text below the arrow
+    text = "UP"
+    bbox = font.getbbox(text)
+    tw = bbox[2] - bbox[0]
+    th = bbox[3] - bbox[1]
+    draw.text((cx - tw / 2, cy + base_size / 2 - th), text, fill="yellow", font=font)
+
+    # 5. Corner markers (to help identify boundaries)
+    m_size = 10
+    draw.rectangle([0, 0, m_size, m_size], fill="red") # Top-Left
+    draw.rectangle([width - m_size, 0, width, m_size], fill="green") # Top-Right
+    draw.rectangle([0, height - m_size, m_size, height], fill="blue") # Bottom-Left
+    draw.rectangle([width - m_size, height - m_size, width, height], fill="white") # Bottom-Right
+
+    return img
