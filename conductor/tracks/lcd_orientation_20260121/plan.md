@@ -25,13 +25,13 @@
 ## Phase 3: 設定の保存と色判定フェーズへの統合
 決定した角度を `pi0disp.toml` に保存し、既存のウィザードに繋げます。
 
-- [ ] Task: `rotation` 設定の保存処理の実装
-    - [ ] `ENTER` 決定時に `update_toml_settings` を呼び出し、`rotation` を更新する。
-- [ ] Task: ウィザード全体の統合
-    - [ ] `lcd_check --wizard` の冒頭で `run_orientation_wizard` を呼び出し、戻り値の角度を後続の色判定フェーズに引き継ぐように修正する。
-- [ ] Task: 統合テスト
-    - [ ] 回転決定 -> 保存 -> 色判定開始 の一連の流れが正しく動作することを検証する。
-- [ ] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)
+- [x] Task: `rotation` 設定の保存処理の実装 [f3aae31]
+    - [x] `ENTER` 決定時に `update_toml_settings` を呼び出し、`rotation` を更新する。
+- [x] Task: ウィザード全体の統合 [f3aae31]
+    - [x] `lcd_check --wizard` の冒頭で `run_orientation_wizard` を呼び出し、戻り値の角度を後続の色判定フェーズに引き継ぐように修正する。
+- [x] Task: 統合テスト [f3aae31]
+    - [x] 回転決定 -> 保存 -> 色判定開始 の一連の流れが正しく動作することを検証する。
+- [x] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md) [f3aae31]
 
 ## Phase 4: 最終調整とドキュメント更新
 - [ ] Task: README.md / マニュアルの更新
