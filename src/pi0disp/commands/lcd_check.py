@@ -17,9 +17,59 @@ from ..utils.lcd_test_pattern import (
     WIZARD_COLORS,
     determine_lcd_settings,
     draw_lcd_test_pattern,
+    draw_orientation_pattern,
 )
 from ..utils.my_conf import update_toml_settings
 from ..utils.mylogger import get_logger
+
+
+def run_orientation_wizard(disp, debug=False):
+    """
+    Interactive orientation adjustment wizard.
+    Allows user to switch rotation using keys and confirm.
+
+    Args:
+        disp: ST7789V display object.
+        debug: Debug flag.
+
+    Returns:
+        The selected rotation angle (0, 90, 180, 270).
+    """
+    __log = get_logger(__name__, debug)
+    current_rot = disp.rotation
+    
+    print("\n--- Orientation Adjustment ---")
+    print("実機のLCDを見ながら、表示が正しく（矢印が上向きに）見えるよう調整してください。")
+    print("  a: 0°, b: 90°, c: 180°, d: 270°")
+    print("  ENTER: 確定, q: 中断")
+    print("------------------------------")
+    
+    while True:
+        # Draw current orientation
+        img = draw_orientation_pattern(disp.size.width, disp.size.height, current_rot)
+        disp.display(img)
+        
+        print(f"\r現在の回転角: {current_rot}° (a/b/c/d で切り替え, ENTERで決定) ", end="", flush=True)
+        
+        c = click.getchar()
+        if c == "a":
+            current_rot = 0
+        elif c == "b":
+            current_rot = 90
+        elif c == "c":
+            current_rot = 180
+        elif c == "d":
+            current_rot = 270
+        elif c in ["\r", "\n"]:
+            print("\n確定しました。")
+            break
+        elif c == "q":
+            print("\n中断しました。")
+            raise click.Abort()
+        
+        disp.set_rotation(current_rot)
+        
+    return current_rot
 
 
 def run_wizard(disp, rotation, conf=None, debug=False):
