@@ -15,11 +15,11 @@
 ## Phase 2: インタラクティブ回転調整フェーズの実装
 キー入力に応じてリアルタイムに画面を更新するループを実装します。
 
-- [ ] Task: 回転調整ループのプロトタイプ実装 (src/pi0disp/commands/lcd_check.py)
-    - [ ] `run_orientation_wizard(disp, conf)` 関数を作成する。
-    - [ ] `click.getchar()` 等を使用し、`a, b, c, d, ENTER` の入力を受け付けるループを実装する。
-- [ ] Task: ループ動作のテスト
-    - [ ] `CliRunner` で入力をエミュレートし、指定されたキーに応じて `disp.set_rotation` が正しく呼ばれるかをテストする。
+- [x] Task: 回転調整ループのプロトタイプ実装 (src/pi0disp/commands/lcd_check.py) [33260e6]
+    - [x] `run_orientation_wizard(disp, conf)` 関数を作成する。
+    - [x] `click.getchar()` 等を使用し、`a, b, c, d, ENTER` の入力を受け付けるループを実装する。
+- [x] Task: ループ動作のテスト [33260e6]
+    - [x] `CliRunner` で入力をエミュレートし、指定されたキーに応じて `disp.set_rotation` が正しく呼ばれるかをテストする。
 - [ ] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
 
 ## Phase 3: 設定の保存と色判定フェーズへの統合
