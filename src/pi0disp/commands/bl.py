@@ -35,6 +35,8 @@ def bl_cmd(ctx, val, bl, debug):
     try:
         if bl is None:
             conf = DispConf(debug=debug)
+            if conf.data is None:
+                raise RuntimeError("Configuration data not found.")
             bl = conf.data.spi.bl
             __log.debug("bl=%s (conf)", bl)
 
