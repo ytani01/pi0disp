@@ -22,128 +22,75 @@ from ..utils.my_conf import update_toml_settings
 from ..utils.mylogger import get_logger
 
 
-def run_orientation_wizard(disp, debug=False):
+def run_unified_wizard(disp: ST7789V, debug: bool = False) -> dict[str, int | bool]:
     """
-    Interactive orientation adjustment wizard.
-    Allows user to switch rotation using keys and confirm.
+    Unified interactive LCD setting wizard.
+    Adjust rotation, invert, and BGR settings in real-time.
 
     Args:
         disp: ST7789V display object.
         debug: Debug flag.
 
     Returns:
-        The selected rotation angle (0, 90, 180, 270).
+        A dictionary containing the selected settings.
     """
     __log = get_logger(__name__, debug)
-    current_rot = disp.rotation
     
-    print("\n--- Step 1: Orientation Adjustment ---")
-    print("実機のLCDを見ながら、赤色の帯が一番上にくるように調整してください。")
-    print("  a: 0°, b: 90°, c: 180°, d: 270°")
-    print("  ENTER: 確定, q: 中断")
-    print("---------------------------------------")
+    cur_rot = disp.rotation
+    cur_inv = disp._invert
+    cur_bgr = disp._bgr
+    
+    print("\n--- LCD Interactive Wizard ---")
+    print("実機の表示を確認しながら、以下のキーで調整してください。")
+    print("背景が『漆黒』、上から『赤・緑・青』の順に見えるのが正解です。")
+    print("\n  a, b, c, d : 画面の向き (0°, 90°, 180°, 270°)")
+    print("  i          : 色反転 (Invert) ON/OFF")
+    print("  g          : 色順序 (BGR) ON/OFF")
+    print("  ENTER      : この設定で保存して終了")
+    print("  q          : 中断")
+    print("------------------------------")
     
     while True:
-        # Use standard test pattern (fixed settings for orientation check)
-        # invert=False, bgr=False as baseline
-        img = draw_lcd_test_pattern(disp.size.width, disp.size.height, False, False)
+        # Update display settings
+        disp._invert = cur_inv
+        disp._bgr = cur_bgr
+        disp.init_display()
+        disp.set_rotation(cur_rot)
+        
+        # Clear cache to prevent artifacts during rotation/setting change
+        disp._last_img = None
+        
+        # Create test pattern with current settings labels
+        # Note: We use draw_lcd_test_pattern but with internal labels
+        img = draw_lcd_test_pattern(
+            disp.size.width, disp.size.height, cur_inv, cur_bgr
+        )
         disp.display(img)
         
-        print(f"\r現在の回転角: {current_rot}° (a/b/c/d で切り替え, ENTERで決定) ", end="", flush=True)
+        status = f"Rot: {cur_rot:3}°, Inv: {str(cur_inv):5}, BGR: {str(cur_bgr):5}"
+        print(f"\rCurrent: {status} (a/b/c/d, i, g, ENTER) ", end="", flush=True)
         
         c = click.getchar().lower()
         if c == "a":
-            current_rot = 0
+            cur_rot = 0
         elif c == "b":
-            current_rot = 90
+            cur_rot = 90
         elif c == "c":
-            current_rot = 180
+            cur_rot = 180
         elif c == "d":
-            current_rot = 270
+            cur_rot = 270
+        elif c == "i":
+            cur_inv = not cur_inv
+        elif c == "g":
+            cur_bgr = not cur_bgr
         elif c in ["\r", "\n"]:
-            print("\n回転角を確定しました。")
-            update_toml_settings({"rotation": current_rot}, "pi0disp.toml")
+            print("\n設定を確定しました。")
             break
         elif c == "q":
             print("\n中断しました。")
             raise click.Abort()
-        
-        disp.set_rotation(current_rot)
-        
-    return current_rot
 
-
-def run_wizard(disp, rotation, conf=None, debug=False):
-    """Interactive wizard flow."""
-    __log = get_logger(__name__, debug)
-    
-    print("\n--- LCD Settings Wizard ---")
-    print("実機のLCD表示を確認しながら、以下の質問に答えてください。")
-    
-    # 基準設定で表示 (RGB, Invert Off)
-    current_inv = False
-    current_bgr = False
-    disp._invert = current_inv
-    disp._bgr = current_bgr
-    disp.init_display()
-    disp.set_rotation(rotation)
-    
-    width, height = disp.size.width, disp.size.height
-    img = draw_lcd_test_pattern(width, height, current_inv, current_bgr)
-    disp.display(img)
-    
-    # Q1: 背景色
-    print("\n[Q1] 背景の色（文字がない部分）は何色に見えますか？")
-    for k, v in WIZARD_BG.items():
-        print(f"  {k}: {v}")
-    seen_bg = click.prompt("選択してください", type=click.Choice(WIZARD_BG.keys()), default="black")
-    
-    # Q2: 一番上の帯の色
-    print("\n[Q2] 画面の一番上の帯（本来は赤であるべき部分）は何色に見えますか？")
-    for k, v in WIZARD_COLORS.items():
-        print(f"  {k}: {v}")
-    seen_color = click.prompt("選択してください", type=click.Choice(WIZARD_COLORS.keys()), default="red")
-    
-    if seen_color == "other":
-        print("\n判定できませんでした。接続や型番を再確認してください。")
-        return None
-
-    try:
-        res_bgr, res_inv = determine_lcd_settings(current_bgr, current_inv, seen_color, seen_bg)
-        
-        print("\n--- 判定結果 ---")
-        print(f" 推定される設定: bgr={res_bgr}, invert={res_inv}")
-        print("\nこの設定で再表示します...")
-        
-        disp._invert = res_inv
-        disp._bgr = res_bgr
-        disp.init_display()
-        disp.set_rotation(rotation)
-        img = draw_lcd_test_pattern(width, height, res_inv, res_bgr)
-        disp.display(img)
-        
-        print("正しく表示されましたか？（背景が黒、上から赤・緑・青）")
-        if click.confirm("正解の場合、設定を保存しますか？", default=True):
-            # 保存先の決定
-            # 優先順位:
-            # 1. すでに存在している設定ファイルの中で、優先度が高い順
-            # 2. どこにもなければカレントディレクトリの pi0disp.toml
-            save_path = "pi0disp.toml"
-            if conf and conf.settings_files:
-                for p in conf.settings_files:
-                    if os.path.exists(p):
-                        save_path = p
-                        break
-            
-            __log.info("Saving settings to: %s", save_path)
-            update_toml_settings({"bgr": res_bgr, "invert": res_inv}, save_path)
-            print(f"設定を保存しました: {save_path}")
-            return {"bgr": res_bgr, "invert": res_inv}
-            
-    except ValueError as e:
-        print(f"\nエラー: {e}")
-        
-    return None
+    return {"rotation": cur_rot, "invert": cur_inv, "bgr": cur_bgr}
 
 
 @click.command()
@@ -219,13 +166,20 @@ def lcd_check(ctx, rotation, invert, bgr, wait, wizard, debug):
         disp = ST7789V(rotation=rotation, debug=debug)
         
         if wizard:
-            # 1. Orientation Adjustment
-            rotation = run_orientation_wizard(disp, debug=debug)
+            result = run_unified_wizard(disp, debug=debug)
             
-            # 2. Color/Invert Adjustment
-            result = run_wizard(disp, rotation, conf=conf, debug=debug)
-            if result:
-                print(f"\n判定結果: bgr={result['bgr']}, invert={result['invert']}")
+            if click.confirm("\n設定を保存しますか？", default=True):
+                save_path = "pi0disp.toml"
+                if conf and conf.settings_files:
+                    for p in conf.settings_files:
+                        if os.path.exists(p):
+                            save_path = p
+                            break
+                
+                __log.info("Saving settings to: %s", save_path)
+                update_toml_settings(result, save_path)
+                print(f"設定を保存しました: {save_path}")
+            
             return
 
         width, height = disp.size.width, disp.size.height
