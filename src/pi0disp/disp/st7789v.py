@@ -70,28 +70,45 @@ class ST7789V(DispSpi):
         self.__debug = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
 
+        # configuration data
+        conf_data = self._conf.data
+
         # invert configuration
         if invert is None:
-            invert = self._conf.data.get("invert", True)
-        self._invert = invert
+            if conf_data is not None:
+                invert = conf_data.get("invert", True)
+            else:
+                invert = True
+        self._invert: bool = bool(invert)
 
         # bgr configuration
         if bgr is None:
-            if "bgr" in self._conf.data:
-                bgr = self._conf.data["bgr"]
-            elif "rgb" in self._conf.data:
-                bgr = not self._conf.data["rgb"]
+            if conf_data is not None:
+                if "bgr" in conf_data:
+                    bgr = conf_data["bgr"]
+                elif "rgb" in conf_data:
+                    bgr = not conf_data["rgb"]
+                else:
+                    bgr = False
             else:
                 bgr = False
-        self._bgr = bgr
+        self._bgr: bool = bool(bgr)
 
         # Offsets
         if x_offset is None:
-            x_offset = self._conf.data.get("x_offset", 0)
+            if conf_data is not None:
+                x_offset = conf_data.get("x_offset", 0)
+            else:
+                x_offset = 0
         if y_offset is None:
-            y_offset = self._conf.data.get("y_offset", 0)
-        self._x_offset = x_offset
-        self._y_offset = y_offset
+            if conf_data is not None:
+                y_offset = conf_data.get("y_offset", 0)
+            else:
+                y_offset = 0
+
+        # Ensure offsets are int
+        self._x_offset: int = x_offset if x_offset is not None else 0
+        self._y_offset: int = y_offset if y_offset is not None else 0
         self._mv = 0
 
         # Initialize core components
@@ -99,7 +116,9 @@ class ST7789V(DispSpi):
         self._last_image: Optional[Image.Image] = None
 
         self.init_display()
-        self.set_rotation(self._rotation)
+        # Ensure rotation is int
+        rotation_val = self._rotation if self._rotation is not None else 0
+        self.set_rotation(rotation_val)
 
     def init_display(self):
         """ハードウェア初期化シーケンス"""
