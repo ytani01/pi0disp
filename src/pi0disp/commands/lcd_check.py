@@ -51,7 +51,7 @@ def run_orientation_wizard(disp, debug=False):
         
         print(f"\r現在の回転角: {current_rot}° (a/b/c/d で切り替え, ENTERで決定) ", end="", flush=True)
         
-        c = click.getchar()
+        c = click.getchar().lower()
         if c == "a":
             current_rot = 0
         elif c == "b":
@@ -62,6 +62,8 @@ def run_orientation_wizard(disp, debug=False):
             current_rot = 270
         elif c in ["\r", "\n"]:
             print("\n確定しました。")
+            # ここで一旦設定を保存する (Phase 3の要件)
+            update_toml_settings({"rotation": current_rot}, "pi0disp.toml")
             break
         elif c == "q":
             print("\n中断しました。")
@@ -218,6 +220,10 @@ def lcd_check(ctx, rotation, invert, bgr, wait, wizard, debug):
         disp = ST7789V(rotation=rotation, debug=debug)
         
         if wizard:
+            # 1. Orientation Adjustment
+            rotation = run_orientation_wizard(disp, debug=debug)
+            
+            # 2. Color/Invert Adjustment
             result = run_wizard(disp, rotation, conf=conf, debug=debug)
             if result:
                 print(f"\n判定結果: bgr={result['bgr']}, invert={result['invert']}")
