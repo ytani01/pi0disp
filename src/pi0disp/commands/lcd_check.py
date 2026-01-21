@@ -46,29 +46,39 @@ def run_unified_wizard(disp: ST7789V, debug: bool = False) -> dict[str, int | bo
     print("\n  a, b, c, d : 画面の向き (0°, 90°, 180°, 270°)")
     print("  i          : 色反転 (Invert) ON/OFF")
     print("  g          : 色順序 (BGR) ON/OFF")
+    print("  h, j, k, l : 表示位置の微調整 (x_offset, y_offset)")
     print("  ENTER      : この設定で保存して終了")
     print("  q          : 中断")
     print("------------------------------")
     
+    cur_x_off = disp._x_offset
+    cur_y_off = disp._y_offset
+
     while True:
         # Update display settings
         disp._invert = cur_inv
         disp._bgr = cur_bgr
+        disp._x_offset = cur_x_off
+        disp._y_offset = cur_y_off
         disp.init_display()
         disp.set_rotation(cur_rot)
         
+        # [CRITICAL] Access private variables to ensure consistency
+        width, height = disp.size.width, disp.size.height
+        
         # Clear cache to prevent artifacts during rotation/setting change
-        disp._last_img = None
+        disp._last_image = None
         
-        # Create test pattern with current settings labels
-        # Note: We use draw_lcd_test_pattern but with internal labels
+        # Create test pattern
         img = draw_lcd_test_pattern(
-            disp.size.width, disp.size.height, cur_inv, cur_bgr
+            width, height, cur_inv, cur_bgr
         )
-        disp.display(img)
         
-        status = f"Rot: {cur_rot:3}°, Inv: {str(cur_inv):5}, BGR: {str(cur_bgr):5}"
-        print(f"\rCurrent: {status} (a/b/c/d, i, g, ENTER) ", end="", flush=True)
+        # Display it using 'full=True' to force clear screen
+        disp.display(img, full=True)
+        
+        status = f"Rot:{cur_rot:3} Inv:{str(cur_inv):5} BGR:{str(cur_bgr):5} Off:({cur_x_off},{cur_y_off}) ({width}x{height})"
+        print(f"\rCurrent: {status} (a-d,i,g,hjkl,ENTER) ", end="", flush=True)
         
         c = click.getchar().lower()
         if c == "a":
@@ -83,6 +93,14 @@ def run_unified_wizard(disp: ST7789V, debug: bool = False) -> dict[str, int | bo
             cur_inv = not cur_inv
         elif c == "g":
             cur_bgr = not cur_bgr
+        elif c == "h": # X offset decrease
+            cur_x_off -= 1
+        elif c == "l": # X offset increase
+            cur_x_off += 1
+        elif c == "k": # Y offset decrease
+            cur_y_off -= 1
+        elif c == "j": # Y offset increase
+            cur_y_off += 1
         elif c in ["\r", "\n"]:
             print("\n設定を確定しました。")
             break
@@ -90,7 +108,13 @@ def run_unified_wizard(disp: ST7789V, debug: bool = False) -> dict[str, int | bo
             print("\n中断しました。")
             raise click.Abort()
 
-    return {"rotation": cur_rot, "invert": cur_inv, "bgr": cur_bgr}
+    return {
+        "rotation": cur_rot, 
+        "invert": cur_inv, 
+        "bgr": cur_bgr,
+        "x_offset": cur_x_off,
+        "y_offset": cur_y_off
+    }
 
 
 @click.command()

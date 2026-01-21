@@ -49,17 +49,6 @@ def draw_lcd_test_pattern(
 ) -> Image.Image:
     """
     Draws a test pattern for LCD verification.
-
-    Args:
-        width: Display width.
-        height: Display height.
-        invert: Current invert setting.
-        bgr: Current BGR setting.
-        index: Current test index.
-        total: Total number of tests.
-
-    Returns:
-        A PIL Image object containing the test pattern.
     """
     img = Image.new("RGB", (width, height), "black")
     draw = ImageDraw.Draw(img)
@@ -67,39 +56,61 @@ def draw_lcd_test_pattern(
     # Background
     draw.rectangle([0, 0, width, height], fill="black")
 
-    # Color bands
-    bh = height // 8
+    # Dynamic scaling based on screen size
+    # Margin is 5% of width
+    margin = max(4, width // 20)
+    
+    # Band height: 10% of height, max 30px to save space for text in portrait
+    bh = min(height // 10, 32)
+    
+    # 1. Color bands at top
     draw.rectangle([0, 0, width, bh], fill="#FF0000")
     draw.rectangle([0, bh, width, bh * 2], fill="#00FF00")
     draw.rectangle([0, bh * 2, width, bh * 3], fill="#0000FF")
 
-    # Text settings
-    f_mid = get_font(20)
-    f_sm = get_font(16)
+    # 2. Text scaling
+    # Medium font: ~1/12 of smaller dimension
+    # Small font: ~1/16 of smaller dimension
+    base_dim = min(width, height)
+    f_mid_size = max(14, base_dim // 12)
+    f_sm_size = max(12, base_dim // 16)
+    
+    f_mid = get_font(f_mid_size)
+    f_sm = get_font(f_sm_size)
 
-    # Display settings near center
-    y_offset = bh * 3 + 15
+    # 3. Display settings
+    y_offset = bh * 3 + margin
+    
     if total > 0:
         draw.text(
-            (15, y_offset), f"TEST {index}/{total}", fill="white", font=f_mid
+            (margin, y_offset), f"TEST {index}/{total}", fill="white", font=f_mid
         )
-        y_offset += 30
+        y_offset += f_mid_size + 4
 
     conf_text = f"inv={invert}, bgr={bgr}"
-    draw.text((15, y_offset), conf_text, fill="cyan", font=f_mid)
+    draw.text((margin, y_offset), conf_text, fill="cyan", font=f_mid)
+    
+    # Show rotation if we can detect it (width/height ratio often indicates it)
+    # But since we are in the wizard, we just show what we know.
 
-    # Guide at bottom
-    # Safe positioning for both landscape and portrait
-    y_guide = height - 50
+    # 4. Guide at bottom
+    # Calculate spacing to avoid overlap in short screens
+    line_spacing = f_sm_size + 4
+    y_guide = height - (line_spacing * 2 + margin)
+    
     draw.text(
-        (15, y_guide), "If R/G/B & Black look OK,", fill="gray", font=f_sm
+        (margin, y_guide), "If R/G/B & Black look OK,", fill="gray", font=f_sm
     )
     draw.text(
-        (15, y_guide + 20),
+        (margin, y_guide + line_spacing),
         "Use these values in TOML.",
         fill="yellow",
         font=f_sm,
     )
+
+    # 5. Outer Border (to identify clipping/offset issues)
+    # Draw a 1-pixel white border around the entire image
+    draw.rectangle([0, 0, width - 1, height - 1], outline="white", width=1)
 
     return img
 
