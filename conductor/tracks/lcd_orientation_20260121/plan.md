@@ -12,8 +12,8 @@
     - [x] `tests/test_28_unified_wizard.py` および `tests/test_31_display_logic_verify.py` でロジックを検証。
 - [x] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md) (1c91515)
 
-## Phase 2: 最終統合とクリーンアップ
-- [ ] Task: `lcd-check` コマンドの簡略化
-    - [ ] 既存の `run_wizard` (Q&A形式) を `run_unified_wizard` に置き換える。
-- [ ] Task: ドキュメント更新
-- [ ] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)
+## Phase 2: 最終統合とクリーンアップ [checkpoint: b015580]
+- [x] Task: `lcd-check` コマンドの簡略化 (b015580)
+    - [x] 既存の `run_wizard` (Q&A形式) を `run_unified_wizard` に置き換え。
+- [x] Task: ドキュメント更新 (b015580)
+- [x] Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md) (b015580)
