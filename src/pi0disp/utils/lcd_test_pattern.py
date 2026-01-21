@@ -59,10 +59,10 @@ def draw_lcd_test_pattern(
     # Dynamic scaling based on screen size
     # Margin is 5% of width
     margin = max(4, width // 20)
-    
+
     # Band height: 10% of height, max 30px to save space for text in portrait
     bh = min(height // 10, 32)
-    
+
     # 1. Color bands at top
     draw.rectangle([0, 0, width, bh], fill="#FF0000")
     draw.rectangle([0, bh, width, bh * 2], fill="#00FF00")
@@ -74,22 +74,25 @@ def draw_lcd_test_pattern(
     base_dim = min(width, height)
     f_mid_size = max(14, base_dim // 12)
     f_sm_size = max(12, base_dim // 16)
-    
+
     f_mid = get_font(f_mid_size)
     f_sm = get_font(f_sm_size)
 
     # 3. Display settings
     y_offset = bh * 3 + margin
-    
+
     if total > 0:
         draw.text(
-            (margin, y_offset), f"TEST {index}/{total}", fill="white", font=f_mid
+            (margin, y_offset),
+            f"TEST {index}/{total}",
+            fill="white",
+            font=f_mid,
         )
         y_offset += f_mid_size + 4
 
     conf_text = f"inv={invert}, bgr={bgr}"
     draw.text((margin, y_offset), conf_text, fill="cyan", font=f_mid)
-    
+
     # Show rotation if we can detect it (width/height ratio often indicates it)
     # But since we are in the wizard, we just show what we know.
 
@@ -97,7 +100,7 @@ def draw_lcd_test_pattern(
     # Calculate spacing to avoid overlap in short screens
     line_spacing = f_sm_size + 4
     y_guide = height - (line_spacing * 2 + margin)
-    
+
     draw.text(
         (margin, y_guide), "If R/G/B & Black look OK,", fill="gray", font=f_sm
     )
@@ -153,7 +156,7 @@ def determine_lcd_settings(
     # If user sees 'Cyan' or 'Yellow', we first undo the inversion in our mind.
     # Cyan (0, 255, 255) -> Inverted Red
     # Yellow (255, 255, 0) -> Inverted Blue
-    
+
     color_without_inv = seen_color
     if seen_bg == "white":
         if seen_color == "cyan":
@@ -166,12 +169,12 @@ def determine_lcd_settings(
             color_without_inv = "white"
 
     if color_without_inv not in ["red", "blue"]:
-        raise ValueError(f"Unexpected color seen: {seen_color} (bg: {seen_bg})")
+        raise ValueError(
+            f"Unexpected color seen: {seen_color} (bg: {seen_bg})"
+        )
 
     # If we see Red when we expect Red (current_bgr=False) -> Panel is RGB
     # If we see Blue when we expect Red (current_bgr=False) -> Panel is BGR
     is_panel_bgr = (color_without_inv == "blue") ^ current_bgr
 
     return is_panel_bgr, is_panel_inverted
-
-
