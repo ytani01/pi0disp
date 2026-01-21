@@ -45,8 +45,8 @@ def run_wizard(disp, rotation, debug=False):
         print(f"  {k}: {v}")
     seen_bg = click.prompt("選択してください", type=click.Choice(WIZARD_BG.keys()), default="black")
     
-    # Q2: 左上の色
-    print("\n[Q2] 左上の大きな四角形は何色に見えますか？")
+    # Q2: 一番上の帯の色
+    print("\n[Q2] 画面の一番上の帯（本来は赤であるべき部分）は何色に見えますか？")
     for k, v in WIZARD_COLORS.items():
         print(f"  {k}: {v}")
     seen_color = click.prompt("選択してください", type=click.Choice(WIZARD_COLORS.keys()), default="red")
