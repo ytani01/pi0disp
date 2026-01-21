@@ -12,9 +12,7 @@ from .. import __version__
 from ..disp.disp_conf import DispConf
 from ..disp.st7789v import ST7789V
 from ..utils.click_utils import click_common_opts
-from ..utils.lcd_test_pattern import (
-    draw_lcd_test_pattern,
-)
+from ..utils.lcd_test_pattern import draw_lcd_test_pattern
 from ..utils.my_conf import update_toml_settings
 from ..utils.mylogger import get_logger
 
