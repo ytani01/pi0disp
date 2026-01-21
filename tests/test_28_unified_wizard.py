@@ -4,7 +4,9 @@
 """Tests for unified interactive LCD wizard."""
 
 from unittest.mock import MagicMock, patch
+
 from pi0disp.commands.lcd_check import run_unified_wizard
+
 
 @patch("pi0disp.commands.lcd_check.draw_lcd_test_pattern")
 def test_run_unified_wizard_loop(mock_draw):
@@ -15,26 +17,32 @@ def test_run_unified_wizard_loop(mock_draw):
     disp.rotation = 90
     disp._invert = False
     disp._bgr = False
-    disp._last_img = MagicMock() # Initial cache
-    
+    disp._last_image = MagicMock()  # Initial cache
+    disp._x_offset = 0
+    disp._y_offset = 0
+
     # 1. 'a' (0°), 2. 'i' (invert=True), 3. 'g' (bgr=True), 4. ENTER (confirm)
     with patch("click.getchar", side_effect=["a", "i", "g", "\r"]):
         res = run_unified_wizard(disp, debug=False)
-        
+
         # 期待値:
-        # - res == {"rotation": 0, "invert": True, "bgr": True}
-        assert res == {"rotation": 0, "invert": True, "bgr": True}
-        
-        # 設定変更ごとに _last_img = None が設定されているはず
-        # 'a', 'i', 'g' の3回の変更 + 最初の描画(ループ開始時)
-        # ※ 実装により回数は前後する可能性があるが、少なくともリセットは行われる
-        assert disp._last_img is None
-        
+        # - res == {"rotation": 0, "invert": True, "bgr": True, "x_offset": 0, "y_offset": 0}
+        assert res == {
+            "rotation": 0,
+            "invert": True,
+            "bgr": True,
+            "x_offset": 0,
+            "y_offset": 0,
+        }
+
+        # 設定変更ごとに _last_image = None が設定されているはず
+        assert disp._last_image is None
+
         # 各種設定変更メソッドが呼ばれていること
         disp.set_rotation.assert_any_call(0)
         assert disp._invert is True
         assert disp._bgr is True
-        
+
         # 描画が呼ばれていること
         assert mock_draw.called
         assert disp.display.called

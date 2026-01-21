@@ -251,9 +251,9 @@ class TestDispConf:
             disp_conf_instance.load(settings_files=None, pkg_name="pi0disp")
 
             expected_settings_files = [
-                "/etc/myconf.toml",
-                "/home/user/myconf.toml",
                 "./myconf.toml",
+                "/home/user/myconf.toml",
+                "/etc/myconf.toml",
             ]
             mock_dynaconf_class.assert_called_once_with(
                 settings_files=expected_settings_files

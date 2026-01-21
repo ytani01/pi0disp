@@ -82,25 +82,26 @@ def test_lcd_check_pattern_content(cli_mock_env, mock_st7789v):
     assert img.size == (320, 240)
 
     # ピクセル検証 (RGB)
-    # 帯の高さ bh = 240 // 8 = 30
-    # Red: [0, 30)
-    # Green: [30, 60)
-    # Blue: [60, 90)
+    # 帯の高さ bh = min(240 // 10, 32) = 24
+    # Red: [0, 24)
+    # Green: [24, 48)
+    # Blue: [48, 72)
+    bh = min(240 // 10, 32)
 
-    # Red 帯の中央付近 (y=15)
-    pixel = img.getpixel((10, 15))
+    # Red 帯の中央付近
+    pixel = img.getpixel((10, bh // 2))
     assert isinstance(pixel, tuple)
     r, g, b = pixel[:3]
     assert r > 200 and g == 0 and b == 0
 
-    # Green 帯の中央付近 (y=45)
-    pixel = img.getpixel((10, 45))
+    # Green 帯の中央付近
+    pixel = img.getpixel((10, bh + bh // 2))
     assert isinstance(pixel, tuple)
     r, g, b = pixel[:3]
     assert r == 0 and g > 200 and b == 0
 
-    # Blue 帯の中央付近 (y=75)
-    pixel = img.getpixel((10, 75))
+    # Blue 帯の中央付近
+    pixel = img.getpixel((10, bh * 2 + bh // 2))
     assert isinstance(pixel, tuple)
     r, g, b = pixel[:3]
     assert r == 0 and g == 0 and b > 200

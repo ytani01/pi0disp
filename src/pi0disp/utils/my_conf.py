@@ -31,13 +31,13 @@ def update_toml_settings(
     if "pi0disp" not in data:
         data.add("pi0disp", tomlkit.table())
 
-    table = data["pi0disp"]
-    for key, value in settings.items():
-        table[key] = value
+    table = data.get("pi0disp")
+    if isinstance(table, dict):
+        for key, value in settings.items():
+            table[key] = value
 
     with open(conf_file, "w") as f:
         f.write(tomlkit.dumps(data))
-
 
 
 class MyConf:
