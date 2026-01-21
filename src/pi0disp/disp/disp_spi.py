@@ -89,9 +89,13 @@ class DispSpi(DispBase):
 
         if pin is None:
             pd = self.DEF_PIN_DICT.copy()
-            for k in ["rst", "dc", "bl", "cs"]:
-                if self._conf.data.get("spi").get(k):
-                    pd[k] = self._conf.data.spi.get(k)
+            if self._conf.data is not None:
+                spi_conf = self._conf.data.get("spi")
+                if spi_conf:
+                    for k in ["rst", "dc", "bl", "cs"]:
+                        val = spi_conf.get(k)
+                        if val is not None:
+                            pd[k] = val
             pin = SpiPins(
                 rst=pd["rst"], dc=pd["dc"], bl=pd["bl"], cs=pd["cs"]
             )
@@ -99,7 +103,11 @@ class DispSpi(DispBase):
         self.pin = pin
 
         if speed_hz is None:
-            speed_hz = self.conf.data.spi.get("speed_hz")
+            if self.conf.data is not None:
+                spi_conf = self.conf.data.get("spi")
+                if spi_conf:
+                    speed_hz = spi_conf.get("speed_hz")
+
             if speed_hz:
                 self._log.debug("speed_hz=%s (設定ファイル)", speed_hz)
             else:
