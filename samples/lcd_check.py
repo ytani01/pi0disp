@@ -83,7 +83,9 @@ def main():
             disp._invert = t["invert"]
             disp._bgr = t["bgr"]
             disp.init_display()
-            disp.set_rotation(disp.rotation)
+            # Ensure rotation is int
+            rotation_val: int = disp.rotation
+            disp.set_rotation(rotation_val)
 
             # 画像作成
             img = Image.new("RGB", (width, height), "black")

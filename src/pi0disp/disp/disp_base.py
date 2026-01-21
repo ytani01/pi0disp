@@ -83,12 +83,12 @@ class DispBase(metaclass=ABCMeta):
             else:
                 rotation = self.DEF_ROTATION
                 self._log.debug("rotation=%s [DEF_ROTATION]", rotation)
-        self._rotation = rotation
+        self._rotation: int = (
+            rotation if rotation is not None else self.DEF_ROTATION
+        )
 
         # Ensure rotation is int (for basedpyright)
-        if rotation is None:
-            rotation = self.DEF_ROTATION
-        self.rotation = rotation
+        self.rotation = self._rotation
 
         # Initialize pigpio
         self.pi = pigpio.pi()
@@ -128,7 +128,7 @@ class DispBase(metaclass=ABCMeta):
         return self._native_size
 
     @property
-    def rotation(self):
+    def rotation(self) -> int:
         """現在のディスプレイ回転角度を返す。"""
         return self._rotation
 
