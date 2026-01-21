@@ -20,7 +20,7 @@ class MyConf:
         self.__debug: bool = debug
         self.__log = get_logger(self.__class__.__name__, self.__debug)
 
-        self._pkg_name = __package__.split(".", 1)[0]
+        self._pkg_name = (__package__ or "pi0disp").split(".", 1)[0]
         self.__log.debug("_pkg_name=%s", self._pkg_name)
 
         if conf_filename:
