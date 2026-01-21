@@ -2,7 +2,7 @@
 
 `samples` ディレクトリのエラーを解消し、プロジェクト全体で `mise run lint` が完全にパスする状態を確立する。
 
-## Phase 1: Samples Directory Cleanup
+## Phase 1: Samples Directory Cleanup [checkpoint: 1bd630d]
 `samples` 配下の残存する型エラーの解消。
 
 - [x] Task: `samples/lcd_check.py` の修正 (2300a1b)
@@ -11,7 +11,7 @@
 - [x] Task: `samples` ディレクトリ全体の再スキャンと微調整 (2300a1b)
     - [x] `uv run basedpyright samples` を実行し、0 errors を確認
     - [x] `uv run mypy samples` を実行し、整合性を確認
-- [ ] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)
 
 ## Phase 2: Project-wide Integration and Final Pass
 全ディレクトリ（src, samples）を統合した最終検証。
