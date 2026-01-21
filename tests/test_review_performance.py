@@ -24,7 +24,9 @@ def test_render_parts_performance_improvement():
     for i in range(iterations):
         # わずかに色を変えてキャッシュを無効化
         bg_color = (0, 0, i % 256)
-        renderer.render_parts(face, gaze_x, screen_width, screen_height, bg_color)
+        renderer.render_parts(
+            face, gaze_x, screen_width, screen_height, bg_color
+        )
     no_cache_duration = time.perf_counter() - start_time
     avg_no_cache = (no_cache_duration / iterations) * 1000
 
@@ -35,11 +37,15 @@ def test_render_parts_performance_improvement():
 
     start_time = time.perf_counter()
     for _ in range(iterations):
-        renderer.render_parts(face, gaze_x, screen_width, screen_height, bg_color)
+        renderer.render_parts(
+            face, gaze_x, screen_width, screen_height, bg_color
+        )
     cached_duration = time.perf_counter() - start_time
     avg_cached = (cached_duration / iterations) * 1000
 
-    improvement_ratio = avg_no_cache / avg_cached if avg_cached > 0 else float("inf")
+    improvement_ratio = (
+        avg_no_cache / avg_cached if avg_cached > 0 else float("inf")
+    )
 
     print("\n[Performance Comparison]")
     print(f"  Avg No-Cache: {avg_no_cache:.4f} ms")

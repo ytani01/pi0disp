@@ -39,7 +39,9 @@ def get_logger(name, debug=False):
     # Create a new handler and formatter for each logger
     fmt_hdr = "%(asctime)s %(levelname)s "
     fmt_loc = "%(name)s.%(funcName)s:%(lineno)d> "
-    handler_fmt = Formatter(fmt_hdr + fmt_loc + "%(message)s", datefmt="%H:%M:%S")
+    handler_fmt = Formatter(
+        fmt_hdr + fmt_loc + "%(message)s", datefmt="%H:%M:%S"
+    )
 
     console_handler = StreamHandler()
     console_handler.setFormatter(handler_fmt)

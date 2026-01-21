@@ -83,18 +83,12 @@ reportMissingSuperCall = false
 typeCheckingMode = "standard" 
 reportPossiblyUnboundVariable = "none"
 
-[tool.basedpyright.analysis]
 reportMissingImports = "none"
-
-# 変数が未定義の可能性がある警告を無視（今回の ST7789V の件）
-reportPossiblyUnboundVariable = "none"
 
 # None かもしれないオブジェクトの呼び出し/属性アクセスを許可（今回のような件）
 reportOptionalCall = "none"
-reportOptionalMemberAccess = "none"
 
 # 型が不明なライブラリからの戻り値（Any）をどこにでも代入可能にする
-reportUnknownMemberAccess = "none"
 reportUnknownVariableType = "none"
 reportUnknownArgumentType = "none"
 

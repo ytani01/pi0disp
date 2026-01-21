@@ -76,7 +76,9 @@ def create_test_pattern(width, height, rotation):
 
     # 4. Moving Corner Markers (Circles)
     r = 10
-    draw.ellipse([5, height - 25, 25, height - 5], fill="yellow")  # Bottom-Left
+    draw.ellipse(
+        [5, height - 25, 25, height - 5], fill="yellow"
+    )  # Bottom-Left
     draw.text((30, height - 20), "B-L", fill="yellow")
 
     draw.ellipse(

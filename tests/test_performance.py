@@ -71,7 +71,9 @@ def roboface_process():
 
             # 2. しばらく待機
             gone, alive = psutil.wait_procs(
-                [psutil.Process(process.pid)] if psutil.pid_exists(process.pid) else [],
+                [psutil.Process(process.pid)]
+                if psutil.pid_exists(process.pid)
+                else [],
                 timeout=3,
             )
 
@@ -95,7 +97,9 @@ def roboface_process():
 
 def test_cpu_memory_usage(roboface_process, duration):
     roboface_pid = roboface_process.pid
-    log.info(f"Monitoring roboface.py (PID: {roboface_pid}) for {duration} seconds...")
+    log.info(
+        f"Monitoring roboface.py (PID: {roboface_pid}) for {duration} seconds..."
+    )
 
     # pigpiodのPIDを取得
     pigpiod_pid = get_pigpiod_pid()
@@ -130,7 +134,9 @@ def test_cpu_memory_usage(roboface_process, duration):
 
             # pigpiod プロセスの情報
             pigpiod_cpu = pigpiod_proc.cpu_percent(interval=None)
-            pigpiod_mem = pigpiod_proc.memory_info().rss / (1024 * 1024)  # bytes to MB
+            pigpiod_mem = pigpiod_proc.memory_info().rss / (
+                1024 * 1024
+            )  # bytes to MB
             pigpiod_cpu_usages.append(pigpiod_cpu)
             pigpiod_mem_usages.append(pigpiod_mem)
 

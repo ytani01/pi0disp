@@ -20,14 +20,18 @@ def click_common_opts(
         if use_v:
             ver_opts.append("-v")
         decorators.append(
-            click.version_option(ver_str, *ver_opts, message="%(prog)s %(version)s")
+            click.version_option(
+                ver_str, *ver_opts, message="%(prog)s %(version)s"
+            )
         )
 
         # debug option
         debug_opts = ["--debug"]
         if use_d:
             debug_opts.append("-d")
-        decorators.append(click.option(*debug_opts, is_flag=True, help="debug flag"))
+        decorators.append(
+            click.option(*debug_opts, is_flag=True, help="debug flag")
+        )
 
         # help option
         help_opts = ["--help"]

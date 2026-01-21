@@ -55,7 +55,9 @@ def mock_os_path():
         patch("os.path.expanduser") as mock_expanduser,
         patch("os.path.expandvars") as mock_expandvars,
     ):
-        mock_expanduser.side_effect = lambda path: path.replace("~", "/home/user")
+        mock_expanduser.side_effect = lambda path: path.replace(
+            "~", "/home/user"
+        )
         mock_expandvars.side_effect = lambda path: path
         yield mock_expanduser, mock_expandvars
 
@@ -81,7 +83,9 @@ class TestDispConf:
     @patch("pi0disp.disp.disp_conf.DispConf.load")
     def test_init_default_args(self, mock_load, mock_os_path, mock_logger):
         """デフォルト引数で初期化が成功すること."""
-        mock_load.return_value = MagicMock()  # load が MagicMock を返すように設定
+        mock_load.return_value = (
+            MagicMock()
+        )  # load が MagicMock を返すように設定
 
         disp_conf = DispConf()
         assert disp_conf is not None
@@ -126,7 +130,9 @@ class TestDispConf:
     @patch("pi0disp.disp.disp_conf.DispConf.load")
     def test_init_invalid_toml(self, mock_load, mock_os_path, mock_logger):
         """不正な形式の設定ファイル（TOMLDecodeError）の場合に _data が None になること."""
-        mock_load.return_value = None  # load が None を返すように設定（エラー捕捉後）
+        mock_load.return_value = (
+            None  # load が None を返すように設定（エラー捕捉後）
+        )
 
         disp_conf = DispConf()
         assert disp_conf.data is None
@@ -144,7 +150,9 @@ class TestDispConf:
         mock_load.assert_called_once()
 
     @patch("pi0disp.disp.disp_conf.DispConf.load")
-    def test_conf_filename_property(self, mock_load, mock_os_path, mock_logger):
+    def test_conf_filename_property(
+        self, mock_load, mock_os_path, mock_logger
+    ):
         """conf_filename プロパティが正しい設定ファイル名を返すこと."""
         custom_filename = "my_app_conf"
         mock_load.return_value = MagicMock()
@@ -230,7 +238,9 @@ class TestDispConf:
     def test_load_default_settings_files(self, mock_os_path, mock_logger):
         """settings_files が None の場合にデフォルトパスを使用することを確認."""
         with patch("pi0disp.disp.disp_conf.Dynaconf") as mock_dynaconf_class:
-            mock_dynaconf_instance = self._setup_dynaconf_mock(mock_dynaconf_class, {})
+            mock_dynaconf_instance = self._setup_dynaconf_mock(
+                mock_dynaconf_class, {}
+            )
 
             disp_conf_instance = DispConf(conf_filename="myconf")
 
@@ -250,7 +260,9 @@ class TestDispConf:
             )
             mock_dynaconf_instance.get.assert_called_once_with("pi0disp")
 
-    def test_load_default_pkg_name(self, toml_file_fixture, mock_os_path, mock_logger):
+    def test_load_default_pkg_name(
+        self, toml_file_fixture, mock_os_path, mock_logger
+    ):
         """pkg_name が None の場合にデフォルトパッケージ名を使用することを確認."""
         toml_content = """
         [my_package]
@@ -290,14 +302,18 @@ class TestDispConf:
             temp_file_path = Path(tmpdir) / "invalid_conf.toml"
             temp_file_path.write_text(invalid_toml_content)
 
-            with patch("pi0disp.disp.disp_conf.Dynaconf") as mock_dynaconf_class:
+            with patch(
+                "pi0disp.disp.disp_conf.Dynaconf"
+            ) as mock_dynaconf_class:
                 # Dynaconf(...) の初期化で例外ではなく、.get() 呼び出しなどで例外が出る可能性もあるが
                 # 実装を見ると Dynaconf(settings_files=...).get(...) なので
                 # Dynaconf(...) 自体は通るかもしれない。
                 # ただし実装は `try: return Dynaconf(...)` となっているので、
                 # インスタンス生成時のエラーも捕捉される。
                 # ここではインスタンス生成時にエラーを出すように設定する。
-                mock_dynaconf_class.side_effect = TOMLDecodeError("mock decode error")
+                mock_dynaconf_class.side_effect = TOMLDecodeError(
+                    "mock decode error"
+                )
 
                 disp_conf_instance = DispConf(conf_filename=None)
                 loaded_data = disp_conf_instance.load(
@@ -307,7 +323,9 @@ class TestDispConf:
                 assert loaded_data is None
                 mock_logger.return_value.error.assert_called()
 
-    def test_to_dict_success(self, toml_file_fixture, mock_os_path, mock_logger):
+    def test_to_dict_success(
+        self, toml_file_fixture, mock_os_path, mock_logger
+    ):
         """設定が正常に読み込まれた場合、辞書形式で設定データが返されること."""
         toml_content = """
         [pi0disp]

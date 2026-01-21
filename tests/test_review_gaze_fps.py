@@ -24,7 +24,9 @@ def test_gaze_movement_fps_dependency():
         adjusted_lerp_factor = 1.0 - (1.0 - lerp_factor) ** (interval * 10.0)
 
         for _ in range(steps):
-            current_x = current_x + (target_x - current_x) * adjusted_lerp_factor
+            current_x = (
+                current_x + (target_x - current_x) * adjusted_lerp_factor
+            )
         return current_x
 
     duration = 0.5
@@ -38,4 +40,6 @@ def test_gaze_movement_fps_dependency():
     print(f"  Diff: {diff:.4f}")
 
     # 修正後は差異が非常に小さくなるはず
-    assert diff < 0.01, f"Gaze movement should be FPS independent (Diff: {diff:.4f})"
+    assert diff < 0.01, (
+        f"Gaze movement should be FPS independent (Diff: {diff:.4f})"
+    )

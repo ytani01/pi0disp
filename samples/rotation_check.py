@@ -54,11 +54,15 @@ def draw_test_pattern(width, height, rotation):
 
     y_offset = center_y + r + 10
     for i, line in enumerate(info_text):
-        draw.text((center_x - 60, y_offset + i * 20), line, fill="cyan", font=font)
+        draw.text(
+            (center_x - 60, y_offset + i * 20), line, fill="cyan", font=font
+        )
 
     # 6. Corner markers
     draw.text((5, 5), "0,0", fill="white")
-    draw.text((width - 50, height - 15), f"{width - 1},{height - 1}", fill="white")
+    draw.text(
+        (width - 50, height - 15), f"{width - 1},{height - 1}", fill="white"
+    )
 
     return image
 

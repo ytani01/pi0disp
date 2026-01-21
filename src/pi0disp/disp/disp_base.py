@@ -83,14 +83,18 @@ class DispBase(metaclass=ABCMeta):
         # Initialize pigpio
         self.pi = pigpio.pi()
         if not self.pi.connected:
-            raise RuntimeError("Could not connect to pigpio daemon. Is it running?")
+            raise RuntimeError(
+                "Could not connect to pigpio daemon. Is it running?"
+            )
 
     def __enter__(self):
         self._log.debug("")
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._log.debug("exc_type=%s,exc_val=%s,exc_tb=%s", exc_type, exc_val, exc_tb)
+        self._log.debug(
+            "exc_type=%s,exc_val=%s,exc_tb=%s", exc_type, exc_val, exc_tb
+        )
         self.close()
 
     @property
@@ -131,7 +135,9 @@ class DispBase(metaclass=ABCMeta):
 
         # Swap width and height for portrait/landscape modes
         if rotation in (90, 270):
-            self._size = DispSize(self._native_size.height, self._native_size.width)
+            self._size = DispSize(
+                self._native_size.height, self._native_size.width
+            )
         else:
             self._size = self._native_size
 
@@ -162,7 +168,9 @@ class DispBase(metaclass=ABCMeta):
             full (bool): 差分更新ではなく全画面を強制的に更新するか。
         """
         if image.size != self._size:
-            self._log.debug("画像のサイズをディスプレイに合わせて調整します。")
+            self._log.debug(
+                "画像のサイズをディスプレイに合わせて調整します。"
+            )
             image = image.resize(self._size)
 
     def close(self):
@@ -175,7 +183,9 @@ class DispBase(metaclass=ABCMeta):
             self._log.debug("pigpiod接続を閉じます。")
             self.pi.stop()
         else:
-            self._log.warning("pigpiodに接続していません (%s)。", self.pi.connected)
+            self._log.warning(
+                "pigpiodに接続していません (%s)。", self.pi.connected
+            )
 
 
 def get_display_info(debug=False) -> dict:

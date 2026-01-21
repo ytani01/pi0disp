@@ -43,7 +43,9 @@ class ColorConverter:
             dtype=np.uint8,
         )
 
-    def convert(self, rgb_array: np.ndarray, apply_gamma: bool = False) -> bytes:
+    def convert(
+        self, rgb_array: np.ndarray, apply_gamma: bool = False
+    ) -> bytes:
         """
         RGB NumPy 配列を大端エンディアンの RGB565 バイト列に変換します。
 

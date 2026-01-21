@@ -28,7 +28,9 @@ class InteractiveSession:
         print(f"## key-input: {key!r}")
         os.write(self.master_fd, key.encode())
 
-    def expect(self, pattern: str | list[str], timeout: float = TIMEOUT_EXPECT) -> bool:
+    def expect(
+        self, pattern: str | list[str], timeout: float = TIMEOUT_EXPECT
+    ) -> bool:
         """Waits for a pattern to appear in the output."""
         if not pattern:
             return True
@@ -104,7 +106,9 @@ class InteractiveSession:
         assert self.expect(out_data, timeout=timeout)
         time.sleep(0.1)
 
-    def assert_in_out_list(self, inout: list[dict], timeout: float = TIMEOUT_EXPECT):
+    def assert_in_out_list(
+        self, inout: list[dict], timeout: float = TIMEOUT_EXPECT
+    ):
         """Assert interactive in and out."""
         # print(f"inout={inout}")
         if isinstance(inout, dict):
@@ -209,7 +213,9 @@ class CLITestBase:
         except FileNotFoundError:
             pytest.skip(f"Command not found: {command[0]}")
 
-    def assert_out_str(self, label: str, out_str: str, e_out: str | list[str]):
+    def assert_out_str(
+        self, label: str, out_str: str, e_out: str | list[str]
+    ):
         """Assert output."""
         if not e_out:
             return

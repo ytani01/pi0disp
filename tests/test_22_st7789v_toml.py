@@ -28,7 +28,9 @@ def test_st7789v_toml_loading(mock_pi_instance):
 
     mock_data = MagicMock()
     # .get() への対応
-    mock_data.get.side_effect = lambda k, default=None: config_dict.get(k, default)
+    mock_data.get.side_effect = lambda k, default=None: config_dict.get(
+        k, default
+    )
     # .width, .height, .rotation 等の属性アクセスへの対応
     mock_data.width = config_dict["width"]
     mock_data.height = config_dict["height"]
@@ -61,7 +63,9 @@ def test_st7789v_args_priority(mock_pi_instance):
     """TOMLよりもコンストラクタ引数が優先されることをテスト."""
     mock_data = MagicMock()
     config_dict = {"invert": False, "spi": {}}
-    mock_data.get.side_effect = lambda k, default=None: config_dict.get(k, default)
+    mock_data.get.side_effect = lambda k, default=None: config_dict.get(
+        k, default
+    )
     mock_data.__contains__.return_value = False
 
     with patch("pi0disp.disp.disp_base.MyConf") as mock_myconf_class:

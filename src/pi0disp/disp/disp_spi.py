@@ -74,7 +74,9 @@ class DispSpi(DispBase):
         # Add a workaround for unclean shutdowns (e.g., after kill -9).
         # This iterates through all possible SPI handles and attempts to close them,
         # cleaning up any stale handles left over from the previous process.
-        self._log.debug("残存する可能性のあるSPIハンドルをクリーンアップします。")
+        self._log.debug(
+            "残存する可能性のあるSPIハンドルをクリーンアップします。"
+        )
         for h in range(32):
             try:
                 self.pi.spi_close(h)
@@ -90,7 +92,9 @@ class DispSpi(DispBase):
             for k in ["rst", "dc", "bl", "cs"]:
                 if self._conf.data.get("spi").get(k):
                     pd[k] = self._conf.data.spi.get(k)
-            pin = SpiPins(rst=pd["rst"], dc=pd["dc"], bl=pd["bl"], cs=pd["cs"])
+            pin = SpiPins(
+                rst=pd["rst"], dc=pd["dc"], bl=pd["bl"], cs=pd["cs"]
+            )
             self._log.debug("GPIO: pin=%s", pin)
         self.pin = pin
 
@@ -114,7 +118,9 @@ class DispSpi(DispBase):
         # Open SPI handle
         self.spi_handle = self.pi.spi_open(channel, speed_hz, 0)
         if self.spi_handle < 0:
-            raise RuntimeError(f"SPIバスを開けませんでした: handle={self.spi_handle}")
+            raise RuntimeError(
+                f"SPIバスを開けませんでした: handle={self.spi_handle}"
+            )
         self._last_dc_level = -1
 
     def _set_dc_level(self, level: int):
@@ -185,7 +191,9 @@ class DispSpi(DispBase):
             if self.spi_handle >= 0:
                 try:
                     self.pi.spi_close(self.spi_handle)
-                    self._log.debug("SPIをクローズ: spi_handle=%s", self.spi_handle)
+                    self._log.debug(
+                        "SPIをクローズ: spi_handle=%s", self.spi_handle
+                    )
                 except Exception as e:
                     self._log.warning(errmsg(e))
 

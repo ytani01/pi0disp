@@ -29,7 +29,9 @@ __log = get_logger(__name__)
     show_default=True,
     help="Duration to display each image in seconds.",
 )
-@click.option("--rst", type=int, default=25, show_default=True, help="RST PIN")
+@click.option(
+    "--rst", type=int, default=25, show_default=True, help="RST PIN"
+)
 @click.option("--dc", type=int, default=24, show_default=True, help="DC PIN")
 @click.option("--bl", type=int, default=23, show_default=True, help="BL PIN")
 @click.option("--svg", is_flag=True, help="SVG flag")
@@ -42,7 +44,9 @@ def image(ctx, image_path, duration, rst, dc, bl, svg, debug):
     import cairosvg
 
     __log = get_logger(__name__, debug)
-    __log.debug("image_path=%s, duration=%s, svg=%s", image_path, duration, svg)
+    __log.debug(
+        "image_path=%s, duration=%s, svg=%s", image_path, duration, svg
+    )
     __log.debug("rst=%s, dc=%s, bl=%s", rst, dc, bl)
 
     try:
@@ -60,7 +64,9 @@ def image(ctx, image_path, duration, rst, dc, bl, svg, debug):
 
     try:
         with ST7789V(pin=SpiPins(rst=rst, dc=dc, bl=bl), debug=debug) as lcd:
-            __log.debug("Display initialized: %sx%s", lcd.size.width, lcd.size.height)
+            __log.debug(
+                "Display initialized: %sx%s", lcd.size.width, lcd.size.height
+            )
 
             print(f"Displaying image: {image_path}")
 
@@ -76,7 +82,9 @@ def image(ctx, image_path, duration, rst, dc, bl, svg, debug):
 
             for gamma in (1.0, 1.5, 1.0, 0.5, 1.0):
                 __log.debug("Applying gamma=%s", gamma)
-                corrected_image = processor.apply_gamma(resized_image, gamma=gamma)
+                corrected_image = processor.apply_gamma(
+                    resized_image, gamma=gamma
+                )
                 lcd.display(corrected_image)
                 time.sleep(duration)
 

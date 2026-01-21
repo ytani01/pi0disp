@@ -131,7 +131,9 @@ class Ball(CircleSprite):
             self.speed_y = -self.speed_y
 
         # 位置更新時に速度の二乗も更新
-        self.speed_sq = self.speed_x * self.speed_x + self.speed_y * self.speed_y
+        self.speed_sq = (
+            self.speed_x * self.speed_x + self.speed_y * self.speed_y
+        )
 
         # 位置が変わったら更新
         self.cx = new_cx
@@ -221,8 +223,12 @@ class BenchmarkTracker:
         elapsed = time.time() - self.start_time
         if int(elapsed) > len(self.cpu_samples):
             try:
-                self.cpu_samples.append(self.process.cpu_percent(interval=None))
-                self.mem_ballanime_samples.append(self.process.memory_info().rss)
+                self.cpu_samples.append(
+                    self.process.cpu_percent(interval=None)
+                )
+                self.mem_ballanime_samples.append(
+                    self.process.memory_info().rss
+                )
 
                 if self.pigpiod_process:
                     self.pigpiod_samples.append(
@@ -243,7 +249,9 @@ class BenchmarkTracker:
         elapsed = time.time() - (self.start_time or time.time())
         avg_fps = self.total_frames / elapsed if elapsed > 0 else 0
         avg_cpu = (
-            sum(self.cpu_samples) / len(self.cpu_samples) if self.cpu_samples else 0
+            sum(self.cpu_samples) / len(self.cpu_samples)
+            if self.cpu_samples
+            else 0
         )
         avg_pigpiod = (
             sum(self.pigpiod_samples) / len(self.pigpiod_samples)
@@ -252,8 +260,12 @@ class BenchmarkTracker:
         )
 
         # 平均メモリ使用量の算出とフォーマット
-        avg_mem_ballanime = calculate_average_memory_usage(self.mem_ballanime_samples)
-        avg_mem_pigpiod = calculate_average_memory_usage(self.mem_pigpiod_samples)
+        avg_mem_ballanime = calculate_average_memory_usage(
+            self.mem_ballanime_samples
+        )
+        avg_mem_pigpiod = calculate_average_memory_usage(
+            self.mem_pigpiod_samples
+        )
 
         return {
             "duration": elapsed,
@@ -311,7 +323,9 @@ def _initialize_balls_optimized(
 
             if is_valid:
                 angle = np.random.rand() * TWO_PI
-                balls.append(Ball(x, y, BALL_RADIUS, speed, angle, fill_color))
+                balls.append(
+                    Ball(x, y, BALL_RADIUS, speed, angle, fill_color)
+                )
                 ball_placed = True
                 break
 
@@ -674,13 +688,17 @@ def _loop(
                     for ball in balls:
                         r, g, b = [c / 255.0 for c in ball.fill_color]
                         cairo_ctx.set_source_rgb(r, g, b)
-                        cairo_ctx.arc(ball.cx, ball.cy, ball.radius, 0, TWO_PI)
+                        cairo_ctx.arc(
+                            ball.cx, ball.cy, ball.radius, 0, TWO_PI
+                        )
                         cairo_ctx.fill()
 
                     cairo_ctx.restore()
 
                     # 2. その領域を PIL画像に変換して全画面バッファに反映
-                    region_image = cairo_surface_to_pil(cairo_surface, (x1, y1, x2, y2))
+                    region_image = cairo_surface_to_pil(
+                        cairo_surface, (x1, y1, x2, y2)
+                    )
                     frame_image.paste(region_image, (x1, y1))
 
                 # 3. テキストの再描画 (常に実行)
@@ -797,7 +815,9 @@ def _loop(
     default=None,
     help="Capture frame image every N seconds.",
 )
-@click.option("--rst", type=int, default=25, show_default=True, help="RST PIN")
+@click.option(
+    "--rst", type=int, default=25, show_default=True, help="RST PIN"
+)
 @click.option("--dc", type=int, default=24, show_default=True, help="DC PIN")
 @click.option("--bl", type=int, default=23, show_default=True, help="BL PIN")
 @click_common_opts(__version__)
@@ -849,7 +869,9 @@ def ballanime(
                 font_small = ImageFont.load_default()
 
             # 背景画像を生成
-            background_image = Image.new("RGB", (lcd.size.width, lcd.size.height))
+            background_image = Image.new(
+                "RGB", (lcd.size.width, lcd.size.height)
+            )
             draw = ImageDraw.Draw(background_image)
             for y in range(lcd.size.height):
                 color = (y % 256, (y * 2) % 256, (y * 3) % 256)

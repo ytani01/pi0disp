@@ -61,7 +61,9 @@ def ballanime_process(request):
         "--fps",
         "30",
     ]
-    process = subprocess.Popen(cmd, preexec_fn=os.setsid, stderr=subprocess.PIPE)
+    process = subprocess.Popen(
+        cmd, preexec_fn=os.setsid, stderr=subprocess.PIPE
+    )
     log.info(f"Started ballanime --mode {mode} (PID: {process.pid})")
 
     # Give it a moment to potentially fail
@@ -112,7 +114,9 @@ def test_ballanime_performance_comparison(ballanime_process, duration):
 
     avg_cpu = sum(cpu_usages) / len(cpu_usages) if cpu_usages else 0
     avg_pigpiod_cpu = (
-        sum(pigpiod_cpu_usages) / len(pigpiod_cpu_usages) if pigpiod_cpu_usages else 0
+        sum(pigpiod_cpu_usages) / len(pigpiod_cpu_usages)
+        if pigpiod_cpu_usages
+        else 0
     )
 
     log.info(f"\nResults for mode: {mode}")

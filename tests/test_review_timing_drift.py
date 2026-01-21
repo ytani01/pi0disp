@@ -31,4 +31,6 @@ def test_timing_drift_baseline():
 
     # 修正後はドリフトが大幅に軽減されるはず
     # 1フレームの間隔 (100ms) よりも十分に小さいことを確認
-    assert abs(drift) < 0.01, f"Drift should be minimized (Got {drift * 1000:.2f}ms)"
+    assert abs(drift) < 0.01, (
+        f"Drift should be minimized (Got {drift * 1000:.2f}ms)"
+    )
