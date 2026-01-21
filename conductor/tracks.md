@@ -15,10 +15,10 @@ This file tracks all major tracks for the project. Each track has its own detail
 - [x] **Track: 'mise run lint'が完全に通るようにする。** (2026-01-21)
 *Link: [./archive/complete_lint_20260121/](./archive/complete_lint_20260121/)*
 
-- [x] **Track: コードレビューに基づくアニメーションとパフォーマンスの改善**
+- [x] **Track: コードレビューに基づくアニメーションとパフォーマンス의改善**
 *Link: [./archive/review_improvement_20260113/](./archive/review_improvement_20260113/)*
 
 ---
 
-- [~] **Track: 'uv run pi0disp lcd-check --wizard' で、最初に画面の向きをインタラクティブに設定できるようにする。**
+- [x] **Track: 'uv run pi0disp lcd-check --wizard' で、最初に画面の向きをインタラクティブに設定できるようにする。**
 *Link: [./tracks/lcd_orientation_20260121/](./tracks/lcd_orientation_20260121/)*
