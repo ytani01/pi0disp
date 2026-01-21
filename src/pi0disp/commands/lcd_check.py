@@ -11,11 +11,76 @@ from .. import __version__
 from ..disp.disp_conf import DispConf
 from ..disp.st7789v import ST7789V
 from ..utils.click_utils import click_common_opts
-from ..utils.lcd_test_pattern import draw_lcd_test_pattern
+from ..utils.lcd_test_pattern import (
+    WIZARD_BG,
+    WIZARD_COLORS,
+    determine_lcd_settings,
+    draw_lcd_test_pattern,
+)
 from ..utils.mylogger import get_logger
 
 
+def run_wizard(disp, rotation, debug=False):
+    """Interactive wizard flow."""
+    __log = get_logger(__name__, debug)
+    
+    print("\n--- LCD Settings Wizard ---")
+    print("実機のLCD表示を確認しながら、以下の質問に答えてください。")
+    
+    # 基準設定で表示 (RGB, Invert Off)
+    current_inv = False
+    current_bgr = False
+    disp._invert = current_inv
+    disp._bgr = current_bgr
+    disp.init_display()
+    disp.set_rotation(rotation)
+    
+    width, height = disp.size.width, disp.size.height
+    img = draw_lcd_test_pattern(width, height, current_inv, current_bgr)
+    disp.display(img)
+    
+    # Q1: 背景色
+    print("\n[Q1] 背景の色（文字がない部分）は何色に見えますか？")
+    for k, v in WIZARD_BG.items():
+        print(f"  {k}: {v}")
+    seen_bg = click.prompt("選択してください", type=click.Choice(WIZARD_BG.keys()), default="black")
+    
+    # Q2: 左上の色
+    print("\n[Q2] 左上の大きな四角形は何色に見えますか？")
+    for k, v in WIZARD_COLORS.items():
+        print(f"  {k}: {v}")
+    seen_color = click.prompt("選択してください", type=click.Choice(WIZARD_COLORS.keys()), default="red")
+    
+    if seen_color == "other":
+        print("\n判定できませんでした。接続や型番を再確認してください。")
+        return None
+
+    try:
+        res_bgr, res_inv = determine_lcd_settings(current_bgr, current_inv, seen_color, seen_bg)
+        
+        print("\n--- 判定結果 ---")
+        print(f" 推定される設定: bgr={res_bgr}, invert={res_inv}")
+        print("\nこの設定で再表示します...")
+        
+        disp._invert = res_inv
+        disp._bgr = res_bgr
+        disp.init_display()
+        disp.set_rotation(rotation)
+        img = draw_lcd_test_pattern(width, height, res_inv, res_bgr)
+        disp.display(img)
+        
+        print("正しく表示されましたか？（背景が黒、上から赤・緑・青）")
+        if click.confirm("正解の場合、設定を保存しますか？", default=True):
+            return {"bgr": res_bgr, "invert": res_inv}
+            
+    except ValueError as e:
+        print(f"\nエラー: {e}")
+        
+    return None
+
+
 @click.command()
+@click_common_opts(__version__)
 @click.option(
     "--rotation",
     "-r",
@@ -41,12 +106,21 @@ from ..utils.mylogger import get_logger
     default=0,
     help="Auto-advance wait time in seconds (0 for manual)",
 )
-@click_common_opts(__version__)
-def lcd_check(ctx, rotation, invert, bgr, wait, debug):
+@click.option(
+    "--wizard",
+    is_flag=True,
+    help="Launch interactive wizard to identify settings",
+)
+def lcd_check(ctx, rotation, invert, bgr, wait, wizard, debug):
     """LCD Check tool to identify correct invert and BGR settings."""
     __log = get_logger(__name__, debug)
     __log.debug(
-        "rotation=%d, invert=%s, bgr=%s, wait=%f", rotation, invert, bgr, wait
+        "rotation=%d, invert=%s, bgr=%s, wait=%f, wizard=%s",
+        rotation,
+        invert,
+        bgr,
+        wait,
+        wizard,
     )
 
     # Determine tests to run
@@ -74,11 +148,16 @@ def lcd_check(ctx, rotation, invert, bgr, wait, debug):
         conf = DispConf(debug=debug)
         if conf.data is None:
             __log.warning("Configuration data not found. Using defaults.")
-            # We can still proceed with ST7789V defaults if needed,
-            # but usually it's better to have conf.
-            # ST7789V will try to load default pins if not provided.
 
         disp = ST7789V(rotation=rotation, debug=debug)
+        
+        if wizard:
+            result = run_wizard(disp, rotation, debug=debug)
+            if result:
+                print(f"\n推奨設定: bgr={result['bgr']}, invert={result['invert']}")
+                print("TODO: Phase 3 で設定ファイルの自動保存を実装します。")
+            return
+
         width, height = disp.size.width, disp.size.height
         __log.info(
             "Display size: %dx%d, rotation=%d", width, height, rotation
