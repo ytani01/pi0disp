@@ -3,6 +3,7 @@
 #
 """LCD Check command."""
 
+import os
 import time
 
 import click
@@ -17,10 +18,11 @@ from ..utils.lcd_test_pattern import (
     determine_lcd_settings,
     draw_lcd_test_pattern,
 )
+from ..utils.my_conf import update_toml_settings
 from ..utils.mylogger import get_logger
 
 
-def run_wizard(disp, rotation, debug=False):
+def run_wizard(disp, rotation, conf=None, debug=False):
     """Interactive wizard flow."""
     __log = get_logger(__name__, debug)
     
@@ -71,6 +73,16 @@ def run_wizard(disp, rotation, debug=False):
         
         print("正しく表示されましたか？（背景が黒、上から赤・緑・青）")
         if click.confirm("正解の場合、設定を保存しますか？", default=True):
+            # 保存先の決定
+            save_path = "pi0disp.toml"
+            if conf and conf.settings_files:
+                for p in conf.settings_files:
+                    if os.path.exists(p):
+                        save_path = p
+                        break
+            
+            update_toml_settings({"bgr": res_bgr, "invert": res_inv}, save_path)
+            print(f"設定を保存しました: {save_path}")
             return {"bgr": res_bgr, "invert": res_inv}
             
     except ValueError as e:
@@ -152,10 +164,9 @@ def lcd_check(ctx, rotation, invert, bgr, wait, wizard, debug):
         disp = ST7789V(rotation=rotation, debug=debug)
         
         if wizard:
-            result = run_wizard(disp, rotation, debug=debug)
+            result = run_wizard(disp, rotation, conf=conf, debug=debug)
             if result:
-                print(f"\n推奨設定: bgr={result['bgr']}, invert={result['invert']}")
-                print("TODO: Phase 3 で設定ファイルの自動保存を実装します。")
+                print(f"\n判定結果: bgr={result['bgr']}, invert={result['invert']}")
             return
 
         width, height = disp.size.width, disp.size.height

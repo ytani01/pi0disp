@@ -56,6 +56,11 @@ class DispConf:
         )
 
     @property
+    def settings_files(self):
+        """設定ファイルのパスリストを返す。"""
+        return self._settings_files
+
+    @property
     def pkg_name(self):
         """パッケージ名を返す。"""
         return self._pkg_name

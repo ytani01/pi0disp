@@ -4,10 +4,40 @@
 import os
 from typing import Any, Dict, Optional
 
+import tomlkit
 from dynaconf import Dynaconf
 from dynaconf.vendor.tomllib import TOMLDecodeError
 
 from ..utils.mylogger import errmsg, get_logger  # type: ignore
+
+
+def update_toml_settings(
+    settings: Dict[str, Any], conf_file: str = "pi0disp.toml"
+) -> None:
+    """
+    Updates or creates a TOML configuration file with the given settings.
+    Maintains existing comments and structure where possible.
+
+    Args:
+        settings: A dictionary of settings to update (e.g., {"bgr": True}).
+        conf_file: Path to the TOML file.
+    """
+    if os.path.exists(conf_file):
+        with open(conf_file, "r") as f:
+            data = tomlkit.parse(f.read())
+    else:
+        data = tomlkit.document()
+
+    if "pi0disp" not in data:
+        data.add("pi0disp", tomlkit.table())
+
+    table = data["pi0disp"]
+    for key, value in settings.items():
+        table[key] = value
+
+    with open(conf_file, "w") as f:
+        f.write(tomlkit.dumps(data))
+
 
 
 class MyConf:
