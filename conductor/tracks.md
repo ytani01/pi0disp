@@ -20,3 +20,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 - [x] **Track: コードレビューに基づくアニメーションとパフォーマンスの改善**
 *Link: [./archive/review_improvement_20260113/](./archive/review_improvement_20260113/)*
+
+---
+
+- [x] **Track: pyproject.toml の tool.uv.workspace は、今は不要なのでは？**
+*Link: [./tracks/remove_unused_workspace_20260121/](./tracks/remove_unused_workspace_20260121/)*
