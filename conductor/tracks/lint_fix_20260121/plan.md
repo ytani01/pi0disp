@@ -29,10 +29,10 @@
     - [x] 修正：設定ファイル（`pi0disp.toml`）との整合性を考慮した堅牢な実装への変更
 - [x] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)
 
-## Phase 4: Full Validation
+## Phase 4: Full Validation [checkpoint: f6239c2]
 全体の整合性確認。
 
 - [x] Task: `src` 全体に対して `uv run basedpyright src` を実行し、残存エラーがないか確認 (9cb9a83)
 - [x] Task: `mise run lint` を完遂し、静的解析が完全に通ることを確認 (1 file reformatted, all checks passed)
-- [x] Task: 全テスト `uv run pytest tests` を実行し、ロジックのデグレードがないことをファクトチェック (162 PASSED, hardware-related tests skipped/failed as expected)
+- [x] Task: 全テスト `uv run pytest tests` を実行し、ロジック의 デグレードがないことをファクトチェック (162 PASSED, hardware-related tests skipped/failed as expected)
 - [x] Task: Conductor - User Manual Verification 'Phase 4' (Protocol in workflow.md)
