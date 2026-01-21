@@ -31,9 +31,9 @@ Click を使用して対話型インターフェースを構築します。
     - [x] ユーザーに保存の確認 (`[y/N]`) を行い、許可された場合のみ `pi0disp.toml` を更新する。
 - [x] Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md) (f5e1342)
 
-## Phase 4: 最終統合テストとドキュメント更新
-- [ ] Task: 統合テストの実施
-    - [ ] 実際のコマンドフローを通じた結合テスト（モック環境）を実行する。
-- [ ] Task: README.md および docs/ の更新
-    - [ ] `lcd-check --wizard` の使い方をドキュメントに追加する。
-- [ ] Task: Conductor - User Manual Verification 'Phase 4' (Protocol in workflow.md)
+## Phase 4: 最終統合テストとドキュメント更新 [checkpoint: b40eec2]
+- [x] Task: 統合テストの実施 (b40eec2)
+    - [x] 実際のコマンドフローを通じた結合テスト（モック環境）を実行する。
+- [x] Task: README.md および docs/ の更新 (b40eec2)
+    - [x] `lcd-check --wizard` の使い方をドキュメントに追加する。
+- [x] Task: Conductor - User Manual Verification 'Phase 4' (Protocol in workflow.md) (b40eec2)
