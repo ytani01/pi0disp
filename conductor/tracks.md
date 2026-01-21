@@ -9,7 +9,7 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [~] **Track: mise run lintが全て通るようにしたい。**
+- [x] **Track: mise run lintが全て通るようにしたい。**
 *Link: [./tracks/lint_fix_20260121/](./tracks/lint_fix_20260121/)*
 
 
