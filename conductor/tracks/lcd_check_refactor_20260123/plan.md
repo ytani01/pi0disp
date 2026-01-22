@@ -23,5 +23,5 @@
 
 - [x] Task: 作成した自動テストを実行し、すべてのステップのロジックが正しく機能することを「事実」として確認する [924455e]
 - [x] Task: 画面キャプチャやデバッグログを活用し、実機に近い挙動が維持されていることを検証する [191044b]
-- [ ] Task: `mise run test` および `mise run lint` を実行し、プロジェクトの品質基準をすべてクリアする
+- [x] Task: `mise run test` および `mise run lint` を実行し、プロジェクトの品質基準をすべてクリアする [eb95391]
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: 検証と品質確保' (Protocol in workflow.md)
