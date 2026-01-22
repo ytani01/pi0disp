@@ -4,10 +4,10 @@
 リファクタリング前に現状の挙動を「事実」として記録し、破壊的変更を防ぐためのテストを整備する。
 
 - [x] Task: 新しい作業用ブランチ `refactor-lcd-check` を作成する [ce151a2]
-- [ ] Task: 現状の `lcd_check.py` の挙動（ウィザードの各ステップ、期待される出力画像等）を詳細に分析する
-- [ ] Task: リファクタリング後の「理想のインターフェース」を定義し、それに合わせた失敗するテスト（Red）を作成する
+- [x] Task: 現状の `lcd_check.py` の挙動（ウィザードの各ステップ、期待される出力画像等）を詳細に分析する [399fb6c]
+- [x] Task: リファクタリング後の「理想のインターフェース」を定義し、それに合わせた失敗するテスト（Red）を作成する [399fb6c]
     - ウィザードのロジックが独立してテスト可能であることを検証するテストを含む
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: 準備と現状の事実確認' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: 準備と現状の事実確認' (Protocol in workflow.md) [399fb6c]
 
 ## Phase 2: シンプルでスッキリとした構造への刷新 (Implementation - Green Phase)
 ロジックを分離し、可読性の高いクリーンなコードへ移行する。
