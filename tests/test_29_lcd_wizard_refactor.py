@@ -41,6 +41,9 @@ def test_wizard_logic_flow():
         def show_status(self, state):
             self.outputs.append(state.copy())
 
+        def show_help(self):
+            pass
+
     disp = MagicMock()
     disp.size.width = 240
     disp.size.height = 320

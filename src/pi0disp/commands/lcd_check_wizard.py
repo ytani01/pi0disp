@@ -99,6 +99,9 @@ class WizardUI:
     def show_status(self, state: WizardState):
         raise NotImplementedError()
 
+    def show_help(self):
+        raise NotImplementedError()
+
 class ClickWizardUI(WizardUI):
     """Real implementation of WizardUI using click and console."""
     def get_key(self) -> str:
@@ -107,6 +110,18 @@ class ClickWizardUI(WizardUI):
     def show_status(self, state: WizardState):
         status = f"Rot:{state.rotation:3} Inv:{str(state.invert):5} BGR:{str(state.bgr):5} Off:({state.x_offset},{state.y_offset})"
         print(f"\rCurrent: {status} (a-d,i,g,hjkl,ENTER,q) ", end="", flush=True)
+
+    def show_help(self):
+        print("\n--- LCD Interactive Wizard ---")
+        print("実機の表示を確認しながら、以下のキーで調整してください。")
+        print("背景が『漆黒』、上から『赤・緑・青』の順に見えるのが正解です。")
+        print("\n  a, b, c, d : 画面の向き (0°, 90°, 180°, 270°)")
+        print("  i          : 色反転 (Invert) ON/OFF")
+        print("  g          : 色順序 (BGR) ON/OFF")
+        print("  h, j, k, l : 表示位置の微調整 (x_offset, y_offset)")
+        print("  ENTER      : この設定で保存して終了")
+        print("  q          : 中断")
+        print("------------------------------")
 
 class LCDWizard:
     """Manages the wizard flow."""
@@ -124,8 +139,7 @@ class LCDWizard:
 
     def run(self) -> dict:
         """Run the interactive loop."""
-        print("\n--- LCD Interactive Wizard ---")
-        # (Help messages omitted for brevity in this initial implementation)
+        self.ui.show_help()
 
         while True:
             # Update hardware
