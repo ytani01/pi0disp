@@ -9,7 +9,7 @@
     - ウィザードのロジックが独立してテスト可能であることを検証するテストを含む
 - [x] Task: Conductor - User Manual Verification 'Phase 1: 準備と現状の事実確認' (Protocol in workflow.md) [399fb6c]
 
-## Phase 2: シンプルでスッキリとした構造への刷新 (Implementation - Green Phase)
+## Phase 2: シンプルでスッキリとした構造への刷新 (Implementation - Green Phase) [checkpoint: 7d99f1b]
 ロジックを分離し、可読性の高いクリーンなコードへ移行する。
 
 - [x] Task: 共通の描画・検証インターフェース（シンプルな基底クラスまたはプロトコル）を定義する [f837deb]
