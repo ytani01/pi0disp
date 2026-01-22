@@ -6,6 +6,9 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ## Archived Tracks
 
+- [x] **Track: コードレビュー指摘事項に基づく改善と修正** (2026-01-23)
+*Link: [./archive/fix_refactor_issues_20260123/](./archive/fix_refactor_issues_20260123/)*
+
 - [x] **Track: pyproject.toml の tool.uv.workspace は、今は不要なのでは？** (2026-01-21)
 *Link: [./archive/remove_unused_workspace_20260121/](./archive/remove_unused_workspace_20260121/)*
 
@@ -25,6 +28,3 @@ This file tracks all major tracks for the project. Each track has its own detail
 *Link: [./archive/review_improvement_20260113/](./archive/review_improvement_20260113/)*
 
 ---
-
-- [x] **Track: コードレビュー指摘事項に基づく改善と修正**
-*Link: [./tracks/fix_refactor_issues_20260123/](./tracks/fix_refactor_issues_20260123/)*
