@@ -26,3 +26,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
+- [x] **Track: コードレビュー指摘事項に基づく改善と修正**
+*Link: [./tracks/fix_refactor_issues_20260123/](./tracks/fix_refactor_issues_20260123/)*
