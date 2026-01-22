@@ -5,7 +5,8 @@
 
 from unittest.mock import MagicMock, patch
 
-from pi0disp.commands.lcd_check_wizard import LCDWizard, ClickWizardUI
+from pi0disp.commands.lcd_check_wizard import ClickWizardUI, LCDWizard
+
 
 @patch("pi0disp.commands.lcd_check_wizard.draw_lcd_test_pattern")
 def test_lcd_wizard_loop(mock_draw):
