@@ -18,7 +18,7 @@
 - [x] Task: `lcd_check.py` 本体のコードを大幅に削減し、各コンポーネントを呼び出すだけのシンプルな構造にする [428cf82]
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: シンプルでスッキリとした構造への刷新' (Protocol in workflow.md)
 
-## Phase 3: 検証と品質確保 (Refactor & Verification)
+## Phase 3: 検証と品質確保 (Refactor & Verification) [checkpoint: 2ede39e]
 自動テストと実際の動作確認により、リファクタリングの正当性を証明する。
 
 - [x] Task: 作成した自動テストを実行し、すべてのステップのロジックが正しく機能することを「事実」として確認する [924455e]
