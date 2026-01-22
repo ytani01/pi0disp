@@ -4,6 +4,13 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
+## Active Tracks
+
+- [x] **Track: src/pi0disp/commands/lcd_check.py をリファクタリングする。** (2026-01-23)
+*Link: [./tracks/lcd_check_refactor_20260123/](./tracks/lcd_check_refactor_20260123/)*
+
+---
+
 ## Archived Tracks
 
 - [x] **Track: コードレビュー指摘事項に基づく改善と修正** (2026-01-23)
