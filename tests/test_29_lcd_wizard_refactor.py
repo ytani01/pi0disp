@@ -42,6 +42,14 @@ def test_wizard_logic_flow():
             self.outputs.append(state.copy())
 
     disp = MagicMock()
+    disp.size.width = 240
+    disp.size.height = 320
+    disp.rotation = 90
+    disp._invert = False
+    disp._bgr = False
+    disp._x_offset = 0
+    disp._y_offset = 0
+
     ui = MockUI(["a", "i", "\r"])
     wizard = LCDWizard(disp, ui)
     
