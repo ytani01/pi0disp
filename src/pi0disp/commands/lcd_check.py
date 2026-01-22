@@ -3,7 +3,6 @@
 #
 """LCD Check command."""
 
-import os
 import time
 
 import click
@@ -11,11 +10,11 @@ import click
 from .. import __version__
 from ..disp.disp_conf import DispConf
 from ..disp.st7789v import ST7789V
-from .lcd_check_wizard import LCDWizard, ClickWizardUI
 from ..utils.click_utils import click_common_opts
 from ..utils.lcd_test_pattern import draw_lcd_test_pattern
 from ..utils.my_conf import update_toml_settings
 from ..utils.mylogger import get_logger
+from .lcd_check_wizard import ClickWizardUI, LCDWizard
 
 
 @click.command()
@@ -90,13 +89,17 @@ def lcd_check(ctx, rotation, invert, bgr, wait, wizard, debug):
 
         disp = ST7789V(rotation=rotation, debug=debug)
 
-                if wizard:
+        if wizard:
             ui = ClickWizardUI()
             wiz = LCDWizard(disp, ui, debug=debug)
             result = wiz.run()
 
             if click.confirm("\n設定を保存しますか？", default=True):
-                save_path = conf.settings_files[0] if conf and conf.settings_files else "pi0disp.toml"
+                save_path = (
+                    conf.settings_files[0]
+                    if conf and conf.settings_files
+                    else "pi0disp.toml"
+                )
                 __log.info("Saving settings to: %s", save_path)
                 update_toml_settings(result, save_path)
                 print(f"設定を保存しました: {save_path}")
