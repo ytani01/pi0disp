@@ -1,6 +1,6 @@
 # 実装計画: lcd_check コマンドのリファクタリング
 
-## Phase 1: 準備と現状の事実確認 (Analysis & Red Phase)
+## Phase 1: 準備と現状の事実確認 (Analysis & Red Phase) [checkpoint: 4ce91e6]
 リファクタリング前に現状の挙動を「事実」として記録し、破壊的変更を防ぐためのテストを整備する。
 
 - [x] Task: 新しい作業用ブランチ `refactor-lcd-check` を作成する [ce151a2]
