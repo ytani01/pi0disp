@@ -4,63 +4,92 @@
 """LCD Interactive Wizard components."""
 
 from dataclasses import dataclass
+from typing import Any
 import click
 from ..utils.mylogger import get_logger
 from ..utils.lcd_test_pattern import draw_lcd_test_pattern
 
-@dataclass
+class SettingItem:
+    """Base class for a display setting item."""
+    def __init__(self, name: str, value: Any, keys: dict[str, Any]):
+        self.name = name
+        self.value = value
+        self.keys = keys
+
+    def update(self, key: str) -> bool:
+        if key in self.keys:
+            self.value = self.keys[key]
+            return True
+        return False
+
+class ToggleSettingItem(SettingItem):
+    """Setting item that toggles between True and False."""
+    def __init__(self, name: str, value: bool, key: str):
+        super().__init__(name, value, {key: None})
+        self.toggle_key = key
+
+    def update(self, key: str) -> bool:
+        if key == self.toggle_key:
+            self.value = not self.value
+            return True
+        return False
+
+class OffsetSettingItem(SettingItem):
+    """Setting item for X/Y offsets."""
+    def __init__(self, name: str, value: int, dec_key: str, inc_key: str):
+        super().__init__(name, value, {dec_key: -1, inc_key: 1})
+        self.dec_key = dec_key
+        self.inc_key = inc_key
+
+    def update(self, key: str) -> bool:
+        if key == self.dec_key:
+            self.value -= 1
+            return True
+        elif key == self.inc_key:
+            self.value += 1
+            return True
+        return False
+
 class WizardState:
-    """Holds the current state of LCD settings."""
-    rotation: int = 0
-    invert: bool = False
-    bgr: bool = False
-    x_offset: int = 0
-    y_offset: int = 0
+    """Holds the current state of LCD settings using items."""
+    def __init__(self, rotation=0, invert=False, bgr=False, x_offset=0, y_offset=0):
+        self.items = [
+            SettingItem("rotation", rotation, {"a": 0, "b": 90, "c": 180, "d": 270}),
+            ToggleSettingItem("invert", invert, "i"),
+            ToggleSettingItem("bgr", bgr, "g"),
+            OffsetSettingItem("x_offset", x_offset, "h", "l"),
+            OffsetSettingItem("y_offset", y_offset, "k", "j"),
+        ]
+
+    @property
+    def rotation(self): return self._get("rotation")
+    @property
+    def invert(self): return self._get("invert")
+    @property
+    def bgr(self): return self._get("bgr")
+    @property
+    def x_offset(self): return self._get("x_offset")
+    @property
+    def y_offset(self): return self._get("y_offset")
+
+    def _get(self, name):
+        for item in self.items:
+            if item.name == name:
+                return item.value
+        return None
 
     def update_by_key(self, key: str) -> bool:
-        """Update state based on key input. Returns True if handled."""
-        key = key.lower()
-        if key == "a":
-            self.rotation = 0
-        elif key == "b":
-            self.rotation = 90
-        elif key == "c":
-            self.rotation = 180
-        elif key == "d":
-            self.rotation = 270
-        elif key == "i":
-            self.invert = not self.invert
-        elif key == "g":
-            self.bgr = not self.bgr
-        elif key == "h":
-            self.x_offset -= 1
-        elif key == "l":
-            self.x_offset += 1
-        elif key == "k":
-            self.y_offset -= 1
-        elif key == "j":
-            self.y_offset += 1
-        else:
-            return False
-        return True
+        for item in self.items:
+            if item.update(key):
+                return True
+        return False
 
     def to_dict(self) -> dict:
-        return {
-            "rotation": self.rotation,
-            "invert": self.invert,
-            "bgr": self.bgr,
-            "x_offset": self.x_offset,
-            "y_offset": self.y_offset,
-        }
+        return {item.name: item.value for item in self.items}
     
     def copy(self):
-        return WizardState(
-            rotation=self.rotation,
-            invert=self.invert,
-            bgr=self.bgr,
-            x_offset=self.x_offset,
-            y_offset=self.y_offset
-        )
+        d = self.to_dict()
+        return WizardState(**d)
 
 class WizardUI:
     """Base interface for Wizard UI handling."""
