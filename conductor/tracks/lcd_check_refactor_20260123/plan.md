@@ -15,7 +15,7 @@
 - [x] Task: 共通の描画・検証インターフェース（シンプルな基底クラスまたはプロトコル）を定義する [f837deb]
 - [x] Task: 各チェック項目（向き、反転、色順序）を独立したコンポーネントに抽出し、重複を排除する [8541a44]
 - [x] Task: ウィザードの進行制御ロジックを、UI表示や設定保存から分離して再実装する [3facf79]
-- [ ] Task: `lcd_check.py` 本体のコードを大幅に削減し、各コンポーネントを呼び出すだけのシンプルな構造にする
+- [x] Task: `lcd_check.py` 本体のコードを大幅に削減し、各コンポーネントを呼び出すだけのシンプルな構造にする [428cf82]
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: シンプルでスッキリとした構造への刷新' (Protocol in workflow.md)
 
 ## Phase 3: 検証と品質確保 (Refactor & Verification)

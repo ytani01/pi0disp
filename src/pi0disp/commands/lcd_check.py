@@ -11,107 +11,11 @@ import click
 from .. import __version__
 from ..disp.disp_conf import DispConf
 from ..disp.st7789v import ST7789V
+from .lcd_check_wizard import LCDWizard, ClickWizardUI
 from ..utils.click_utils import click_common_opts
 from ..utils.lcd_test_pattern import draw_lcd_test_pattern
 from ..utils.my_conf import update_toml_settings
 from ..utils.mylogger import get_logger
-
-
-def run_unified_wizard(
-    disp: ST7789V, debug: bool = False
-) -> dict[str, int | bool]:
-    """
-    Unified interactive LCD setting wizard.
-    Adjust rotation, invert, and BGR settings in real-time.
-
-    Args:
-        disp: ST7789V display object.
-        debug: Debug flag.
-
-    Returns:
-        A dictionary containing the selected settings.
-    """
-    __log = get_logger(__name__, debug)
-
-    cur_rot = disp.rotation
-    cur_inv = disp._invert
-    cur_bgr = disp._bgr
-
-    print("\n--- LCD Interactive Wizard ---")
-    print("実機の表示を確認しながら、以下のキーで調整してください。")
-    print("背景が『漆黒』、上から『赤・緑・青』の順に見えるのが正解です。")
-    print("\n  a, b, c, d : 画面の向き (0°, 90°, 180°, 270°)")
-    print("  i          : 色反転 (Invert) ON/OFF")
-    print("  g          : 色順序 (BGR) ON/OFF")
-    print("  h, j, k, l : 表示位置の微調整 (x_offset, y_offset)")
-    print("  ENTER      : この設定で保存して終了")
-    print("  q          : 中断")
-    print("------------------------------")
-
-    cur_x_off = disp._x_offset
-    cur_y_off = disp._y_offset
-
-    while True:
-        # Update display settings
-        disp._invert = cur_inv
-        disp._bgr = cur_bgr
-        disp._x_offset = cur_x_off
-        disp._y_offset = cur_y_off
-        disp.init_display()
-        disp.set_rotation(cur_rot)
-
-        # [CRITICAL] Access private variables to ensure consistency
-        width, height = disp.size.width, disp.size.height
-
-        # Clear cache to prevent artifacts during rotation/setting change
-        disp._last_image = None
-
-        # Create test pattern
-        img = draw_lcd_test_pattern(width, height, cur_inv, cur_bgr)
-
-        # Display it using 'full=True' to force clear screen
-        disp.display(img, full=True)
-
-        status = f"Rot:{cur_rot:3} Inv:{str(cur_inv):5} BGR:{str(cur_bgr):5} Off:({cur_x_off},{cur_y_off}) ({width}x{height})"
-        print(
-            f"\rCurrent: {status} (a-d,i,g,hjkl,ENTER) ", end="", flush=True
-        )
-
-        c = click.getchar().lower()
-        if c == "a":
-            cur_rot = 0
-        elif c == "b":
-            cur_rot = 90
-        elif c == "c":
-            cur_rot = 180
-        elif c == "d":
-            cur_rot = 270
-        elif c == "i":
-            cur_inv = not cur_inv
-        elif c == "g":
-            cur_bgr = not cur_bgr
-        elif c == "h":  # X offset decrease
-            cur_x_off -= 1
-        elif c == "l":  # X offset increase
-            cur_x_off += 1
-        elif c == "k":  # Y offset decrease
-            cur_y_off -= 1
-        elif c == "j":  # Y offset increase
-            cur_y_off += 1
-        elif c in ["\r", "\n"]:
-            print("\n設定を確定しました。")
-            break
-        elif c == "q":
-            print("\n中断しました。")
-            raise click.Abort()
-
-    return {
-        "rotation": cur_rot,
-        "invert": cur_inv,
-        "bgr": cur_bgr,
-        "x_offset": cur_x_off,
-        "y_offset": cur_y_off,
-    }
 
 
 @click.command()
@@ -186,21 +90,16 @@ def lcd_check(ctx, rotation, invert, bgr, wait, wizard, debug):
 
         disp = ST7789V(rotation=rotation, debug=debug)
 
-        if wizard:
-            result = run_unified_wizard(disp, debug=debug)
+                if wizard:
+            ui = ClickWizardUI()
+            wiz = LCDWizard(disp, ui, debug=debug)
+            result = wiz.run()
 
             if click.confirm("\n設定を保存しますか？", default=True):
-                save_path = "pi0disp.toml"
-                if conf and conf.settings_files:
-                    for p in conf.settings_files:
-                        if os.path.exists(p):
-                            save_path = p
-                            break
-
+                save_path = conf.settings_files[0] if conf and conf.settings_files else "pi0disp.toml"
                 __log.info("Saving settings to: %s", save_path)
                 update_toml_settings(result, save_path)
                 print(f"設定を保存しました: {save_path}")
-
             return
 
         width, height = disp.size.width, disp.size.height
